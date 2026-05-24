@@ -5,6 +5,7 @@ import { getDb } from "./queries/connection";
 import { tenants, subscriptions } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
+import { bootstrapTenant } from "./lib/bootstrap";
 
 export const adminRouter = createRouter({
   // ─── PENDING REGISTRATIONS ─────────────────────────────────────────────────
@@ -116,6 +117,7 @@ export const adminRouter = createRouter({
             approvedAt: now,
           })
           .where(eq(subscriptions.tenantId, input.tenantId));
+        await bootstrapTenant(tx, input.tenantId, ctx.user!.id);
       });
 
       await auditLog({
@@ -197,6 +199,7 @@ export const adminRouter = createRouter({
             approvedAt: now,
           })
           .where(eq(subscriptions.tenantId, input.tenantId));
+        await bootstrapTenant(tx, input.tenantId, ctx.user!.id);
       });
 
       await auditLog({

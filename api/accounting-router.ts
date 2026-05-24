@@ -87,10 +87,42 @@ export const accountingRouter = createRouter({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = getDb();
-      return db.query.journalEntries.findFirst({
-        where: and(eq(journalEntries.id, input.id), eq(journalEntries.tenantId, ctx.user!.tenantId as number)),
-        with: { lines: { with: { account: true } } },
-      });
+      const tenantId = ctx.user!.tenantId as number;
+      try {
+        const entry = await db.query.journalEntries.findFirst({
+          where: and(eq(journalEntries.id, input.id), eq(journalEntries.tenantId, tenantId)),
+        });
+
+        if (!entry) return entry;
+
+        // Fetch lines in a separate query (MariaDB 10.4 incompatible with nested LATERAL+JSON aggregation)
+        try {
+          const lines = await db.query.journalEntryLines.findMany({
+            where: eq(journalEntryLines.journalEntryId, entry.id),
+          });
+
+          const accountIds = [...new Set(lines.map(l => l.accountId).filter(Boolean))] as number[];
+          let accountMap = new Map<number, any>();
+          if (accountIds.length > 0) {
+            const accounts = await db.select().from(chartOfAccounts).where(and(eq(chartOfAccounts.tenantId, tenantId), inArray(chartOfAccounts.id, accountIds)));
+            accountMap = new Map(accounts.map(a => [a.id, a]));
+          }
+
+          for (const line of lines) {
+            (line as any).account = accountMap.get(line.accountId) || null;
+          }
+
+          (entry as any).lines = Array.isArray(lines) ? lines : [];
+        } catch (e: any) {
+          console.warn("[journalEntry] Failed to fetch lines/accounts:", e.message);
+          (entry as any).lines = [];
+        }
+
+        return entry;
+      } catch (err: any) {
+        console.error("[journalEntry] Relation query FAILED:", err.message, "| CODE:", err.code);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Journal query failed: ${err.message}` });
+      }
     }),
 
   createJournalEntry: accountantQuery
@@ -125,23 +157,50 @@ export const accountingRouter = createRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "All lines must have a valid account" });
       }
 
-      const result = await db.insert(journalEntries).values({
-        tenantId: ctx.user!.tenantId as number,
-        entryNumber: input.entryNumber,
-        date: new Date(input.date),
-        description: input.description,
-        referenceType: input.referenceType,
-        referenceId: input.referenceId,
-        totalDebit: totalDebit.toFixed(2),
-        totalCredit: totalCredit.toFixed(2),
-        status: "draft",
-        notes: input.notes,
-      });
+      // Verify all accountIds exist before inserting (prevents FK violation)
+      const accountIds = input.lines.map(l => l.accountId);
+      const existingAccounts = await db
+        .select({ id: chartOfAccounts.id })
+        .from(chartOfAccounts)
+        .where(and(eq(chartOfAccounts.tenantId, ctx.user!.tenantId as number), inArray(chartOfAccounts.id, accountIds)));
+      const existingAccountIds = new Set(existingAccounts.map(a => a.id));
+      const missingAccountId = accountIds.find(id => !existingAccountIds.has(id));
+      if (missingAccountId !== undefined) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Account ID ${missingAccountId} not found` });
+      }
+
+      let result;
+      try {
+        result = await db.insert(journalEntries).values({
+          tenantId: ctx.user!.tenantId as number,
+          entryNumber: input.entryNumber,
+          date: new Date(input.date),
+          description: input.description,
+          referenceType: input.referenceType,
+          referenceId: input.referenceId,
+          totalDebit: totalDebit.toFixed(2),
+          totalCredit: totalCredit.toFixed(2),
+          status: "draft",
+          notes: input.notes,
+        });
+      } catch (dbError: any) {
+        console.error("[createJournalEntry] journalEntries INSERT FAILED:", dbError.message, "| CODE:", dbError.code, "| SQL:", dbError.sql);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Journal entry creation failed: ${dbError.message}` });
+      }
 
       const journalEntryId = Number(result[0].insertId);
-      await db.insert(journalEntryLines).values(
-        input.lines.map((l) => ({ ...l, journalEntryId }))
-      );
+      if (!journalEntryId) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create journal entry — no insertId returned" });
+      }
+
+      try {
+        await db.insert(journalEntryLines).values(
+          input.lines.map((l) => ({ ...l, journalEntryId }))
+        );
+      } catch (dbError: any) {
+        console.error("[createJournalEntry] journalEntryLines INSERT FAILED:", dbError.message, "| CODE:", dbError.code, "| SQL:", dbError.sql);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Journal line creation failed: ${dbError.message}` });
+      }
 
       return { id: journalEntryId };
     }),
@@ -151,10 +210,26 @@ export const accountingRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
-      const entry = await db.query.journalEntries.findFirst({
-        where: and(eq(journalEntries.id, input.id), eq(journalEntries.tenantId, tenantId)),
-        with: { lines: true },
-      });
+      let entry;
+      try {
+        entry = await db.query.journalEntries.findFirst({
+          where: and(eq(journalEntries.id, input.id), eq(journalEntries.tenantId, tenantId)),
+        });
+        if (entry) {
+          try {
+            const lines = await db.query.journalEntryLines.findMany({
+              where: eq(journalEntryLines.journalEntryId, entry.id),
+            });
+            (entry as any).lines = Array.isArray(lines) ? lines : [];
+          } catch (e: any) {
+            console.error("[postJournalEntry] Failed to fetch lines:", e.message);
+            (entry as any).lines = [];
+          }
+        }
+      } catch (err: any) {
+        console.error("[postJournalEntry] Relation query FAILED:", err.message, "| CODE:", err.code);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Journal query failed: ${err.message}` });
+      }
 
       if (!entry) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Journal entry not found" });
@@ -164,11 +239,17 @@ export const accountingRouter = createRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Journal entry is not in draft status" });
       }
 
+      // Defensive: Drizzle may return undefined for empty relations in some edge cases
+      const lines = entry.lines ?? [];
+      if (lines.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Journal entry has no lines" });
+      }
+
       await db.transaction(async (tx) => {
         await tx.update(journalEntries).set({ status: "posted", postedBy: ctx.user!.id, postedAt: new Date() }).where(eq(journalEntries.id, input.id));
 
         // Create ledger entries
-        for (const line of entry.lines) {
+        for (const line of lines) {
           const account = await tx.query.chartOfAccounts.findFirst({
             where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
           });

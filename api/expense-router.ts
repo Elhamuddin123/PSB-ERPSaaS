@@ -5,6 +5,7 @@ import { getDb } from "./queries/connection";
 import { expenses, expenseCategories, chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries, notifications } from "@db/schema";
 import { eq, desc, sql, and, isNull } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
+// TEMP: removed DB-aware imports after migration
 
 function ensureExpenseTenant(ctx: any, label = "") {
   const tid = ctx.user?.tenantId;
@@ -14,6 +15,14 @@ function ensureExpenseTenant(ctx: any, label = "") {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Tenant context missing" });
   }
   return tid as number;
+}
+
+function formatToSqlDate(value: string) {
+  const d = new Date(value);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 async function getOrCreateExpenseAccount(
@@ -197,7 +206,7 @@ export const expenseRouter = createRouter({
 
   create: agentQuery
     .input(z.object({
-      categoryId: z.number(),
+      categoryId: z.number().min(1, "Category is required"),
       title: z.string().min(1),
       description: z.string().optional(),
       amount: z.string().refine((value) => !isNaN(Number(value)) && Number(value) >= 0, {
@@ -215,20 +224,47 @@ export const expenseRouter = createRouter({
       const db = getDb();
       const tenantId = ensureExpenseTenant(ctx, "create");
       console.log("[Expense create] input:", input);
-      const result = await db.insert(expenses).values({
-        tenantId,
-        categoryId: input.categoryId,
-        title: input.title,
-        description: input.description,
-        amount: input.amount,
-        expenseDate: new Date(input.expenseDate),
-        paymentMethod: input.paymentMethod,
-        vendor: input.vendor,
-        receiptNumber: input.receiptNumber,
-        notes: input.notes,
-        status: "pending",
-        submittedBy: ctx.user!.id,
+
+      // Verify category exists (prevents FK violation and cross-tenant leakage)
+      const category = await db.query.expenseCategories.findFirst({
+        where: and(eq(expenseCategories.id, input.categoryId), eq(expenseCategories.tenantId, tenantId)),
       });
+      if (!category) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Expense category not found" });
+      }
+
+      let result;
+      try {
+        result = await db.insert(expenses).values({
+          tenantId,
+          categoryId: input.categoryId,
+          title: input.title,
+          description: input.description,
+          amount: Number(input.amount),
+          currency: "USD",
+          expenseDate: formatToSqlDate(input.expenseDate),
+          paymentMethod: input.paymentMethod,
+          vendor: input.vendor,
+          receiptNumber: input.receiptNumber,
+          receiptImage: null,
+          status: "pending",
+          approvedBy: null,
+          submittedBy: ctx.user!.id,
+          notes: input.notes,
+          metadata: JSON.stringify({}),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+          deletedBy: null,
+        });
+      } catch (dbError: any) {
+        console.error("[Expense create] DB INSERT FAILED:", dbError.message, "| CODE:", dbError.code, "| SQL:", dbError.sql);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Expense creation failed: ${dbError.message}`,
+        });
+      }
+
       await auditLog({
         ctx,
         action: "create",
@@ -269,20 +305,27 @@ export const expenseRouter = createRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Expense not found" });
       }
 
-      // Concurrency protection: prevent double-approval
-      if (input.status === "approved" && existing.status === "approved") {
-        throw new TRPCError({ code: "CONFLICT", message: "Expense already approved" });
-      }
-
-      await db.update(expenses).set({ status: input.status, approvedBy: ctx.user!.id }).where(
-        and(eq(expenses.id, input.id), eq(expenses.tenantId, tenantId)),
-      );
-
-      // Auto-post accounting when approved — inside transaction
+      // Atomic approval + accounting
       if (input.status === "approved" && existing.status !== "approved") {
         await db.transaction(async (tx) => {
-          await postExpenseAccounting(tx, existing, tenantId, ctx.user!.id);
+          const fresh = await tx.query.expenses.findFirst({
+            where: and(eq(expenses.id, input.id), eq(expenses.tenantId, tenantId)),
+          });
+          if (!fresh) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Expense not found" });
+          }
+          if (fresh.status === "approved") {
+            throw new TRPCError({ code: "CONFLICT", message: "Expense already approved" });
+          }
+          await tx.update(expenses).set({ status: input.status, approvedBy: ctx.user!.id }).where(
+            and(eq(expenses.id, input.id), eq(expenses.tenantId, tenantId)),
+          );
+          await postExpenseAccounting(tx, fresh, tenantId, ctx.user!.id);
         });
+      } else {
+        await db.update(expenses).set({ status: input.status, approvedBy: ctx.user!.id }).where(
+          and(eq(expenses.id, input.id), eq(expenses.tenantId, tenantId)),
+        );
       }
 
       await auditLog({
