@@ -8,10 +8,18 @@ import type { ReactNode } from "react";
 export const trpc = createTRPCReact<AppRouter>();
 
 const queryClient = new QueryClient();
+const rawApiBaseUrl =
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "";
+const apiUrl = rawApiBaseUrl
+  ? `${rawApiBaseUrl.replace(/\/$/, "")}/api/trpc`
+  : import.meta.env.PROD
+  ? "https://api.psb-erp.com/api/trpc"
+  : "/api/trpc";
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: "/api/trpc",
+      url: apiUrl,
       transformer: superjson,
       headers() {
         const h: Record<string, string> = {};

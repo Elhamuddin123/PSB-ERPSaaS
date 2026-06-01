@@ -2,104 +2,103 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
-import enCommon from "@/locales/en/common.json";
-import enLogin from "@/locales/en/login.json";
-import enRegister from "@/locales/en/register.json";
-import enDashboard from "@/locales/en/dashboard.json";
-import enSidebar from "@/locales/en/sidebar.json";
-import enAdmin from "@/locales/en/admin.json";
-import enTickets from "@/locales/en/tickets.json";
-import enCustomers from "@/locales/en/customers.json";
-import enReports from "@/locales/en/reports.json";
-import enInvoices from "@/locales/en/invoices.json";
-
-import faCommon from "@/locales/fa/common.json";
-import faLogin from "@/locales/fa/login.json";
-import faRegister from "@/locales/fa/register.json";
-import faDashboard from "@/locales/fa/dashboard.json";
-import faSidebar from "@/locales/fa/sidebar.json";
-import faAdmin from "@/locales/fa/admin.json";
-import faTickets from "@/locales/fa/tickets.json";
-import faCustomers from "@/locales/fa/customers.json";
-import faReports from "@/locales/fa/reports.json";
-import faInvoices from "@/locales/fa/invoices.json";
-
-import psCommon from "@/locales/ps/common.json";
-import psLogin from "@/locales/ps/login.json";
-import psRegister from "@/locales/ps/register.json";
-import psDashboard from "@/locales/ps/dashboard.json";
-import psSidebar from "@/locales/ps/sidebar.json";
-import psAdmin from "@/locales/ps/admin.json";
-import psTickets from "@/locales/ps/tickets.json";
-import psCustomers from "@/locales/ps/customers.json";
-import psReports from "@/locales/ps/reports.json";
-import psInvoices from "@/locales/ps/invoices.json";
-
-export const resources = {
-  en: {
-    common: enCommon,
-    login: enLogin,
-    register: enRegister,
-    dashboard: enDashboard,
-    sidebar: enSidebar,
-    admin: enAdmin,
-    tickets: enTickets,
-    customers: enCustomers,
-    reports: enReports,
-    invoices: enInvoices,
-  },
-  fa: {
-    common: faCommon,
-    login: faLogin,
-    register: faRegister,
-    dashboard: faDashboard,
-    sidebar: faSidebar,
-    admin: faAdmin,
-    tickets: faTickets,
-    customers: faCustomers,
-    reports: faReports,
-    invoices: faInvoices,
-  },
-  ps: {
-    common: psCommon,
-    login: psLogin,
-    register: psRegister,
-    dashboard: psDashboard,
-    sidebar: psSidebar,
-    admin: psAdmin,
-    tickets: psTickets,
-    customers: psCustomers,
-    reports: psReports,
-    invoices: psInvoices,
-  },
+// Get saved language or default to English
+const getSavedLanguage = (): string => {
+  const saved = localStorage.getItem('i18nextLng');
+  if (saved && ['en', 'fa', 'ps'].includes(saved)) {
+    return saved;
+  }
+  return 'en';
 };
 
-export const RTL_LANGUAGES = ["fa", "ps"];
+// Create async initialization function
+export async function initI18n(): Promise<void> {
+  const resources: any = {
+    en: {},
+    fa: {},
+    ps: {}
+  };
 
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: "fa",
-    defaultNS: "common",
-    interpolation: {
-      escapeValue: false,
-    },
-    detection: {
-      order: ["localStorage", "navigator"],
-      caches: ["localStorage"],
-    },
-  });
+  const languages: string[] = ['en', 'fa', 'ps'];
+  const namespaces: string[] = ['common', 'login', 'register', 'dashboard', 'sidebar', 'admin', 'tickets', 'customers', 'reports', 'invoices'];
+
+  // Load all JSON files dynamically
+  for (const lang of languages) {
+    for (const ns of namespaces) {
+      try {
+        const response = await fetch(`/locales/${lang}/${ns}.json`);
+        if (response.ok) {
+          const data = await response.json();
+          resources[lang][ns] = data;
+          console.log(`✅ Loaded /locales/${lang}/${ns}.json`);
+        } else {
+          console.warn(`⚠️ Failed to load /locales/${lang}/${ns}.json, status: ${response.status}`);
+          resources[lang][ns] = {};
+        }
+      } catch (error) {
+        console.error(`❌ Error loading /locales/${lang}/${ns}.json`, error);
+        resources[lang][ns] = {};
+      }
+    }
+  }
+
+  const savedLanguage = getSavedLanguage();
+  
+  // Log what we have before initializing
+  console.log('Resources loaded:', Object.keys(resources.en));
+  console.log('Saved language:', savedLanguage);
+  
+  i18n
+    .use(LanguageDetector)
+    .use(initReactI18next)
+    .init({
+      resources,
+      lng: savedLanguage,
+      fallbackLng: "en",
+      defaultNS: "common",
+      ns: namespaces,
+      interpolation: {
+        escapeValue: false,
+      },
+      detection: {
+        order: ["localStorage", "navigator"],
+        caches: ["localStorage"],
+      },
+    });
+    
+  // Test if translation works after initialization
+  setTimeout(() => {
+    console.log('Test translation (login:title):', i18n.t('title', { ns: 'login' }));
+    console.log('Current language:', i18n.language);
+  }, 100);
+}
+
+export const RTL_LANGUAGES: string[] = ["fa", "ps"];
 
 export function isRTL(lng?: string): boolean {
   return RTL_LANGUAGES.includes(lng || i18n.language);
 }
 
-export function changeLanguage(lng: string) {
+export function changeLanguage(lng: string): void {
   i18n.changeLanguage(lng);
-  document.documentElement.dir = isRTL(lng) ? "rtl" : "ltr";
+  localStorage.setItem('i18nextLng', lng);
+  const isRtl = isRTL(lng);
+  document.documentElement.dir = isRtl ? "rtl" : "ltr";
   document.documentElement.lang = lng;
+  document.body.style.direction = isRtl ? "rtl" : "ltr";
+  document.body.style.textAlign = isRtl ? "right" : "left";
 }
+
+// Initialize i18n
+initI18n().then(() => {
+  const currentLang = i18n.language;
+  const isRtl = RTL_LANGUAGES.includes(currentLang);
+  document.documentElement.dir = isRtl ? "rtl" : "ltr";
+  document.documentElement.lang = currentLang;
+  document.body.style.direction = isRtl ? "rtl" : "ltr";
+  document.body.style.textAlign = isRtl ? "right" : "left";
+}).catch((error) => {
+  console.error('Failed to initialize i18n:', error);
+});
 
 export default i18n;

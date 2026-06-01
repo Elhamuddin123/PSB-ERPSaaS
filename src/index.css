@@ -74,6 +74,44 @@
     color: hsl(var(--foreground));
   }
 
+  /* Force LTR for English language */
+html[lang="en"] {
+  direction: ltr;
+}
+
+html[lang="en"] body {
+  direction: ltr;
+  text-align: left;
+}
+
+/* For RTL languages */
+html[lang="fa"], 
+html[lang="ps"] {
+  direction: rtl;
+}
+
+html[lang="fa"] body,
+html[lang="ps"] body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Ensure inputs and text fields respect direction */
+input, textarea, select {
+  direction: ltr;
+  text-align: left;
+}
+
+html[lang="fa"] input,
+html[lang="fa"] textarea,
+html[lang="fa"] select,
+html[lang="ps"] input,
+html[lang="ps"] textarea,
+html[lang="ps"] select {
+  direction: rtl;
+  text-align: right;
+}
+
   @layer utilities {
     .bg-background { background-color: hsl(var(--background) / var(--tw-bg-opacity, 1)); }
     .text-foreground { color: hsl(var(--foreground) / var(--tw-text-opacity, 1)); }

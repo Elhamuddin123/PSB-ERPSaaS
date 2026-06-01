@@ -10,27 +10,27 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "@db": path.resolve(__dirname, "./db"),
       "@api": path.resolve(__dirname, "./api"),
-      "@contracts": path.resolve(
-        __dirname,
-        "./contracts",
-      ),
-      "@assets": path.resolve(
-        __dirname,
-        "./attached_assets",
-      ),
+      "@contracts": path.resolve(__dirname, "./contracts"),
+      "@assets": path.resolve(__dirname, "./attached_assets"),
     },
   },
 
   server: {
     host: true,
-
     port: 5173,
-
     proxy: {
       "/api": {
         target: "http://localhost:3000",
         changeOrigin: true,
+        secure: false,
       },
     },
   },
+
+  build: {
+    outDir: "dist/public",
+    emptyOutDir: true,
+  },
+
+  publicDir: "public",
 });

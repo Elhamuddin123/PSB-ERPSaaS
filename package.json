@@ -3,12 +3,22 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
+   "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+    "scripts": {
     "dev": "vite --host",
-    "build": "vite build && esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
+    "build:frontend": "echo \"skip build on host\"",
+    "build:client": "vite build --outDir dist/public",
+    "build:backend": "esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist/backend --external:vite --external:@vitejs/plugin-react --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
+    "build": "echo \"skip build on host\"",
+    "build:local": "npm run build:frontend-only && npm run build:backend-only",
+    "build:frontend-only": "vite build --outDir dist/public",
+    "build:backend-only": "esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist/backend --external:vite --external:@vitejs/plugin-react --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "NODE_ENV=production node dist/boot.js",
+    "start": "NODE_ENV=production node dist/backend/boot.js",
     "check": "tsc -b",
     "format": "prettier --write .",
     "test": "vitest run",
@@ -52,6 +62,7 @@
     "@trpc/client": "^11.17.0",
     "@trpc/react-query": "^11.17.0",
     "@trpc/server": "^11.17.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -61,6 +72,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "embla-carousel-react": "^8.6.0",
+    "esbuild": "^0.28.0",
     "framer-motion": "^12.38.0",
     "hono": "^4.12.18",
     "i18next": "^26.2.0",
@@ -86,18 +98,15 @@
     "superjson": "^2.2.6",
     "tailwind-merge": "^3.5.0",
     "vaul": "^1.1.2",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
+    "vite": "^8.0.11",
+    "zod": "^4.4.3",
     "@eslint/js": "^9.0.0",
     "@hono/vite-dev-server": "^0.25.3",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
     "drizzle-kit": "^0.31.10",
-    "esbuild": "^0.28.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -109,7 +118,9 @@
     "tw-animate-css": "^1.4.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.11",
     "vitest": "^4.1.5"
+  },
+  "devDependencies": {
+    
   }
 }

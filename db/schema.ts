@@ -1,10 +1,15 @@
 import {
+  sql
+} from "drizzle-orm";
+
+import {
   mysqlTable,
   mysqlEnum,
   varchar,
   text,
   timestamp,
   bigint,
+  datetime,
   int,
   decimal,
   json,
@@ -13,6 +18,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/mysql-core";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. TENANCY
@@ -28,15 +34,15 @@ export const tenants = mysqlTable("tenants", {
   settings: json("settings"),
   status: mysqlEnum("status", ["active", "suspended", "trial", "cancelled", "pending", "rejected"]).default("trial").notNull(),
   plan: mysqlEnum("plan", ["free", "starter", "professional", "enterprise"]).default("free").notNull(),
-  trialEndsAt: timestamp("trial_ends_at"),
+  trialEndsAt: datetime("trial_ends_at"),
   registrationToken: varchar("registration_token", { length: 50 }),
   ownerName: varchar("owner_name", { length: 255 }),
   ownerEmail: varchar("owner_email", { length: 320 }),
   ownerPhone: varchar("owner_phone", { length: 50 }),
   address: text("address"),
   city: varchar("city", { length: 100 }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 }, (table) => [
   uniqueIndex("tenants_token_unique").on(table.registrationToken),
 ]);
@@ -52,12 +58,12 @@ export const subscriptions = mysqlTable("subscriptions", {
   plan: mysqlEnum("plan", ["free", "starter", "professional", "enterprise"]).default("free").notNull(),
   durationMonths: int("duration_months").default(1).notNull(),
   status: mysqlEnum("status", ["pending", "active", "expired", "cancelled"]).default("pending").notNull(),
-  startsAt: timestamp("starts_at"),
-  expiresAt: timestamp("expires_at"),
+  startsAt: datetime("starts_at"),
+  expiresAt: datetime("expires_at"),
   approvedBy: bigint("approved_by", { mode: "number", unsigned: true }).references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  approvedAt: datetime("approved_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index("subs_tenant_idx").on(table.tenantId),
   index("subs_status_idx").on(table.status),
@@ -83,9 +89,9 @@ export const users = mysqlTable("users", {
   status: mysqlEnum("status", ["active", "inactive", "suspended"]).default("active").notNull(),
   department: varchar("department", { length: 100 }),
   phone: varchar("phone", { length: 50 }),
-  lastSignInAt: timestamp("last_sign_in_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  lastSignInAt: datetime("last_sign_in_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 });
 
 export type User = typeof users.$inferSelect;
@@ -100,7 +106,7 @@ export const roles = mysqlTable("roles", {
   description: text("description"),
   permissions: json("permissions"),
   isSystem: boolean("is_system").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type Role = typeof roles.$inferSelect;
@@ -122,8 +128,8 @@ export const wallets = mysqlTable("wallets", {
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }).default("0.00").notNull(),
   dueBalance: decimal("due_balance", { precision: 15, scale: 2 }).default("0.00").notNull(),
   status: mysqlEnum("status", ["active", "frozen", "closed"]).default("active").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 });
 
 export type Wallet = typeof wallets.$inferSelect;
@@ -142,7 +148,7 @@ export const walletTransactions = mysqlTable("wallet_transactions", {
   referenceId: bigint("reference_id", { mode: "number", unsigned: true }),
   metadata: json("metadata"),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("wallet_id_idx").on(table.walletId),
   index("tenant_id_idx").on(table.tenantId),
@@ -166,7 +172,7 @@ export const airlines = mysqlTable("airlines", {
   contactEmail: varchar("contact_email", { length: 255 }),
   contactPhone: varchar("contact_phone", { length: 50 }),
   status: mysqlEnum("status", ["active", "inactive"]).default("active").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type Airline = typeof airlines.$inferSelect;
@@ -180,7 +186,7 @@ export const tickets = mysqlTable("tickets", {
   pnrCode: varchar("pnr_code", { length: 20 }),
   airlineId: bigint("airline_id", { mode: "number", unsigned: true }).references(() => airlines.id),
   customerId: bigint("customer_id", { mode: "number", unsigned: true }),
-  bookingDate: timestamp("booking_date").defaultNow().notNull(),
+  bookingDate: datetime("booking_date").default(sql`CURRENT_TIMESTAMP`).notNull(),
   travelDate: date("travel_date"),
   returnDate: date("return_date"),
   routeFrom: varchar("route_from", { length: 10 }).notNull(),
@@ -200,9 +206,9 @@ export const tickets = mysqlTable("tickets", {
   issuedBy: bigint("issued_by", { mode: "number", unsigned: true }).references(() => users.id),
   notes: text("notes"),
   metadata: json("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 });
 
@@ -221,7 +227,7 @@ export const ticketPassengers = mysqlTable("ticket_passengers", {
   dateOfBirth: date("date_of_birth"),
   seatNumber: varchar("seat_number", { length: 10 }),
   specialRequests: text("special_requests"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type TicketPassenger = typeof ticketPassengers.$inferSelect;
@@ -252,11 +258,11 @@ export const customers = mysqlTable("customers", {
   notes: text("notes"),
   totalBookings: int("total_bookings").default(0).notNull(),
   totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }).default("0.00").notNull(),
-  lastBookingDate: timestamp("last_booking_date"),
+  lastBookingDate: datetime("last_booking_date"),
   assignedTo: bigint("assigned_to", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 });
 
@@ -279,8 +285,8 @@ export const leads = mysqlTable("leads", {
   notes: text("notes"),
   assignedTo: bigint("assigned_to", { mode: "number", unsigned: true }).references(() => users.id),
   expectedCloseDate: date("expected_close_date"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 });
 
 export type Lead = typeof leads.$inferSelect;
@@ -295,10 +301,10 @@ export const interactions = mysqlTable("interactions", {
   type: mysqlEnum("type", ["call", "email", "meeting", "note", "task", "sms", "whatsapp"]).notNull(),
   subject: varchar("subject", { length: 255 }).notNull(),
   description: text("description"),
-  followUpDate: timestamp("follow_up_date"),
+  followUpDate: datetime("follow_up_date"),
   status: mysqlEnum("status", ["pending", "completed", "overdue"]).default("pending").notNull(),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type Interaction = typeof interactions.$inferSelect;
@@ -317,7 +323,7 @@ export const expenseCategories = mysqlTable("expense_categories", {
   icon: varchar("icon", { length: 50 }),
   parentId: bigint("parent_id", { mode: "number", unsigned: true }),
   isSystem: boolean("is_system").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type ExpenseCategory = typeof expenseCategories.$inferSelect;
@@ -342,9 +348,9 @@ export const expenses = mysqlTable("expenses", {
   submittedBy: bigint("submitted_by", { mode: "number", unsigned: true }).references(() => users.id),
   notes: text("notes"),
   metadata: json("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 });
 
@@ -370,7 +376,7 @@ export const chartOfAccounts = mysqlTable("chart_of_accounts", {
   currency: varchar("currency", { length: 3 }).default("USD").notNull(),
   currentBalance: decimal("current_balance", { precision: 15, scale: 2 }).default("0.00").notNull(),
   status: mysqlEnum("status", ["active", "inactive"]).default("active").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type ChartOfAccount = typeof chartOfAccounts.$inferSelect;
@@ -389,11 +395,11 @@ export const journalEntries = mysqlTable("journal_entries", {
   totalCredit: decimal("total_credit", { precision: 15, scale: 2 }).notNull(),
   status: mysqlEnum("status", ["draft", "posted", "reversed"]).default("draft").notNull(),
   postedBy: bigint("posted_by", { mode: "number", unsigned: true }).references(() => users.id),
-  postedAt: timestamp("posted_at"),
+  postedAt: datetime("posted_at"),
   notes: text("notes"),
   metadata: json("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 });
 
 export type JournalEntry = typeof journalEntries.$inferSelect;
@@ -407,7 +413,7 @@ export const journalEntryLines = mysqlTable("journal_entry_lines", {
   description: text("description"),
   debit: decimal("debit", { precision: 15, scale: 2 }).default("0.00").notNull(),
   credit: decimal("credit", { precision: 15, scale: 2 }).default("0.00").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type JournalEntryLine = typeof journalEntryLines.$inferSelect;
@@ -427,7 +433,7 @@ export const ledgerEntries = mysqlTable("ledger_entries", {
   entryType: mysqlEnum("entry_type", ["opening", "transaction", "adjustment", "closing", "reversal"]).default("transaction").notNull(),
   referenceType: varchar("reference_type", { length: 50 }),
   referenceId: bigint("reference_id", { mode: "number", unsigned: true }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;
@@ -444,8 +450,8 @@ export const aiConversations = mysqlTable("ai_conversations", {
   title: varchar("title", { length: 255 }),
   model: varchar("model", { length: 50 }).default("gpt-4"),
   status: mysqlEnum("status", ["active", "archived"]).default("active").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 });
 
 export type AiConversation = typeof aiConversations.$inferSelect;
@@ -459,7 +465,7 @@ export const aiMessages = mysqlTable("ai_messages", {
   content: text("content").notNull(),
   tokensUsed: int("tokens_used"),
   metadata: json("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type AiMessage = typeof aiMessages.$inferSelect;
@@ -479,7 +485,7 @@ export const customerTransactions = mysqlTable("customer_transactions", {
   description: text("description"),
   referenceNumber: varchar("reference_number", { length: 100 }),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type CustomerTransaction = typeof customerTransactions.$inferSelect;
@@ -499,9 +505,9 @@ export const invoices = mysqlTable("invoices", {
   status: mysqlEnum("status", ["draft", "sent", "partial", "paid", "overdue", "cancelled"]).default("draft").notNull(),
   notes: text("notes"),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 }, (table) => [
   index("invoices_tenant_idx").on(table.tenantId),
@@ -519,7 +525,7 @@ export const invoiceItems = mysqlTable("invoice_items", {
   quantity: int("quantity").default(1).notNull(),
   unitPrice: decimal("unit_price", { precision: 15, scale: 2 }).default("0.00").notNull(),
   totalPrice: decimal("total_price", { precision: 15, scale: 2 }).default("0.00").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
@@ -540,9 +546,9 @@ export const notifications = mysqlTable("notifications", {
   referenceType: varchar("reference_type", { length: 50 }),
   referenceId: bigint("reference_id", { mode: "number", unsigned: true }),
   isRead: boolean("is_read").default(false).notNull(),
-  readAt: timestamp("read_at"),
+  readAt: datetime("read_at"),
   actionUrl: text("action_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export type Notification = typeof notifications.$inferSelect;
@@ -557,8 +563,8 @@ export const accountingPeriods = mysqlTable("accounting_periods", {
   month: int("month"),
   status: mysqlEnum("status", ["open", "closing", "closed"]).default("open").notNull(),
   closedBy: bigint("closed_by", { mode: "number", unsigned: true }).references(() => users.id),
-  closedAt: timestamp("closed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  closedAt: datetime("closed_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("ap_tenant_year_month_idx").on(table.tenantId, table.year, table.month),
 ]);
@@ -582,8 +588,8 @@ export const auditLogs = mysqlTable("audit_logs", {
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
   metadata: json("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 }, (table) => [
   index("audit_tenant_idx").on(table.tenantId),
@@ -600,8 +606,8 @@ export const sessions = mysqlTable("sessions", {
   token: varchar("token", { length: 255 }).notNull(),
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: datetime("expires_at").notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("sessions_user_idx").on(table.userId),
   index("sessions_token_idx").on(table.token),
@@ -623,8 +629,8 @@ export const paymentLocations = mysqlTable("payment_locations", {
   openingHours: varchar("opening_hours", { length: 255 }),
   supportedMethods: json("supported_methods"),
   status: mysqlEnum("status", ["active", "inactive"]).default("active").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index("pl_tenant_idx").on(table.tenantId),
 ]);
@@ -647,13 +653,13 @@ export const deposits = mysqlTable("deposits", {
   proofImageUrl: text("proof_image_url"),
   status: mysqlEnum("status", ["pending", "under_review", "approved", "rejected", "expired"]).default("pending").notNull(),
   approvedBy: bigint("approved_by", { mode: "number", unsigned: true }).references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  expiresAt: timestamp("expires_at"),
+  approvedAt: datetime("approved_at"),
+  expiresAt: datetime("expires_at"),
   notes: text("notes"),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 }, (table) => [
   index("deposits_tenant_idx").on(table.tenantId),
@@ -688,8 +694,8 @@ export const suppliers = mysqlTable("suppliers", {
   status: mysqlEnum("status", ["active", "inactive", "blocked"]).default("active").notNull(),
   notes: text("notes"),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index("suppliers_tenant_idx").on(table.tenantId),
   index("suppliers_code_idx").on(table.supplierCode),
@@ -708,7 +714,7 @@ export const supplierContacts = mysqlTable("supplier_contacts", {
   email: varchar("email", { length: 100 }),
   phone: varchar("phone", { length: 50 }),
   isPrimary: boolean("is_primary").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("sc_supplier_idx").on(table.supplierId),
 ]);
@@ -738,9 +744,9 @@ export const bills = mysqlTable("bills", {
   category: varchar("category", { length: 100 }),
   journalEntryId: bigint("journal_entry_id", { mode: "number", unsigned: true }).references(() => journalEntries.id),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 }, (table) => [
   index("bills_tenant_idx").on(table.tenantId),
@@ -762,7 +768,7 @@ export const billItems = mysqlTable("bill_items", {
   unitPrice: decimal("unit_price", { precision: 15, scale: 2 }).notNull(),
   total: decimal("total", { precision: 15, scale: 2 }).notNull(),
   accountId: bigint("account_id", { mode: "number", unsigned: true }).references(() => chartOfAccounts.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("bi_bill_idx").on(table.billId),
 ]);
@@ -786,8 +792,8 @@ export const supplierPayments = mysqlTable("supplier_payments", {
   notes: text("notes"),
   journalEntryId: bigint("journal_entry_id", { mode: "number", unsigned: true }).references(() => journalEntries.id),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 }, (table) => [
   index("sp_tenant_idx").on(table.tenantId),
@@ -811,7 +817,7 @@ export const exchangeRates = mysqlTable("exchange_rates", {
   effectiveDate: date("effective_date").notNull(),
   source: mysqlEnum("source", ["manual", "api", "system"]).default("manual").notNull(),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("er_tenant_idx").on(table.tenantId),
   index("er_currency_idx").on(table.fromCurrency, table.toCurrency),
@@ -838,7 +844,7 @@ export const bankStatements = mysqlTable("bank_statements", {
   totalCredits: decimal("total_credits", { precision: 15, scale: 2 }).default("0.00").notNull(),
   notes: text("notes"),
   createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("bs_tenant_idx").on(table.tenantId),
   index("bs_account_idx").on(table.accountId),
@@ -861,7 +867,7 @@ export const bankStatementLines = mysqlTable("bank_statement_lines", {
   matchedLedgerEntryId: bigint("matched_ledger_entry_id", { mode: "number", unsigned: true }).references(() => ledgerEntries.id),
   matchConfidence: decimal("match_confidence", { precision: 5, scale: 2 }).default("0.00"),
   status: mysqlEnum("status", ["unmatched", "matched", "ignored"]).default("unmatched").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
   index("bsl_tenant_idx").on(table.tenantId),
   index("bsl_statement_idx").on(table.statementId),
@@ -879,8 +885,8 @@ export const documentSequences = mysqlTable("document_sequences", {
   prefix: varchar("prefix", { length: 20 }).notNull(),
   year: int("year").notNull(),
   lastNumber: bigint("last_number", { mode: "number", unsigned: true }).default(0).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index("ds_tenant_idx").on(table.tenantId),
   uniqueIndex("ds_tenant_prefix_year_unique").on(table.tenantId, table.prefix, table.year),
@@ -899,8 +905,8 @@ export const systemSettings = mysqlTable("system_settings", {
   category: varchar("category", { length: 50 }).default("general"),
   description: text("description"),
   updatedBy: bigint("updated_by", { mode: "number", unsigned: true }).references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index("ss_tenant_key_idx").on(table.tenantId, table.key),
   index("ss_category_idx").on(table.category),
@@ -924,12 +930,12 @@ export const documents = mysqlTable("documents", {
   mimeType: varchar("mime_type", { length: 50 }),
   status: mysqlEnum("status", ["draft", "generated", "sent", "archived"]).default("draft").notNull(),
   generatedBy: bigint("generated_by", { mode: "number", unsigned: true }).references(() => users.id),
-  generatedAt: timestamp("generated_at"),
-  sentAt: timestamp("sent_at"),
+  generatedAt: datetime("generated_at"),
+  sentAt: datetime("sent_at"),
   sentTo: varchar("sent_to", { length: 320 }),
   metadata: json("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  deletedAt: datetime("deleted_at"),
   deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
 }, (table) => [
   index("docs_tenant_idx").on(table.tenantId),

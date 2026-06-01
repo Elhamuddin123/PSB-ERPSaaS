@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
 import { serve } from "@hono/node-server";
 import type { HttpBindings } from "@hono/node-server";
@@ -22,6 +23,15 @@ app.use(
     maxSize: 50 * 1024 * 1024,
   }),
 );
+
+// CORS - allow requests from frontend
+const allowedOrigin = process.env.FRONTEND_URL || process.env.VITE_APP_URL || "";
+app.use("*", cors({
+  origin: allowedOrigin || "*",
+  allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization", "x-dev-auth"],
+  credentials: true,
+}));
 
 // OAuth callback
 app.get(

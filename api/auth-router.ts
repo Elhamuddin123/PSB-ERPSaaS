@@ -3,6 +3,7 @@ import * as cookie from "cookie";
 import { TRPCError } from "@trpc/server";
 import { Session } from "@contracts/constants";
 import { getSessionCookieOptions } from "./lib/cookies";
+import { env } from "./lib/env";
 import { createRouter, publicQuery, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { users, sessions, tenants, subscriptions } from "@db/schema";
@@ -246,7 +247,7 @@ export const authRouter = createRouter({
           unionId:
             user[0].unionId,
           clientId:
-            "psb-erp",
+            env.appId,
         });
 
       console.log(
