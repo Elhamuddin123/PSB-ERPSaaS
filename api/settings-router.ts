@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, tenantAdminQuery } from "./middleware";
+import { createRouter, authedQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { systemSettings } from "@db/schema";
 import { eq, and } from "drizzle-orm";
@@ -40,7 +40,7 @@ export const settingsRouter = createRouter({
     }),
 
   // ─── UPDATE SETTING ────────────────────────────────────────────────────────
-  update: tenantAdminQuery
+  update: agencyAdminQuery
     .input(
       z.object({
         key: z.string().min(1),
@@ -83,7 +83,7 @@ export const settingsRouter = createRouter({
     }),
 
   // ─── BULK UPDATE SETTINGS ──────────────────────────────────────────────────
-  bulkUpdate: tenantAdminQuery
+  bulkUpdate: agencyAdminQuery
     .input(
       z.object({
         settings: z.record(z.string(), z.string()),
@@ -109,7 +109,7 @@ export const settingsRouter = createRouter({
     }),
 
   // ─── DELETE CUSTOM SETTING ─────────────────────────────────────────────────
-  delete: tenantAdminQuery
+  delete: agencyAdminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();

@@ -18,6 +18,11 @@ const statusColors: Record<string, string> = {
   blacklisted: "bg-red-100 text-red-800",
 };
 
+function optionalField(value: string) {
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
 const leadStatusColors: Record<string, string> = {
   new: "bg-blue-100 text-blue-800",
   contacted: "bg-purple-100 text-purple-800",
@@ -80,7 +85,6 @@ export default function CRMPage() {
           <p className="text-slate-500 mt-1 text-sm">Manage customers, leads, and interactions</p>
         </div>
         <div className="flex gap-2">
-          {/* FIXED: Dialog max-w-[95vw] */}
           <Dialog open={createCustomerOpen} onOpenChange={setCreateCustomerOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="text-xs sm:text-sm"><UserPlus className="h-4 w-4 mr-1 sm:mr-2" /> Add Customer</Button>
@@ -88,13 +92,12 @@ export default function CRMPage() {
             <DialogContent className="max-w-[95vw] sm:max-w-lg">
               <DialogHeader><DialogTitle>Add New Customer</DialogTitle></DialogHeader>
               <div className="space-y-3 pt-4">
-                {/* FIXED: responsive grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><Label>First Name</Label><Input value={newCustomer.firstName} onChange={e => setNewCustomer({...newCustomer, firstName: e.target.value})} /></div>
-                  <div><Label>Last Name</Label><Input value={newCustomer.lastName} onChange={e => setNewCustomer({...newCustomer, lastName: e.target.value})} /></div>
+                  <div><Label>First Name *</Label><Input value={newCustomer.firstName} onChange={e => setNewCustomer({...newCustomer, firstName: e.target.value})} /></div>
+                  <div><Label>Last Name *</Label><Input value={newCustomer.lastName} onChange={e => setNewCustomer({...newCustomer, lastName: e.target.value})} /></div>
                 </div>
-                <div><Label>Email</Label><Input type="email" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} /></div>
-                <div><Label>Phone</Label><Input value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} /></div>
+                <div><Label>Email (Optional)</Label><Input type="email" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} placeholder="customer@example.com" /></div>
+                <div><Label>Phone</Label><Input value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} placeholder="+1 234 567 8900" /></div>
                 <div><Label>Company</Label><Input value={newCustomer.company} onChange={e => setNewCustomer({...newCustomer, company: e.target.value})} /></div>
                 <div>
                   <Label>Type</Label>
@@ -107,11 +110,22 @@ export default function CRMPage() {
                   </Select>
                 </div>
                 <div><Label>Notes</Label><Input value={newCustomer.notes} onChange={e => setNewCustomer({...newCustomer, notes: e.target.value})} /></div>
-                <Button className="w-full bg-indigo-600" onClick={() => createCustomer.mutate(newCustomer)} disabled={!newCustomer.firstName || !newCustomer.lastName || createCustomer.isPending}>Create Customer</Button>
+                <Button
+                  className="w-full bg-indigo-600"
+                  onClick={() => createCustomer.mutate({
+                    ...newCustomer,
+                    email: optionalField(newCustomer.email),
+                    phone: optionalField(newCustomer.phone),
+                    company: optionalField(newCustomer.company),
+                    notes: optionalField(newCustomer.notes),
+                  })}
+                  disabled={!newCustomer.firstName.trim() || !newCustomer.lastName.trim() || createCustomer.isPending}
+                >
+                  Create Customer
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
-          {/* FIXED: Dialog max-w-[95vw] */}
           <Dialog open={createLeadOpen} onOpenChange={setCreateLeadOpen}>
             <DialogTrigger asChild>
               <Button className="bg-indigo-600 hover:bg-indigo-700 text-xs sm:text-sm"><Plus className="h-4 w-4 mr-1 sm:mr-2" /> Add Lead</Button>
@@ -120,21 +134,36 @@ export default function CRMPage() {
               <DialogHeader><DialogTitle>Add New Lead</DialogTitle></DialogHeader>
               <div className="space-y-3 pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><Label>First Name</Label><Input value={newLead.firstName} onChange={e => setNewLead({...newLead, firstName: e.target.value})} /></div>
-                  <div><Label>Last Name</Label><Input value={newLead.lastName} onChange={e => setNewLead({...newLead, lastName: e.target.value})} /></div>
+                  <div><Label>First Name *</Label><Input value={newLead.firstName} onChange={e => setNewLead({...newLead, firstName: e.target.value})} /></div>
+                  <div><Label>Last Name *</Label><Input value={newLead.lastName} onChange={e => setNewLead({...newLead, lastName: e.target.value})} /></div>
                 </div>
-                <div><Label>Email</Label><Input type="email" value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})} /></div>
+                <div><Label>Email (Optional)</Label><Input type="email" value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})} placeholder="lead@example.com" /></div>
+                <div><Label>Phone</Label><Input value={newLead.phone} onChange={e => setNewLead({...newLead, phone: e.target.value})} placeholder="+1 234 567 8900" /></div>
                 <div><Label>Company</Label><Input value={newLead.company} onChange={e => setNewLead({...newLead, company: e.target.value})} /></div>
                 <div><Label>Source</Label><Input value={newLead.source} onChange={e => setNewLead({...newLead, source: e.target.value})} placeholder="Website, Referral, etc." /></div>
                 <div><Label>Estimated Value</Label><Input value={newLead.estimatedValue} onChange={e => setNewLead({...newLead, estimatedValue: e.target.value})} placeholder="0.00" /></div>
-                <Button className="w-full bg-indigo-600" onClick={() => createLead.mutate(newLead)} disabled={!newLead.firstName || !newLead.lastName || createLead.isPending}>Create Lead</Button>
+                <Button
+                  className="w-full bg-indigo-600"
+                  onClick={() => createLead.mutate({
+                    ...newLead,
+                    email: optionalField(newLead.email),
+                    phone: optionalField(newLead.phone),
+                    company: optionalField(newLead.company),
+                    source: optionalField(newLead.source),
+                    estimatedValue: optionalField(newLead.estimatedValue),
+                    notes: optionalField(newLead.notes),
+                  })}
+                  disabled={!newLead.firstName.trim() || !newLead.lastName.trim() || createLead.isPending}
+                >
+                  Create Lead
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Stats - FIXED: grid responsive */}
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-0 shadow-sm"><CardContent className="p-3 sm:p-4 flex items-center gap-3">
           <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0"><Users className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" /></div>
@@ -210,20 +239,25 @@ export default function CRMPage() {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[600px]">
-                  <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Name</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Company</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Source</th>
-                    <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">Status</th>
-                    <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">Value</th>
-                    <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">Actions</th>
-                  </tr></thead>
+                  <thead className="bg-slate-50 dark:bg-slate-800 border-b">
+                    <tr>
+                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Name</th>
+                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Company</th>
+                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Source</th>
+                      <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">Status</th>
+                      <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">Value</th>
+                      <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">Actions</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {(leadsData?.items || []).map((lead) => (
                       <tr key={lead.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
-                        <td className="p-2 sm:p-3"><p className="font-medium text-xs sm:text-sm">{lead.firstName} {lead.lastName}</p><p className="text-[10px] text-slate-500">{lead.email}</p></td>
-                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{lead.company}</td>
-                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{lead.source}</td>
+                        <td className="p-2 sm:p-3">
+                          <p className="font-medium text-xs sm:text-sm">{lead.firstName} {lead.lastName}</p>
+                          {lead.email && <p className="text-[10px] text-slate-500">{lead.email}</p>}
+                        </td>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{lead.company || "-"}</td>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{lead.source || "-"}</td>
                         <td className="p-2 sm:p-3 text-center"><Badge className={`text-[10px] ${leadStatusColors[lead.status] || ""}`}>{lead.status}</Badge></td>
                         <td className="p-2 sm:p-3 text-right font-medium text-xs sm:text-sm">${Number(lead.estimatedValue || 0).toLocaleString()}</td>
                         <td className="p-2 sm:p-3 text-center">

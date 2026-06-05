@@ -117,6 +117,13 @@ export const authRouter = createRouter({
         });
       }
 
+      if (user[0].status !== "active") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Your account is inactive or suspended. Contact your agency admin.",
+        });
+      }
+
       loginAttempts.delete(
         rateLimitKey
       );

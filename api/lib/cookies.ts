@@ -1,4 +1,5 @@
 import type { CookieOptions } from "hono/utils/cookie";
+import { env } from "./env";
 
 function isLocalhost(headers: Headers): boolean {
   const host = headers.get("host") || "";
@@ -8,19 +9,22 @@ function isLocalhost(headers: Headers): boolean {
 export function getSessionCookieOptions(headers: Headers): CookieOptions {
   const localhost = isLocalhost(headers);
 
-  // Default to 'Lax' for improved CSRF protection. Allow opt-in to 'None'
-  // via env var `SESSION_SAMESITE_NONE=true` when cross-site cookies are required.
+  // Default to `SameSite=None` for non-localhost deployments because the
+  // frontend and backend are hosted on separate subdomains.
   const allowSameSiteNone =
-    (process.env.SESSION_SAMESITE_NONE || "").toLowerCase() === "true" ||
-    (process.env.ALLOW_CROSS_SITE_COOKIES || "").toLowerCase() === "true";
+    env.sessionSameSiteNone ||
+    env.allowCrossSiteCookies ||
+    !localhost;
 
   const sameSiteValue = localhost ? "Lax" : allowSameSiteNone ? "None" : "Lax";
-  const secureValue = !localhost && process.env.FORCE_COOKIE_SECURE !== "false";
+  const secureValue = !localhost && env.forceCookieSecure;
+  const domainValue = env.sessionCookieDomain;
 
   return {
     httpOnly: true,
     path: "/",
     sameSite: sameSiteValue,
     secure: secureValue,
-  };
+    domain: domainValue,
+  } as CookieOptions;
 }

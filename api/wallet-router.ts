@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, tenantAdminQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { wallets, walletTransactions, notifications } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
@@ -46,7 +46,7 @@ export const walletRouter = createRouter({
 });
   }),
 
-  transfer: tenantAdminQuery
+  transfer: supervisoryQuery
     .input(
       z.object({
         fromWalletId: z.number(),
@@ -172,7 +172,7 @@ export const walletRouter = createRouter({
       };
     }),
 
-create: tenantAdminQuery
+create: supervisoryQuery
   .input(
     z.object({
       name: z.string().min(1),
@@ -248,7 +248,7 @@ create: tenantAdminQuery
     };
   }),
 
-  lockFunds: tenantAdminQuery
+  lockFunds: supervisoryQuery
     .input(z.object({
       walletId: z.number(),
       amount: z.string().min(1),
@@ -309,7 +309,7 @@ create: tenantAdminQuery
       });
     }),
 
-  unlockFunds: tenantAdminQuery
+  unlockFunds: supervisoryQuery
     .input(z.object({
       walletId: z.number(),
       amount: z.string().min(1),

@@ -32,7 +32,7 @@ const statusConfig: Record<string, { color: string; icon: any; label: string }> 
   expired: { color: "bg-slate-100 text-slate-700", icon: Clock, label: "Expired" },
 };
 
-const canApproveRoles = new Set(["super_admin", "admin", "accountant"]);
+const canApproveRoles = new Set(["super_admin", "manager", "accountant"]);
 
 export default function DepositsPage() {
   const [search, setSearch] = useState("");

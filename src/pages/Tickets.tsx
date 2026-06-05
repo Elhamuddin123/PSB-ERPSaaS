@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
-import { Plane, Search, Plus, Eye, CheckCircle, XCircle, RotateCcw, FileText, Download } from "lucide-react";
+import { Plane, Search, Plus, Eye, CheckCircle, XCircle, RotateCcw, FileText, Download, Trash2, Users } from "lucide-react";
 import { generateTicketVoucherPDF } from "@/lib/pdf-generator";
 
 const statusColors: Record<string, string> = {
@@ -27,7 +28,33 @@ const classLabels: Record<string, string> = {
   first: "First",
 };
 
-const canApproveRoles = new Set(["super_admin", "admin", "accountant"]);
+const canApproveRoles = new Set(["super_admin", "manager", "accountant"]);
+
+type BulkTicketEntry = {
+  id: string;
+  passengerFirstName: string;
+  passengerLastName: string;
+  pnrCode: string;
+  ticketNumber: string;
+};
+
+function RequiredLabel({ children }: { children: React.ReactNode }) {
+  return <Label>{children} <span className="text-red-500">*</span></Label>;
+}
+
+function OptionalLabel({ children }: { children: React.ReactNode }) {
+  return <Label>{children} <span className="text-slate-400 font-normal text-xs">(Optional)</span></Label>;
+}
+
+function createBulkEntry(): BulkTicketEntry {
+  return {
+    id: crypto.randomUUID(),
+    passengerFirstName: "",
+    passengerLastName: "",
+    pnrCode: "",
+    ticketNumber: "",
+  };
+}
 
 function formatDate(dateStr: string | Date | null) {
   if (!dateStr) return "-";
@@ -43,6 +70,8 @@ export default function TicketsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createMode, setCreateMode] = useState<"single" | "multiple">("single");
+  const [bulkEntries, setBulkEntries] = useState<BulkTicketEntry[]>([createBulkEntry(), createBulkEntry()]);
   const [viewTicket, setViewTicket] = useState<number | null>(null);
   const [refundTicketId, setRefundTicketId] = useState<number | null>(null);
   const [refundForm, setRefundForm] = useState({ refundAmount: "", penaltyAmount: "", reason: "" });
@@ -80,14 +109,18 @@ export default function TicketsPage() {
     walletId: 0, paidAmount: "",
   });
 
-  const resetForm = () => setNewTicket({
-    ticketNumber: "", pnrCode: "", airlineId: 0, customerId: undefined,
-    travelDate: "", returnDate: "", routeFrom: "", routeTo: "",
-    tripType: "one_way" as const, class: "economy" as const,
-    ticketPrice: "", taxAmount: "", commissionAmount: "", notes: "",
-    passengerFirstName: "", passengerLastName: "",
-    walletId: 0, paidAmount: "",
-  });
+  const resetForm = () => {
+    setNewTicket({
+      ticketNumber: "", pnrCode: "", airlineId: 0, customerId: undefined,
+      travelDate: "", returnDate: "", routeFrom: "", routeTo: "",
+      tripType: "one_way" as const, class: "economy" as const,
+      ticketPrice: "", taxAmount: "", commissionAmount: "", notes: "",
+      passengerFirstName: "", passengerLastName: "",
+      walletId: 0, paidAmount: "",
+    });
+    setBulkEntries([createBulkEntry(), createBulkEntry()]);
+    setCreateMode("single");
+  };
 
   const computed = useMemo(() => {
     const ticketPrice = Math.max(0, Number(newTicket.ticketPrice) || 0);
@@ -101,17 +134,31 @@ export default function TicketsPage() {
     return { ticketPrice, tax, commission, baseFare, totalAmount, netPayable, paidAmount, remainingDue };
   }, [newTicket.ticketPrice, newTicket.taxAmount, newTicket.commissionAmount, newTicket.paidAmount]);
 
+  const invalidateTicketQueries = async () => {
+    await utils.ticket.list.invalidate();
+    await utils.ticket.stats.invalidate();
+    await utils.dashboard.stats.invalidate();
+    await utils.dashboard.ticketTrend.invalidate();
+    await utils.dashboard.ticketStatusDistribution.invalidate();
+    await utils.dashboard.recentTickets.invalidate();
+    refetch();
+  };
+
   const createTicket = trpc.ticket.create.useMutation({
     onSuccess: async () => {
-      await utils.ticket.list.invalidate();
-      await utils.ticket.stats.invalidate();
-      await utils.dashboard.stats.invalidate();
-      await utils.dashboard.ticketTrend.invalidate();
-      await utils.dashboard.ticketStatusDistribution.invalidate();
-      await utils.dashboard.recentTickets.invalidate();
-      refetch();
+      await invalidateTicketQueries();
       setCreateOpen(false);
       resetForm();
+    },
+    onError: (err) => alert(err.message),
+  });
+
+  const createBulkTickets = trpc.ticket.createBulk.useMutation({
+    onSuccess: async (result) => {
+      await invalidateTicketQueries();
+      setCreateOpen(false);
+      resetForm();
+      alert(`${result.count} ticket${result.count === 1 ? "" : "s"} created successfully.`);
     },
     onError: (err) => alert(err.message),
   });
@@ -157,37 +204,81 @@ export default function TicketsPage() {
   const ticketCounts: Record<string, number> = {};
   (stats?.statusCounts || []).forEach(s => ticketCounts[s.status] = s.count);
 
+  const buildSharedPayload = () => ({
+    airlineId: newTicket.airlineId > 0 ? newTicket.airlineId : undefined,
+    customerId: newTicket.customerId,
+    travelDate: newTicket.travelDate || undefined,
+    returnDate: newTicket.returnDate || undefined,
+    routeFrom: newTicket.routeFrom.trim() || undefined,
+    routeTo: newTicket.routeTo.trim() || undefined,
+    tripType: newTicket.tripType,
+    class: newTicket.class,
+    baseFare: computed.baseFare.toString(),
+    taxAmount: newTicket.taxAmount || "0",
+    totalAmount: computed.totalAmount.toString(),
+    paidAmount: newTicket.paidAmount || "0",
+    commissionAmount: newTicket.commissionAmount || "0",
+    netPayable: computed.netPayable.toString(),
+    notes: newTicket.notes.trim() || undefined,
+    walletId: newTicket.walletId,
+  });
+
+  const priceAndWalletValid = Number(newTicket.ticketPrice) > 0 && !!newTicket.walletId;
+
+  const singleFormValid =
+    priceAndWalletValid &&
+    !!newTicket.passengerFirstName.trim() &&
+    !!newTicket.passengerLastName.trim();
+
   const handleCreate = () => {
-    const payload = {
-      ticketNumber: newTicket.ticketNumber,
-      pnrCode: newTicket.pnrCode,
-      airlineId: newTicket.airlineId,
-      customerId: newTicket.customerId,
-      travelDate: newTicket.travelDate,
-      returnDate: newTicket.returnDate,
-      routeFrom: newTicket.routeFrom,
-      routeTo: newTicket.routeTo,
-      tripType: newTicket.tripType,
-      class: newTicket.class,
-      baseFare: computed.baseFare.toString(),
-      taxAmount: newTicket.taxAmount,
-      totalAmount: computed.totalAmount.toString(),
-      paidAmount: newTicket.paidAmount,
-      commissionAmount: newTicket.commissionAmount,
-      netPayable: computed.netPayable.toString(),
-      notes: newTicket.notes,
-      walletId: newTicket.walletId,
-      passengers: newTicket.passengerFirstName || newTicket.passengerLastName ? [{
-        firstName: newTicket.passengerFirstName,
-        lastName: newTicket.passengerLastName,
+    createTicket.mutate({
+      ...buildSharedPayload(),
+      ticketNumber: newTicket.ticketNumber.trim() || undefined,
+      pnrCode: newTicket.pnrCode.trim() || undefined,
+      passengers: [{
+        firstName: newTicket.passengerFirstName.trim(),
+        lastName: newTicket.passengerLastName.trim(),
         passengerType: "adult" as const,
-      }] : undefined,
-    };
-    console.log("[ticket form]", newTicket);
-    console.log("[ticket payload]", payload);
-    console.log("[ticket total]", computed.totalAmount);
-    createTicket.mutate(payload);
+      }],
+    });
   };
+
+  const handleBulkCreate = () => {
+    const validEntries = bulkEntries.filter(
+      (e) => e.passengerFirstName.trim() && e.passengerLastName.trim(),
+    );
+    if (validEntries.length === 0) {
+      alert("Add at least one passenger with first and last name.");
+      return;
+    }
+
+    createBulkTickets.mutate({
+      ...buildSharedPayload(),
+      entries: validEntries.map((e) => ({
+        firstName: e.passengerFirstName.trim(),
+        lastName: e.passengerLastName.trim(),
+        pnrCode: e.pnrCode.trim() || undefined,
+        ticketNumber: e.ticketNumber.trim() || undefined,
+      })),
+    });
+  };
+
+  const updateBulkEntry = (id: string, field: keyof Omit<BulkTicketEntry, "id">, value: string) => {
+    setBulkEntries((rows) => rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
+  };
+
+  const addBulkEntry = () => {
+    setBulkEntries((rows) => [...rows, createBulkEntry()]);
+  };
+
+  const removeBulkEntry = (id: string) => {
+    setBulkEntries((rows) => (rows.length <= 1 ? rows : rows.filter((row) => row.id !== id)));
+  };
+
+  const validBulkRows = bulkEntries.filter(
+    (e) => e.passengerFirstName.trim() && e.passengerLastName.trim(),
+  ).length;
+  const isCreating = createTicket.isPending || createBulkTickets.isPending;
 
   return (
     <div className="space-y-6">
@@ -197,82 +288,44 @@ export default function TicketsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Ticket Management</h1>
           <p className="text-slate-500 mt-1 text-sm">Manage airline tickets, bookings, and reservations</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" /> New Ticket
             </Button>
           </DialogTrigger>
-          <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-            <DialogHeader><DialogTitle>Create New Ticket</DialogTitle></DialogHeader>
+          <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle>{createMode === "single" ? "Create New Ticket" : "Create Multiple Tickets"}</DialogTitle>
+            </DialogHeader>
 
-            {/* Customer & Flight Information */}
-            <div className="pt-2">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Flight Information</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="sm:col-span-2">
-                  <Label>Customer</Label>
-                  <Select onValueChange={v => setNewTicket({...newTicket, customerId: Number(v) || undefined})}>
-                    <SelectTrigger><SelectValue placeholder="Select customer (optional)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="walkin">Walk-in (no customer)</SelectItem>
-                      {(customers || []).map((c: any) => (
-                        <SelectItem key={c.id} value={c.id.toString()}>
-                          {c.firstName} {c.lastName} {c.company ? `(${c.company})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>From</Label><Input value={newTicket.routeFrom} onChange={e => setNewTicket({...newTicket, routeFrom: e.target.value.toUpperCase()})} placeholder="JFK" maxLength={10} /></div>
-                <div><Label>To</Label><Input value={newTicket.routeTo} onChange={e => setNewTicket({...newTicket, routeTo: e.target.value.toUpperCase()})} placeholder="LHR" maxLength={10} /></div>
-                <div><Label>Travel Date</Label><Input type="date" value={newTicket.travelDate} onChange={e => setNewTicket({...newTicket, travelDate: e.target.value})} /></div>
-                <div><Label>Return Date</Label><Input type="date" value={newTicket.returnDate} onChange={e => setNewTicket({...newTicket, returnDate: e.target.value})} /></div>
-                <div>
-                  <Label>Trip Type</Label>
-                  <Select value={newTicket.tripType} onValueChange={v => setNewTicket({...newTicket, tripType: v as "one_way" | "round_trip" | "multi_city"})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="one_way">One Way</SelectItem>
-                      <SelectItem value="round_trip">Round Trip</SelectItem>
-                      <SelectItem value="multi_city">Multi City</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Class</Label>
-                  <Select value={newTicket.class} onValueChange={v => setNewTicket({...newTicket, class: v as "economy" | "premium_economy" | "business" | "first"})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="economy">Economy</SelectItem>
-                      <SelectItem value="premium_economy">Premium Economy</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="first">First</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <Tabs value={createMode} onValueChange={(v) => setCreateMode(v as "single" | "multiple")} className="mt-2">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="single">Single Ticket</TabsTrigger>
+                <TabsTrigger value="multiple">Multiple Tickets</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {createMode === "single" && (
+              <div className="pt-2">
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Passenger Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div><RequiredLabel>First Name</RequiredLabel><Input value={newTicket.passengerFirstName} onChange={e => setNewTicket({...newTicket, passengerFirstName: e.target.value})} placeholder="John" /></div>
+                  <div><RequiredLabel>Last Name</RequiredLabel><Input value={newTicket.passengerLastName} onChange={e => setNewTicket({...newTicket, passengerLastName: e.target.value})} placeholder="Doe" /></div>
                 </div>
               </div>
-            </div>
-
-            {/* Passenger Information */}
-            <div className="pt-4 border-t">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Passenger Information</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div><Label>First Name</Label><Input value={newTicket.passengerFirstName} onChange={e => setNewTicket({...newTicket, passengerFirstName: e.target.value})} placeholder="John" /></div>
-                <div><Label>Last Name</Label><Input value={newTicket.passengerLastName} onChange={e => setNewTicket({...newTicket, passengerLastName: e.target.value})} placeholder="Doe" /></div>
-              </div>
-            </div>
+            )}
 
             {/* Financial Information */}
             <div className="pt-4 border-t">
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Financial Information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div><Label>Ticket Price</Label><Input type="number" value={newTicket.ticketPrice} onChange={e => setNewTicket({...newTicket, ticketPrice: e.target.value})} placeholder="0.00" /></div>
-                <div><Label>Tax Amount</Label><Input type="number" value={newTicket.taxAmount} onChange={e => setNewTicket({...newTicket, taxAmount: e.target.value})} placeholder="0.00" /></div>
-                <div><Label>Paid Amount</Label><Input type="number" value={newTicket.paidAmount} onChange={e => setNewTicket({...newTicket, paidAmount: e.target.value})} placeholder="0.00" /></div>
-                <div><Label>Commission</Label><Input type="number" value={newTicket.commissionAmount} onChange={e => setNewTicket({...newTicket, commissionAmount: e.target.value})} placeholder="0.00" /></div>
-                <div><Label>Total Amount</Label><Input type="number" value={computed.totalAmount || ""} disabled className="bg-slate-50 dark:bg-slate-800" /></div>
-                <div><Label>Remaining Due</Label><Input type="number" value={computed.remainingDue || ""} disabled className="bg-slate-50 dark:bg-slate-800" /></div>
+                <div><RequiredLabel>Ticket Price</RequiredLabel><Input type="number" min="0" step="0.01" value={newTicket.ticketPrice} onChange={e => setNewTicket({...newTicket, ticketPrice: e.target.value})} placeholder="0.00" /></div>
+                <div><OptionalLabel>Tax Amount</OptionalLabel><Input type="number" min="0" step="0.01" value={newTicket.taxAmount} onChange={e => setNewTicket({...newTicket, taxAmount: e.target.value})} placeholder="0.00" /></div>
+                <div><OptionalLabel>Paid Amount</OptionalLabel><Input type="number" min="0" step="0.01" value={newTicket.paidAmount} onChange={e => setNewTicket({...newTicket, paidAmount: e.target.value})} placeholder="0.00" /></div>
+                <div><OptionalLabel>Commission Amount</OptionalLabel><Input type="number" min="0" step="0.01" value={newTicket.commissionAmount} onChange={e => setNewTicket({...newTicket, commissionAmount: e.target.value})} placeholder="0.00" /></div>
+                <div><OptionalLabel>Total Amount</OptionalLabel><Input type="number" value={computed.totalAmount || ""} disabled className="bg-slate-50 dark:bg-slate-800" /></div>
+                <div><OptionalLabel>Remaining Due</OptionalLabel><Input type="number" value={computed.remainingDue || ""} disabled className="bg-slate-50 dark:bg-slate-800" /></div>
               </div>
 
               {/* Amount Preview */}
@@ -292,27 +345,12 @@ export default function TicketsPage() {
               )}
             </div>
 
-            {/* Booking Information */}
+            {/* Wallet Selection */}
             <div className="pt-4 border-t">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Booking Information</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div><Label>Ticket Number</Label><Input value={newTicket.ticketNumber} onChange={e => setNewTicket({...newTicket, ticketNumber: e.target.value})} placeholder="TKT-2026-XXX" /></div>
-                <div><Label>PNR Code</Label><Input value={newTicket.pnrCode} onChange={e => setNewTicket({...newTicket, pnrCode: e.target.value})} placeholder="ABC123" /></div>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Wallet Selection</h3>
+              <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 <div>
-                  <Label>Airline</Label>
-                  <Select onValueChange={v => setNewTicket({...newTicket, airlineId: Number(v)})}>
-                    <SelectTrigger><SelectValue placeholder="Select airline" /></SelectTrigger>
-                    <SelectContent>
-                      {(airlines || []).length === 0 ? (
-                        <SelectItem value="__empty__" disabled>No records found</SelectItem>
-                      ) : (
-                        (airlines || []).map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Booking Wallet</Label>
+                  <RequiredLabel>Booking Wallet</RequiredLabel>
                   <Select onValueChange={(v) => setNewTicket({ ...newTicket, walletId: Number(v) })}>
                     <SelectTrigger><SelectValue placeholder="Select wallet" /></SelectTrigger>
                     <SelectContent>
@@ -328,17 +366,178 @@ export default function TicketsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="sm:col-span-2"><Label>Notes</Label><Input value={newTicket.notes} onChange={e => setNewTicket({...newTicket, notes: e.target.value})} placeholder="Additional notes" /></div>
               </div>
             </div>
 
-            <Button
-              className="w-full mt-4 bg-indigo-600"
-              onClick={handleCreate}
-              disabled={!newTicket.ticketNumber || !newTicket.walletId || !newTicket.airlineId || !newTicket.routeFrom || !newTicket.routeTo || !newTicket.travelDate || createTicket.isPending}
-            >
-              {createTicket.isPending ? "Creating..." : "Create Ticket"}
-            </Button>
+            {/* Flight Information */}
+            <div className="pt-4 border-t">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                {createMode === "single" ? "Flight Information" : "Shared Flight Information"}
+                <span className="ml-2 normal-case font-normal text-slate-400">(Optional)</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="sm:col-span-2">
+                  <OptionalLabel>Customer</OptionalLabel>
+                  <Select onValueChange={v => setNewTicket({...newTicket, customerId: Number(v) || undefined})}>
+                    <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="walkin">Walk-in (no customer)</SelectItem>
+                      {(customers || []).map((c: any) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {c.firstName} {c.lastName} {c.company ? `(${c.company})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><OptionalLabel>From</OptionalLabel><Input value={newTicket.routeFrom} onChange={e => setNewTicket({...newTicket, routeFrom: e.target.value.toUpperCase()})} placeholder="JFK" maxLength={10} /></div>
+                <div><OptionalLabel>To</OptionalLabel><Input value={newTicket.routeTo} onChange={e => setNewTicket({...newTicket, routeTo: e.target.value.toUpperCase()})} placeholder="LHR" maxLength={10} /></div>
+                <div><OptionalLabel>Travel Date</OptionalLabel><Input type="date" value={newTicket.travelDate} onChange={e => setNewTicket({...newTicket, travelDate: e.target.value})} /></div>
+                <div><OptionalLabel>Return Date</OptionalLabel><Input type="date" value={newTicket.returnDate} onChange={e => setNewTicket({...newTicket, returnDate: e.target.value})} /></div>
+                <div>
+                  <OptionalLabel>Trip Type</OptionalLabel>
+                  <Select value={newTicket.tripType} onValueChange={v => setNewTicket({...newTicket, tripType: v as "one_way" | "round_trip" | "multi_city"})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="one_way">One Way</SelectItem>
+                      <SelectItem value="round_trip">Round Trip</SelectItem>
+                      <SelectItem value="multi_city">Multi City</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <OptionalLabel>Class</OptionalLabel>
+                  <Select value={newTicket.class} onValueChange={v => setNewTicket({...newTicket, class: v as "economy" | "premium_economy" | "business" | "first"})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="economy">Economy</SelectItem>
+                      <SelectItem value="premium_economy">Premium Economy</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="first">First</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Booking Information */}
+            <div className="pt-4 border-t">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                {createMode === "single" ? "Booking Information" : "Shared Booking Details"}
+                <span className="ml-2 normal-case font-normal text-slate-400">(Optional)</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {createMode === "single" && (
+                  <>
+                    <div><OptionalLabel>Ticket Number</OptionalLabel><Input value={newTicket.ticketNumber} onChange={e => setNewTicket({...newTicket, ticketNumber: e.target.value})} placeholder="Auto-generated if empty" /></div>
+                    <div><OptionalLabel>PNR Code</OptionalLabel><Input value={newTicket.pnrCode} onChange={e => setNewTicket({...newTicket, pnrCode: e.target.value})} placeholder="ABC123" /></div>
+                  </>
+                )}
+                <div className={createMode === "multiple" ? "sm:col-span-2" : ""}>
+                  <OptionalLabel>Airline</OptionalLabel>
+                  <Select onValueChange={v => setNewTicket({...newTicket, airlineId: Number(v)})}>
+                    <SelectTrigger><SelectValue placeholder="Select airline" /></SelectTrigger>
+                    <SelectContent>
+                      {(airlines || []).length === 0 ? (
+                        <SelectItem value="__empty__" disabled>No records found</SelectItem>
+                      ) : (
+                        (airlines || []).map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2"><OptionalLabel>Notes</OptionalLabel><Input value={newTicket.notes} onChange={e => setNewTicket({...newTicket, notes: e.target.value})} placeholder="Additional notes" /></div>
+              </div>
+            </div>
+
+            {createMode === "multiple" && (
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Passengers (unique per ticket)
+                  </h3>
+                  <Button type="button" size="sm" variant="outline" onClick={addBulkEntry}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Passenger
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-500 mb-3">
+                  Shared price and wallet apply to every ticket. First and last name are required per passenger; PNR and ticket number are optional.
+                </p>
+                <div className="space-y-2">
+                  {bulkEntries.map((entry, index) => (
+                    <div key={entry.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/30">
+                      <div className="sm:col-span-1 text-xs font-medium text-slate-500 pb-2">#{index + 1}</div>
+                      <div className="sm:col-span-3">
+                        <Label className="text-xs">First Name <span className="text-red-500">*</span></Label>
+                        <Input
+                          value={entry.passengerFirstName}
+                          onChange={(e) => updateBulkEntry(entry.id, "passengerFirstName", e.target.value)}
+                          placeholder="John"
+                        />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <Label className="text-xs">Last Name <span className="text-red-500">*</span></Label>
+                        <Input
+                          value={entry.passengerLastName}
+                          onChange={(e) => updateBulkEntry(entry.id, "passengerLastName", e.target.value)}
+                          placeholder="Doe"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label className="text-xs">PNR <span className="text-slate-400 font-normal">(Optional)</span></Label>
+                        <Input
+                          value={entry.pnrCode}
+                          onChange={(e) => updateBulkEntry(entry.id, "pnrCode", e.target.value)}
+                          placeholder="ABC123"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label className="text-xs">Ticket # <span className="text-slate-400 font-normal">(Optional)</span></Label>
+                        <Input
+                          value={entry.ticketNumber}
+                          onChange={(e) => updateBulkEntry(entry.id, "ticketNumber", e.target.value)}
+                          placeholder="Auto"
+                        />
+                      </div>
+                      <div className="sm:col-span-1 flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-9 w-9 p-0 text-red-500"
+                          onClick={() => removeBulkEntry(entry.id)}
+                          disabled={bulkEntries.length <= 1}
+                          title="Remove passenger"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {createMode === "single" ? (
+              <Button
+                className="w-full mt-4 bg-indigo-600"
+                onClick={handleCreate}
+                disabled={!singleFormValid || isCreating}
+              >
+                {createTicket.isPending ? "Creating..." : "Create Ticket"}
+              </Button>
+            ) : (
+              <Button
+                className="w-full mt-4 bg-indigo-600"
+                onClick={handleBulkCreate}
+                disabled={!priceAndWalletValid || validBulkRows === 0 || isCreating}
+              >
+                {createBulkTickets.isPending
+                  ? "Creating..."
+                  : `Create ${validBulkRows || bulkEntries.length} Ticket${(validBulkRows || bulkEntries.length) === 1 ? "" : "s"}`}
+              </Button>
+            )}
           </DialogContent>
         </Dialog>
       </div>
@@ -410,20 +609,20 @@ export default function TicketsPage() {
                   return (
                     <tr key={ticket.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
                       <td className="p-2 sm:p-3">
-                        <div className="font-medium text-xs sm:text-sm">{ticket.ticketNumber}</div>
-                        <div className="text-[10px] text-slate-500">PNR: {ticket.pnrCode}</div>
+                        <div className="font-medium text-xs sm:text-sm">{ticket.ticketNumber || "-"}</div>
+                        <div className="text-[10px] text-slate-500">PNR: {ticket.pnrCode || "-"}</div>
                       </td>
                       <td className="p-2 sm:p-3 text-xs sm:text-sm">{paxName}</td>
                       <td className="p-2 sm:p-3">
                         <div className="flex items-center gap-1 text-xs sm:text-sm">
-                          <span className="font-medium">{ticket.routeFrom}</span>
+                          <span className="font-medium">{ticket.routeFrom || "?"}</span>
                           <Plane className="h-3 w-3 text-slate-400" />
-                          <span className="font-medium">{ticket.routeTo}</span>
+                          <span className="font-medium">{ticket.routeTo || "?"}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500">{ticket.tripType.replace("_", " ")} · {formatDate(ticket.travelDate)}</div>
+                        <div className="text-[10px] text-slate-500">{ticket.tripType?.replace("_", " ") || "-"} · {formatDate(ticket.travelDate)}</div>
                       </td>
                       <td className="p-2 sm:p-3 text-slate-600 text-xs sm:text-sm">{ticket.airline?.name || "-"}</td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">{classLabels[ticket.class]}</td>
+                      <td className="p-2 sm:p-3 text-xs sm:text-sm">{classLabels[ticket.class] || ticket.class}</td>
                       <td className="p-2 sm:p-3 text-right font-medium text-xs sm:text-sm">${Number(ticket.totalAmount).toLocaleString()}</td>
                       <td className="p-2 sm:p-3 text-center">
                         <Badge className={`text-[10px] sm:text-xs ${statusColors[ticket.status] || ""}`}>{ticket.status}</Badge>
@@ -555,12 +754,12 @@ function TicketDetails({ id }: { id: number }) {
   return (
     <div className="space-y-4 pt-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div><Label className="text-xs text-slate-500">Ticket Number</Label><p className="font-medium text-sm">{ticket.ticketNumber}</p></div>
-        <div><Label className="text-xs text-slate-500">PNR Code</Label><p className="font-medium text-sm">{ticket.pnrCode}</p></div>
-        <div><Label className="text-xs text-slate-500">Route</Label><p className="font-medium text-sm">{ticket.routeFrom} → {ticket.routeTo}</p></div>
-        <div><Label className="text-xs text-slate-500">Airline</Label><p className="font-medium text-sm">{ticket.airline?.name}</p></div>
+        <div><Label className="text-xs text-slate-500">Ticket Number</Label><p className="font-medium text-sm">{ticket.ticketNumber || "-"}</p></div>
+        <div><Label className="text-xs text-slate-500">PNR Code</Label><p className="font-medium text-sm">{ticket.pnrCode || "-"}</p></div>
+        <div><Label className="text-xs text-slate-500">Route</Label><p className="font-medium text-sm">{ticket.routeFrom || "?"} → {ticket.routeTo || "?"}</p></div>
+        <div><Label className="text-xs text-slate-500">Airline</Label><p className="font-medium text-sm">{ticket.airline?.name || "-"}</p></div>
         <div><Label className="text-xs text-slate-500">Travel Date</Label><p className="font-medium text-sm">{ticket.travelDate ? new Date(ticket.travelDate).toLocaleDateString() : "-"}</p></div>
-        <div><Label className="text-xs text-slate-500">Class</Label><p className="font-medium text-sm capitalize">{ticket.class.replace("_", " ")}</p></div>
+        <div><Label className="text-xs text-slate-500">Class</Label><p className="font-medium text-sm capitalize">{ticket.class?.replace("_", " ") || "-"}</p></div>
       </div>
       <div className="border-t pt-4">
         <Label className="text-xs text-slate-500">Financial Breakdown</Label>

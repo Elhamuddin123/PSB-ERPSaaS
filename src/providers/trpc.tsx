@@ -4,17 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import superjson from "superjson";
 import type { AppRouter } from "../../api/router";
 import type { ReactNode } from "react";
+import { getTrpcUrl } from "@/lib/app-config";
 
 export const trpc = createTRPCReact<AppRouter>();
 
 const queryClient = new QueryClient();
-const rawApiBaseUrl =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "";
-const apiUrl = rawApiBaseUrl
-  ? `${rawApiBaseUrl.replace(/\/$/, "")}/api/trpc`
-  : import.meta.env.PROD
-  ? "https://api.psb-erp.com/api/trpc"
-  : "/api/trpc";
+const apiUrl = getTrpcUrl();
 
 const trpcClient = trpc.createClient({
   links: [

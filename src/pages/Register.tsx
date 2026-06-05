@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
@@ -19,24 +19,31 @@ import {
   Star,
   Crown,
 } from "lucide-react";
+import {
+  REGISTRATION_PLAN_OPTIONS,
+  DURATION_OPTIONS,
+  calculateSubscriptionTotal,
+  formatPlanPriceDisplay,
+} from "@contracts/plans";
 
-const plans = [
-  { id: "starter" as const, label: "Starter", icon: Plane, price: 50, features: ["Up to 3 users", "Basic reports", "Email support"] },
-  { id: "professional" as const, label: "Professional", icon: Star, price: 100, features: ["Up to 10 users", "Advanced reports", "Priority support", "Multi-branch"] },
-  { id: "enterprise" as const, label: "Enterprise", icon: Crown, price: 200, features: ["Unlimited users", "Custom reports", "24/7 support", "API access"] },
-];
+const planIcons = {
+  starter: Plane,
+  professional: Star,
+  enterprise: Crown,
+} as const;
 
-const durations = [
-  { months: 1, label: "1month", discount: 0 },
-  { months: 3, label: "3months", discount: 5 },
-  { months: 6, label: "6months", discount: 10 },
-  { months: 12, label: "12months", discount: 15 },
-];
+const plans = REGISTRATION_PLAN_OPTIONS.map((plan) => ({
+  ...plan,
+  icon: planIcons[plan.id],
+}));
+
+const durations = [...DURATION_OPTIONS];
 
 export default function RegisterPage() {
   const { t } = useTranslation("register");
   const { t: tc } = useTranslation("common");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
@@ -54,6 +61,13 @@ export default function RegisterPage() {
     durationMonths: 1,
   });
 
+  useEffect(() => {
+    const planParam = searchParams.get("plan");
+    if (planParam === "starter" || planParam === "professional" || planParam === "enterprise") {
+      setForm((prev) => ({ ...prev, plan: planParam }));
+    }
+  }, [searchParams]);
+
   const registerMutation = trpc.registration.register.useMutation({
     onSuccess: (data) => {
       navigate("/register/success", {
@@ -62,6 +76,7 @@ export default function RegisterPage() {
           agencyName: data.agencyName,
           plan: data.plan,
           durationMonths: data.durationMonths,
+          pricing: data.pricing,
         },
       });
     },
@@ -112,8 +127,7 @@ export default function RegisterPage() {
   };
 
   const selectedPlan = plans.find((p) => p.id === form.plan)!;
-  const selectedDuration = durations.find((d) => d.months === form.durationMonths)!;
-  const totalPrice = selectedPlan.price * form.durationMonths * (1 - selectedDuration.discount / 100);
+  const pricing = calculateSubscriptionTotal(form.plan, form.durationMonths);
 
   const stepLabels = [t("step1"), t("step2"), t("step3")];
 
@@ -288,7 +302,7 @@ export default function RegisterPage() {
                         )}
                         <p.icon className={`h-6 w-6 mb-2 ${form.plan === p.id ? "text-indigo-600" : "text-slate-400"}`} />
                         <p className="font-semibold text-sm">{p.label}</p>
-                        <p className="text-xs text-slate-500 mt-1">${p.price}/mo</p>
+                        <p className="text-xs text-slate-500 mt-1">{formatPlanPriceDisplay(p.id)}</p>
                         <ul className="mt-2 space-y-1">
                           {p.features.map((f) => (
                             <li key={f} className="text-[10px] text-slate-500 flex items-center gap-1">
@@ -363,10 +377,25 @@ export default function RegisterPage() {
                     <span className="text-slate-500">{t("selectedDuration")}</span>
                     <span className="font-medium">{form.durationMonths} {t("months", "months")}</span>
                   </div>
-                  <div className="border-t pt-2 flex justify-between text-sm font-semibold">
-                    <span>{t("totalPrice", "Total Price")}</span>
-                    <span className="text-indigo-600">${totalPrice.toFixed(0)}</span>
-                  </div>
+                  {pricing.contactSales ? (
+                    <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+                      <span>{t("totalPrice", "Total Price")}</span>
+                      <span className="text-indigo-600">Contact Sales</span>
+                    </div>
+                  ) : (
+                    <>
+                      {pricing.discountPercent > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Discount</span>
+                          <span className="font-medium text-emerald-600">-{pricing.discountPercent}% ({pricing.discountAmount!.toFixed(0)} AFN)</span>
+                        </div>
+                      )}
+                      <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+                        <span>{t("totalPrice", "Total Price")}</span>
+                        <span className="text-indigo-600">{pricing.totalAmount!.toFixed(0)} AFN</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex gap-3">

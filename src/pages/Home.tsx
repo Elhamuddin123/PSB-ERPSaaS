@@ -7,9 +7,22 @@ import {
   Building2, ArrowRight, Plane, Wallet, Users, Receipt,
   BookOpen, Brain, Shield, CheckCircle2, BarChart3,
   Globe, Zap, Lock, Sparkles, TrendingUp, Clock,
-  Play, Layers, Database
+  Play, Layers, Database, Star, Crown
 } from "lucide-react";
+
+const planIcons = {
+  starter: Plane,
+  professional: Star,
+  enterprise: Crown,
+} as const;
 import { useAuth } from "@/hooks/useAuth";
+import {
+  REGISTRATION_PLAN_OPTIONS,
+  DURATION_OPTIONS,
+  PLATFORM_PAYMENT_CONTACT,
+  formatPlanPriceDisplay,
+  formatPlanSeatSummary,
+} from "@contracts/plans";
 
 /* ─── Animated Particles Canvas ─────────────────────────────────────────── */
 function ParticleField() {
@@ -144,7 +157,7 @@ function FeatureCard({ icon: Icon, title, description, color, delay }: { icon: R
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.5, delay }}
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      className="group relative bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors shadow-sm hover:shadow-lg"
+      className="group relative bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors shadow-sm hover:shadow-lg h-full"
     >
       <div className={`h-12 w-12 rounded-xl ${color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
         <Icon className="h-6 w-6 text-white" />
@@ -199,9 +212,14 @@ export default function HomePage() {
               <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Pricing</a>
             </div>
             <div className="flex items-center gap-3">
-              <Link to={isLoggedIn ? "/dashboard" : "/login"}>
+              {!isLoggedIn && (
+                <Link to="/login">
+                  <Button size="sm" variant="outline">Sign In</Button>
+                </Link>
+              )}
+              <Link to={isLoggedIn ? "/dashboard" : "/register"}>
                 <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                  {isLoggedIn ? "Dashboard" : "Sign In"} <ArrowRight className="h-4 w-4 ml-1" />
+                  {isLoggedIn ? "Dashboard" : "Register Agency"} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
@@ -287,11 +305,18 @@ export default function HomePage() {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="mt-10 flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link to={isLoggedIn ? "/dashboard" : "/login"}>
+            <Link to={isLoggedIn ? "/dashboard" : "/register"}>
               <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-base px-8 h-12 w-full sm:w-auto">
-                {isLoggedIn ? "Go to Dashboard" : "Get Started Free"} <ArrowRight className="h-5 w-5 ml-2" />
+                {isLoggedIn ? "Go to Dashboard" : "Register Your Agency"} <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </Link>
+            {!isLoggedIn && (
+              <Link to="/login">
+                <Button size="lg" variant="outline" className="text-base px-8 h-12 w-full sm:w-auto">
+                  Sign In
+                </Button>
+              </Link>
+            )}
             <Button size="lg" variant="outline" className="text-base px-8 h-12 w-full sm:w-auto">
               <Play className="h-4 w-4 mr-2" /> Watch Demo
             </Button>
@@ -315,7 +340,7 @@ export default function HomePage() {
       </motion.section>
 
       {/* ─── Stats Section ───────────────────────────────────────────── */}
-      <section className="py-16 bg-slate-50 dark:bg-slate-900/50">
+      <section className="py-16 sm:py-20 lg:py-24 bg-slate-50 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, i) => (
@@ -341,13 +366,13 @@ export default function HomePage() {
       </section>
 
       {/* ─── Dashboard Preview ───────────────────────────────────────── */}
-      <section className="py-20">
+      <section className="py-16 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-10 sm:mb-12"
           >
             <Badge variant="outline" className="mb-4">Dashboard</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
@@ -380,7 +405,7 @@ export default function HomePage() {
               </div>
             </div>
             {/* Dashboard preview content */}
-            <div className="p-6 grid grid-cols-6 gap-4">
+            <div className="p-4 sm:p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
               {/* Stat cards */}
               {["Total Tickets", "Customers", "Wallet Balance", "Revenue", "Expenses", "Pending"].map((title, i) => (
                 <div key={title} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
@@ -433,7 +458,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Features Section ────────────────────────────────────────── */}
-      <section id="features" className="py-20 bg-slate-50 dark:bg-slate-900/50">
+      <section id="features" className="py-16 sm:py-20 lg:py-24 bg-slate-50 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -460,7 +485,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── How It Works ────────────────────────────────────────────── */}
-      <section id="modules" className="py-20">
+      <section id="modules" className="py-16 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -501,79 +526,99 @@ export default function HomePage() {
       </section>
 
       {/* ─── Pricing Section ─────────────────────────────────────────── */}
-      <section id="pricing" className="py-20 bg-slate-50 dark:bg-slate-900/50">
+      <section id="pricing" className="py-16 sm:py-20 lg:py-24 bg-slate-50 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-14"
           >
             <Badge variant="outline" className="mb-4">Pricing</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
               Simple, Transparent Pricing
             </h2>
-            <p className="mt-4 text-slate-500 dark:text-slate-400">
-              Start free and scale as your agency grows
+            <p className="mt-4 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              Monthly packages in AFN — same plans as registration. Each package includes one admin
+              account plus billable seats for manager, accountant, and agent roles. Pay at our office
+              and get activated within one business day.
+            </p>
+            <p className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+              Save up to {Math.max(...DURATION_OPTIONS.map((d) => d.discount))}% with multi-month billing
+              ({DURATION_OPTIONS.filter((d) => d.discount > 0).map((d) => `${d.months}mo −${d.discount}%`).join(" · ")})
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              { name: "Free", price: "$0", desc: "Perfect for startups", features: ["1 User", "50 Tickets/month", "Basic CRM", "1 Wallet", "Email Support"], highlighted: false },
-              { name: "Professional", price: "$99", desc: "For growing agencies", features: ["10 Users", "Unlimited Tickets", "Full CRM & Leads", "5 Wallets", "Expense Management", "Accounting Module", "Priority Support"], highlighted: true },
-              { name: "Enterprise", price: "Custom", desc: "For large operations", features: ["Unlimited Users", "Everything in Pro", "AI Assistant", "Custom Integrations", "Dedicated Support", "SLA Guarantee", "On-premise Option"], highlighted: false },
-            ].map((plan, i) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className={`relative rounded-2xl p-8 ${
-                  plan.highlighted
-                    ? "bg-indigo-600 text-white shadow-xl scale-105"
-                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
-                }`}
-              >
-                {plan.highlighted && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white border-0">
-                    Most Popular
-                  </Badge>
-                )}
-                <h3 className={`text-lg font-semibold ${plan.highlighted ? "text-white" : "text-slate-900 dark:text-white"}`}>{plan.name}</h3>
-                <div className="mt-4">
-                  <span className={`text-4xl font-bold ${plan.highlighted ? "text-white" : "text-slate-900 dark:text-white"}`}>{plan.price}</span>
-                  {plan.price !== "Custom" && <span className={`text-sm ${plan.highlighted ? "text-indigo-200" : "text-slate-500"}`}>/month</span>}
-                </div>
-                <p className={`mt-2 text-sm ${plan.highlighted ? "text-indigo-200" : "text-slate-500"}`}>{plan.desc}</p>
-                <ul className="mt-6 space-y-3">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className={`h-4 w-4 ${plan.highlighted ? "text-indigo-200" : "text-emerald-500"}`} />
-                      <span className={plan.highlighted ? "text-indigo-100" : "text-slate-600 dark:text-slate-400"}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link to={isLoggedIn ? "/dashboard" : "/login"} className="block mt-8">
-                  <Button className={`w-full ${plan.highlighted ? "bg-white text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700"}`}>
-                    {plan.price === "Custom" ? "Contact Sales" : isLoggedIn ? "Open App" : "Get Started"}
-                  </Button>
-                </Link>
-              </motion.div>
-            ))}
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
+            {REGISTRATION_PLAN_OPTIONS.map((plan, i) => {
+              const Icon = planIcons[plan.id];
+              const seatBreakdown = formatPlanSeatSummary(plan.id);
+              return (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className={`relative flex flex-col rounded-2xl px-6 py-8 sm:p-8 ${
+                    plan.highlighted
+                      ? "bg-indigo-600 text-white shadow-xl ring-2 ring-indigo-400/50 md:-mt-2 md:mb-2"
+                      : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"
+                  }`}
+                >
+                  {plan.highlighted && (
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white border-0 px-3">
+                      Most Popular
+                    </Badge>
+                  )}
+                  <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl mb-4 ${
+                    plan.highlighted ? "bg-white/15" : "bg-indigo-50 dark:bg-indigo-950/50"
+                  }`}>
+                    <Icon className={`h-5 w-5 ${plan.highlighted ? "text-white" : "text-indigo-600 dark:text-indigo-400"}`} />
+                  </div>
+                  <h3 className={`text-xl font-semibold ${plan.highlighted ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                    {plan.label}
+                  </h3>
+                  <p className={`mt-1 text-sm ${plan.highlighted ? "text-indigo-100" : "text-slate-500"}`}>{plan.desc}</p>
+                  <div className="mt-5">
+                    <span className={`text-2xl sm:text-3xl font-bold leading-tight ${plan.highlighted ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                      {formatPlanPriceDisplay(plan.id)}
+                    </span>
+                  </div>
+                  <p className={`mt-3 text-sm font-medium leading-relaxed ${plan.highlighted ? "text-indigo-100" : "text-slate-700 dark:text-slate-300"}`}>
+                    {seatBreakdown} (+ admin)
+                  </p>
+                  <ul className="mt-6 space-y-2.5 flex-1">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${plan.highlighted ? "text-indigo-200" : "text-emerald-500"}`} />
+                        <span className={plan.highlighted ? "text-indigo-50" : "text-slate-600 dark:text-slate-400"}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to={isLoggedIn ? "/dashboard" : `/register?plan=${plan.id}`}
+                    className="block mt-8"
+                  >
+                    <Button className={`w-full h-11 ${plan.highlighted ? "bg-white text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}>
+                      {isLoggedIn ? "Open App" : plan.contactSales ? "Contact Sales" : "Choose Plan"}
+                    </Button>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* ─── CTA Section ─────────────────────────────────────────────── */}
-      <section className="py-20">
+      <section className="py-16 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 p-12 lg:p-16 text-center"
+            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 px-6 py-12 sm:px-10 sm:py-14 lg:px-16 lg:py-16 text-center"
           >
             <div className="absolute inset-0 opacity-20">
               <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -587,15 +632,23 @@ export default function HomePage() {
                 Join 500+ travel agencies already using PSB-ERP to streamline operations,
                 boost revenue, and delight customers.
               </p>
-              <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to={isLoggedIn ? "/dashboard" : "/login"}>
-                  <Button size="lg" className="bg-white text-indigo-600 hover:bg-indigo-50 text-base px-8 h-12 w-full sm:w-auto">
-                    {isLoggedIn ? "Open Dashboard" : "Start Free Trial"} <ArrowRight className="h-5 w-5 ml-2" />
+              <div className="mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
+                <Link to={isLoggedIn ? "/dashboard" : "/register"} className="w-full sm:w-auto">
+                  <Button size="lg" className="bg-white text-indigo-600 hover:bg-indigo-50 text-base px-8 h-12 w-full sm:w-auto shadow-md">
+                    {isLoggedIn ? "Open Dashboard" : "View Packages & Register"} <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-base px-8 h-12 w-full sm:w-auto">
-                  <Lock className="h-4 w-4 mr-2" /> Schedule a Demo
-                </Button>
+                <a
+                  href={`mailto:${PLATFORM_PAYMENT_CONTACT.email}?subject=${encodeURIComponent("PSB-ERP Demo Request")}`}
+                  className="w-full sm:w-auto"
+                >
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-white/15 border border-white/40 text-white hover:bg-white/25 hover:border-white/60 text-base px-8 h-12 shadow-sm backdrop-blur-sm"
+                  >
+                    <Lock className="h-4 w-4 mr-2" /> Schedule a Demo
+                  </Button>
+                </a>
               </div>
             </div>
           </motion.div>
@@ -614,7 +667,7 @@ export default function HomePage() {
                 <span className="font-bold text-lg text-slate-900 dark:text-white">PSB-ERP</span>
               </div>
               <p className="text-sm text-slate-500">
-                Pioneer System Building. The complete ERP solution built specifically for travel agencies worldwide.
+                The complete ERP solution built specifically for travel agencies worldwide.
               </p>
             </div>
             <div>
@@ -646,7 +699,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-500"> 2026 PSB-ERP by Pioneer System Building. All rights reserved.</p>
+            <p className="text-sm text-slate-500">@ 2026 All rights reserved - Pouyan Shahr Balkh TMS</p>
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-slate-400" />
               <span className="text-sm text-slate-500">Global • Multi-tenant • Secure</span>

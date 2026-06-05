@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, tenantAdminQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   bills, billItems, suppliers, supplierPayments,
@@ -156,7 +156,7 @@ export const payableRouter = createRouter({
     }),
 
   // ─── CREATE BILL ───────────────────────────────────────────────────────────
-  createBill: tenantAdminQuery
+  createBill: supervisoryQuery
     .input(z.object({
       supplierId: z.number(),
       referenceNumber: z.string().optional(),
@@ -338,7 +338,7 @@ export const payableRouter = createRouter({
     }),
 
   // ─── UPDATE BILL STATUS ────────────────────────────────────────────────────
-  updateBillStatus: tenantAdminQuery
+  updateBillStatus: supervisoryQuery
     .input(z.object({ id: z.number(), status: z.enum(["draft", "open", "partial", "paid", "overdue", "cancelled"]) }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -358,7 +358,7 @@ export const payableRouter = createRouter({
     }),
 
   // ─── CREATE PAYMENT ────────────────────────────────────────────────────────
-  createPayment: tenantAdminQuery
+  createPayment: supervisoryQuery
     .input(z.object({
       supplierId: z.number(),
       billId: z.number().optional(),

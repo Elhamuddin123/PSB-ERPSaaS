@@ -47,6 +47,7 @@ export async function bootstrapTenant(
       { tenantId, code: "5200", name: "Software Expenses", type: "expense", currentBalance: "0.00", status: "active", currency: "USD" },
       { tenantId, code: "5300", name: "Marketing Expenses", type: "expense", currentBalance: "0.00", status: "active", currency: "USD" },
       { tenantId, code: "5400", name: "Professional Services", type: "expense", currentBalance: "0.00", status: "active", currency: "USD" },
+      { tenantId, code: "5900", name: "Income Tax Expense", type: "expense", subtype: "tax", currentBalance: "0.00", status: "active", currency: "USD" },
     ]);
   }
 

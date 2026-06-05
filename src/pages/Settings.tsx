@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { trpc } from "@/providers/trpc";
+import { canManageAgencyStaff, canViewSecurityAudit, isSuperAdmin } from "@/lib/roles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router";
+import { formatPlanLabel, PLATFORM_PAYMENT_CONTACT } from "@contracts/plans";
+import { getSubscriptionStatusLabel } from "@/lib/subscription";
+import {
+  canAddUserWithRole,
+  formatRoleSeatBreakdown,
+  formatTotalSeatLabel,
+  seatLimitMessage,
+} from "@/lib/plan-usage";
 import {
   Dialog,
   DialogContent,
@@ -16,10 +27,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Shield, Bell, Users, Activity, CheckCircle,
   AlertTriangle, Info, Server, UserCircle, Monitor,
-  Plus, Pencil, Trash2, AlertCircle, Lock, Mail,
-  Phone, Building2, UserPlus,
+  Plus, Pencil, AlertCircle, Lock, Mail,
+  Phone, Building2, UserPlus, CreditCard, Trash2,
 } from "lucide-react";
 
 const STAFF_ROLES = [
@@ -45,18 +66,42 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState("notifications");
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const canManageStaff = canManageAgencyStaff(user?.role);
+  const canViewSecurity = canViewSecurityAudit(user?.role);
+  const isPlatformAdmin = isSuperAdmin(user?.role);
+  const initialTab = searchParams.get("tab") ?? (canManageStaff ? "users" : "notifications");
+  const highlightedNotificationId = searchParams.get("notificationId");
+  const [tab, setTab] = useState(initialTab);
+
+  useEffect(() => {
+    const nextTab = searchParams.get("tab");
+    if (nextTab) setTab(nextTab);
+  }, [searchParams]);
 
   const { data: notifications, refetch: refetchNotif } = trpc.notification.list.useQuery({ status: "all", limit: 50 });
-  const { data: auditLogs } = trpc.audit.logs.useQuery({});
-  const { data: auditUsers } = trpc.audit.users.useQuery();
-  const { data: roles } = trpc.audit.roles.useQuery();
-  const { data: auditStats } = trpc.audit.stats.useQuery();
-  const { data: sessions } = trpc.auth.sessions.useQuery();
-  const { data: usersList, refetch: refetchUsers } = trpc.users.list.useQuery(undefined, { enabled: isAdmin });
-  const { data: planUsage, refetch: refetchPlanUsage } = trpc.users.planUsage.useQuery(undefined, { enabled: isAdmin });
+
+  useEffect(() => {
+    if (tab !== "notifications" || !highlightedNotificationId || !notifications?.items?.length) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const element = document.getElementById(`notification-${highlightedNotificationId}`);
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [tab, highlightedNotificationId, notifications?.items]);
+  const { data: auditLogs } = trpc.audit.logs.useQuery({}, { enabled: canViewSecurity });
+  const { data: auditUsers } = trpc.audit.users.useQuery(undefined, { enabled: canManageStaff || isPlatformAdmin });
+  const { data: roles } = trpc.audit.roles.useQuery(undefined, { enabled: canManageStaff || isPlatformAdmin });
+  const { data: auditStats } = trpc.audit.stats.useQuery(undefined, { enabled: canViewSecurity });
+  const { data: sessionData } = trpc.audit.listSessions.useQuery(undefined, { enabled: canViewSecurity });
+  const sessions = sessionData?.items ?? [];
+  const { data: usersList, refetch: refetchUsers } = trpc.users.list.useQuery(undefined, { enabled: canManageStaff });
+  const { data: planUsage, refetch: refetchPlanUsage } = trpc.users.planUsage.useQuery(undefined, { enabled: canManageStaff });
 
   const utils = trpc.useUtils();
 
@@ -75,6 +120,7 @@ export default function SettingsPage() {
       await utils.notification.unread.invalidate();
       refetchNotif();
     },
+    onError: (err) => alert(err.message),
   });
 
   const updateProfile = trpc.auth.updateProfile.useMutation({
@@ -102,12 +148,14 @@ export default function SettingsPage() {
       setEditingUser(null);
       resetUserForm();
       await refetchUsers();
+      await refetchPlanUsage();
     },
     onError: (err) => alert(err.message),
   });
 
   const deleteUser = trpc.users.delete.useMutation({
     onSuccess: async () => {
+      setDeleteUserTarget(null);
       await refetchUsers();
       await refetchPlanUsage();
     },
@@ -123,6 +171,7 @@ export default function SettingsPage() {
 
   // User dialog state
   const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: number; name: string } | null>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userForm, setUserForm] = useState({
     name: "",
@@ -138,7 +187,16 @@ export default function SettingsPage() {
     setUserForm({ name: "", email: "", password: "", role: "agent", department: "", phone: "", status: "active" });
   };
 
+  const availableStaffRoles = STAFF_ROLES.filter((role) => {
+    if (role.value === "viewer") return planUsage?.plan === "enterprise";
+    return true;
+  });
+
   const openCreateUser = () => {
+    if (planUsage && !planUsage.canAdd) {
+      alert(seatLimitMessage(planUsage));
+      return;
+    }
     setEditingUser(null);
     resetUserForm();
     setUserDialogOpen(true);
@@ -169,6 +227,10 @@ export default function SettingsPage() {
       if (userForm.status) update.status = userForm.status;
       updateUser.mutate(update);
     } else {
+      if (planUsage && !canAddUserWithRole(planUsage, userForm.role)) {
+        alert(seatLimitMessage(planUsage, userForm.role));
+        return;
+      }
       createUser.mutate({
         name: userForm.name,
         email: userForm.email,
@@ -195,7 +257,7 @@ export default function SettingsPage() {
     system: "text-slate-600 bg-slate-100",
   };
 
-  const displayUsers = isAdmin ? (usersList?.items ?? []) : (auditUsers ?? []);
+  const displayUsers = canManageStaff ? (usersList?.items ?? []) : (auditUsers ?? []);
 
   return (
     <div className="space-y-6">
@@ -206,16 +268,77 @@ export default function SettingsPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         {/* FIXED: scrollable tabs on mobile */}
-        <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto flex-nowrap">
+        <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto flex-nowrap h-auto p-1 gap-1">
           <TabsTrigger value="profile" className="text-xs sm:text-sm"><UserCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Profile</TabsTrigger>
-          <TabsTrigger value="sessions" className="text-xs sm:text-sm"><Monitor className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Sessions</TabsTrigger>
+          {!isPlatformAdmin && (
+            <TabsTrigger value="subscription" className="text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Subscription</TabsTrigger>
+          )}
+          {canViewSecurity && (
+            <TabsTrigger value="sessions" className="text-xs sm:text-sm"><Monitor className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Sessions</TabsTrigger>
+          )}
           <TabsTrigger value="notifications" className="text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Notifications</TabsTrigger>
-          <TabsTrigger value="audit" className="text-xs sm:text-sm"><Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Audit Logs</TabsTrigger>
-          <TabsTrigger value="users" className="text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Users</TabsTrigger>
+          {canViewSecurity && (
+            <TabsTrigger value="audit" className="text-xs sm:text-sm"><Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Audit Logs</TabsTrigger>
+          )}
+          {!isPlatformAdmin && (
+            <TabsTrigger value="users" className="text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Users</TabsTrigger>
+          )}
           <TabsTrigger value="roles" className="text-xs sm:text-sm"><Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Roles</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile" className="mt-4">
+        {!isPlatformAdmin && (
+          <TabsContent value="subscription" className="mt-6">
+            <Card className="border-0 shadow-sm max-w-lg">
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Agency Subscription</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500">Plan</span>
+                  <span className="font-medium capitalize">{formatPlanLabel(user?.subscription?.plan ?? planUsage?.plan ?? "starter")}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500">Status</span>
+                  <Badge variant="secondary">{getSubscriptionStatusLabel(user?.subscription?.status)}</Badge>
+                </div>
+                {user?.subscription?.expiresAt && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Expires</span>
+                    <span className="font-medium">{new Date(user.subscription.expiresAt).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {user?.registrationToken && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Registration code</span>
+                    <span className="font-mono font-semibold text-indigo-600">{user.registrationToken}</span>
+                  </div>
+                )}
+                {planUsage && (
+                  <>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">User seats</span>
+                      <span className="font-medium">{formatTotalSeatLabel(planUsage)}</span>
+                    </div>
+                    <div className="rounded-md bg-slate-50 dark:bg-slate-800/50 p-3 text-xs text-slate-600 dark:text-slate-300">
+                      {formatRoleSeatBreakdown(planUsage)}
+                      <p className="mt-1 text-slate-500">Admin account is not counted toward staff seats.</p>
+                    </div>
+                  </>
+                )}
+                {user?.subscription?.status !== "active" && (
+                  <div className="pt-2 border-t space-y-2">
+                    <p className="text-slate-500 text-xs">
+                      Complete payment at {PLATFORM_PAYMENT_CONTACT.agencyName} to activate your package.
+                    </p>
+                    <Link to="/payment-activation">
+                      <Button variant="outline" size="sm">View Payment Instructions</Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        <TabsContent value="profile" className="mt-6">
           <Card className="border-0 shadow-sm max-w-lg">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Update Profile</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -246,29 +369,51 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sessions" className="mt-4">
+        {canViewSecurity && (
+        <TabsContent value="sessions" className="mt-6">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Active Sessions</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                {isPlatformAdmin ? "Platform Active Sessions" : "Agency Active Sessions"}
+              </CardTitle>
+            </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[500px]">
+                <table className="w-full text-sm min-w-[700px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">IP Address</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">User Agent</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Created</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Expires</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User</th>
+                    {isPlatformAdmin && (
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Agency</th>
+                    )}
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Role</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">IP Address</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User Agent</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Created</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Expires</th>
                   </tr></thead>
                   <tbody>
-                    {(sessions || []).map(s => (
+                    {sessions.map(s => (
                       <tr key={s.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
-                        <td className="p-2 sm:p-3 font-mono text-xs">{s.ipAddress || "-"}</td>
-                        <td className="p-2 sm:p-3 text-xs max-w-[200px] truncate">{s.userAgent || "-"}</td>
-                        <td className="p-2 sm:p-3 text-xs text-slate-500">{new Date(s.createdAt).toLocaleString()}</td>
-                        <td className="p-2 sm:p-3 text-xs text-slate-500">{new Date(s.expiresAt).toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs sm:text-sm font-medium">{s.user?.name || "Unknown"}</p>
+                          <p className="text-[10px] text-slate-500">{s.user?.email || "—"}</p>
+                        </td>
+                        {isPlatformAdmin && (
+                          <td className="px-4 py-3 text-xs sm:text-sm">{s.tenant?.name || "Platform"}</td>
+                        )}
+                        <td className="px-4 py-3 capitalize text-xs sm:text-sm">{s.user?.role || "—"}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{s.ipAddress || "-"}</td>
+                        <td className="px-4 py-3 text-xs max-w-[200px] truncate">{s.userAgent || "-"}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{new Date(s.createdAt).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{new Date(s.expiresAt).toLocaleString()}</td>
                       </tr>
                     ))}
-                    {(!sessions || sessions.length === 0) && (
-                      <tr><td colSpan={4} className="p-4 text-center text-sm text-slate-400">No active sessions found.</td></tr>
+                    {sessions.length === 0 && (
+                      <tr>
+                        <td colSpan={isPlatformAdmin ? 7 : 6} className="p-4 text-center text-sm text-slate-400">
+                          No active sessions found.
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -276,8 +421,9 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
-        <TabsContent value="notifications" className="mt-4">
+        <TabsContent value="notifications" className="mt-6">
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 flex items-center justify-between">
               <CardTitle className="text-sm font-medium">Notifications</CardTitle>
@@ -291,8 +437,19 @@ export default function SettingsPage() {
               <div className="divide-y">
                 {(notifications?.items || []).map(notif => {
                   const Icon = notifIcons[notif.type] || Info;
+                  const isHighlighted = highlightedNotificationId === String(notif.id);
                   return (
-                    <div key={notif.id} className={`flex items-start gap-2 sm:gap-3 p-3 sm:p-4 ${notif.isRead ? "opacity-60" : "bg-indigo-50/30"}`}>
+                    <div
+                      key={notif.id}
+                      id={`notification-${notif.id}`}
+                      className={`flex items-start gap-2 sm:gap-3 p-3 sm:p-4 transition-colors ${
+                        isHighlighted
+                          ? "bg-amber-50 ring-2 ring-amber-400 ring-inset"
+                          : notif.isRead
+                          ? "opacity-60"
+                          : "bg-indigo-50/30"
+                      }`}
+                    >
                       <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center flex-shrink-0 ${notifColors[notif.type] || ""}`}>
                         <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
@@ -320,8 +477,8 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="audit" className="mt-4 space-y-4">
-          {/* Audit Stats */}
+        {canViewSecurity && (
+        <TabsContent value="audit" className="mt-6 space-y-5">
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <Card className="border-0 shadow-sm"><CardContent className="p-3 sm:p-4">
               <p className="text-[10px] sm:text-xs text-slate-500">Total Logs</p>
@@ -343,32 +500,54 @@ export default function SettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[500px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Action</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Entity</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">User</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">IP</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Time</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Action</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Entity</th>
+                    {isPlatformAdmin && (
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Agency</th>
+                    )}
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">IP</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Time</th>
                   </tr></thead>
                   <tbody>
                     {(auditLogs?.items || []).map(log => (
                       <tr key={log.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
-                        <td className="p-2 sm:p-3"><Badge variant="outline" className="text-[10px] capitalize">{log.action}</Badge></td>
-                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{log.entityType} {log.entityId && `#${log.entityId}`}</td>
-                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{log.user?.name || "System"}</td>
-                        <td className="p-2 sm:p-3 font-mono text-[10px] sm:text-xs">{log.ipAddress}</td>
-                        <td className="p-2 sm:p-3 text-[10px] sm:text-xs text-slate-500">{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</td>
+                        <td className="px-4 py-3"><Badge variant="outline" className="text-[10px] capitalize">{log.action}</Badge></td>
+                        <td className="px-4 py-3 text-xs sm:text-sm">{log.entityType} {log.entityId && `#${log.entityId}`}</td>
+                        {isPlatformAdmin && (
+                          <td className="px-4 py-3 text-xs sm:text-sm">{log.tenant?.name || "Platform"}</td>
+                        )}
+                        <td className="px-4 py-3 text-xs sm:text-sm">{log.user?.name || "System"}</td>
+                        <td className="px-4 py-3 font-mono text-[10px] sm:text-xs">{log.ipAddress || "—"}</td>
+                        <td className="px-4 py-3 text-[10px] sm:text-xs text-slate-500">{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</td>
                       </tr>
                     ))}
+                    {(auditLogs?.items || []).length === 0 && (
+                      <tr>
+                        <td colSpan={isPlatformAdmin ? 6 : 5} className="p-4 text-center text-sm text-slate-400">
+                          No audit logs found.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
-        <TabsContent value="users" className="mt-4 space-y-4">
-          {/* Plan usage indicator (admin only) */}
-          {isAdmin && planUsage && (
+        {!isPlatformAdmin && (
+        <TabsContent value="users" className="mt-6 space-y-5">
+          {!canManageStaff && (
+            <Card className="border-0 shadow-sm border-amber-200 bg-amber-50/50">
+              <CardContent className="p-4 text-sm text-amber-800">
+                This is a read-only staff directory. User activation, deactivation, and deletion are managed by your agency admin only.
+              </CardContent>
+            </Card>
+          )}
+          {/* Plan usage indicator (agency admin only) */}
+          {canManageStaff && planUsage && (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -378,7 +557,10 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium">Plan Usage</p>
-                      <p className="text-xs text-slate-500 capitalize">{planUsage.plan} Plan — {planUsage.used} of {planUsage.limit} users</p>
+                      <p className="text-xs text-slate-500 capitalize">
+                        {formatPlanLabel(planUsage.plan)} Plan — {formatTotalSeatLabel(planUsage)}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{formatRoleSeatBreakdown(planUsage)}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -389,7 +571,7 @@ export default function SettingsPage() {
                 <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${planUsage.canAdd ? "bg-indigo-600" : "bg-red-500"}`}
-                    style={{ width: `${Math.min(100, (planUsage.used / planUsage.limit) * 100)}%` }}
+                    style={{ width: `${planUsage.limit > 0 ? Math.min(100, (planUsage.used / planUsage.limit) * 100) : 0}%` }}
                   />
                 </div>
                 {planUsage.canAdd ? (
@@ -399,7 +581,7 @@ export default function SettingsPage() {
                 ) : (
                   <div className="mt-3 flex items-center gap-2 text-amber-600 text-xs">
                     <AlertCircle className="h-4 w-4" />
-                    <span>User limit reached. Upgrade your plan to add more users.</span>
+                    <span>Staff user limit reached. Upgrade your plan to add more users.</span>
                   </div>
                 )}
               </CardContent>
@@ -412,19 +594,19 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">User</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Role</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Dept</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Status</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Last Sign In</th>
-                    {isAdmin && <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">Actions</th>}
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Role</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Dept</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Status</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Last Sign In</th>
+                    {canManageStaff && <th className="text-right px-4 py-3 font-medium text-slate-500 text-xs">Actions</th>}
                   </tr></thead>
                   <tbody>
                     {(displayUsers || []).map(u => (
                       <tr key={u.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
-                        <td className="p-2 sm:p-3">
+                        <td className="px-4 py-3">
                           <div className="flex items-center gap-2 sm:gap-3">
                             <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs flex-shrink-0">
                               {u.name?.charAt(0) || "U"}
@@ -435,18 +617,18 @@ export default function SettingsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="p-2 sm:p-3">
+                        <td className="px-4 py-3">
                           <Badge variant="outline" className={`text-[10px] capitalize ${ROLE_COLORS[u.role] || ""}`}>
                             {u.role}
                           </Badge>
                         </td>
-                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{u.department || "—"}</td>
-                        <td className="p-2 sm:p-3">
+                        <td className="px-4 py-3 text-xs sm:text-sm">{u.department || "—"}</td>
+                        <td className="px-4 py-3">
                           <Badge className={`text-[10px] ${STATUS_COLORS[u.status] || ""}`}>{u.status}</Badge>
                         </td>
-                        <td className="p-2 sm:p-3 text-xs text-slate-500">{u.lastSignInAt ? new Date(u.lastSignInAt).toLocaleString() : "Never"}</td>
-                        {isAdmin && (
-                          <td className="p-2 sm:p-3 text-right">
+                        <td className="px-4 py-3 text-xs text-slate-500">{u.lastSignInAt ? new Date(u.lastSignInAt).toLocaleString() : "Never"}</td>
+                        {canManageStaff && (
+                          <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 size="sm" variant="ghost" className="h-7 w-7 p-0"
@@ -458,15 +640,16 @@ export default function SettingsPage() {
                               </Button>
                               <Button
                                 size="sm" variant="ghost" className="h-7 w-7 p-0"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to delete ${u.name}?`)) {
-                                    deleteUser.mutate({ id: u.id });
-                                  }
-                                }}
-                                disabled={u.id === user?.id || u.role === "admin" || u.role === "super_admin" || deleteUser.isPending}
-                                title="Delete"
+                                onClick={() => setDeleteUserTarget({ id: u.id, name: u.name || "this user" })}
+                                disabled={
+                                  u.id === user?.id
+                                  || u.role === "admin"
+                                  || u.role === "super_admin"
+                                  || deleteUser.isPending
+                                }
+                                title="Delete user"
                               >
-                                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                <Trash2 className="h-3.5 w-3.5 text-red-600" />
                               </Button>
                             </div>
                           </td>
@@ -474,7 +657,7 @@ export default function SettingsPage() {
                       </tr>
                     ))}
                     {(!displayUsers || displayUsers.length === 0) && (
-                      <tr><td colSpan={isAdmin ? 6 : 5} className="p-4 text-center text-sm text-slate-400">No users found.</td></tr>
+                      <tr><td colSpan={canManageStaff ? 6 : 5} className="p-4 text-center text-sm text-slate-400">No users found.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -482,8 +665,9 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
-        <TabsContent value="roles" className="mt-4">
+        <TabsContent value="roles" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {(roles || []).map(role => {
               let perms: string[] = [];
@@ -523,6 +707,33 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
 
+      <AlertDialog open={!!deleteUserTarget} onOpenChange={(open) => !open && setDeleteUserTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteUserTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              We will remove the data associated with this user, including their account, sessions, notifications,
+              and personal records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteUser.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteUser.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (deleteUserTarget) {
+                  deleteUser.mutate({ id: deleteUserTarget.id });
+                }
+              }}
+            >
+              {deleteUser.isPending ? "Deleting..." : "Delete user"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* User Create/Edit Dialog */}
       <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
         <DialogContent className="max-w-md">
@@ -535,13 +746,13 @@ export default function SettingsPage() {
               {editingUser
                 ? "Update user details and permissions."
                 : planUsage
-                ? `You have ${planUsage.remaining} of ${planUsage.limit} users remaining on your ${planUsage.plan} plan.`
+                ? `${formatTotalSeatLabel(planUsage)} on your ${formatPlanLabel(planUsage.plan)} plan. ${formatRoleSeatBreakdown(planUsage)}`
                 : "Create a new staff user for your agency."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
-            <div className="space-y-1">
+            <div>
               <Label className="text-xs">Full Name</Label>
               <Input
                 placeholder="e.g. Ahmad Khan"
@@ -549,7 +760,7 @@ export default function SettingsPage() {
                 onChange={e => setUserForm(s => ({ ...s, name: e.target.value }))}
               />
             </div>
-            <div className="space-y-1">
+            <div>
               <Label className="text-xs">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -563,7 +774,7 @@ export default function SettingsPage() {
               </div>
             </div>
             {!editingUser && (
-              <div className="space-y-1">
+              <div>
                 <Label className="text-xs">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -578,19 +789,19 @@ export default function SettingsPage() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+              <div>
                 <Label className="text-xs">Role</Label>
                 <select
                   value={userForm.role}
                   onChange={e => setUserForm(s => ({ ...s, role: e.target.value as any }))}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
-                  {STAFF_ROLES.map(r => (
+                  {availableStaffRoles.map(r => (
                     <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
                 </select>
               </div>
-              <div className="space-y-1">
+              <div>
                 <Label className="text-xs">Status</Label>
                 <select
                   value={userForm.status}
@@ -603,7 +814,7 @@ export default function SettingsPage() {
                 </select>
               </div>
             </div>
-            <div className="space-y-1">
+            <div>
               <Label className="text-xs">Department</Label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -615,7 +826,7 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
-            <div className="space-y-1">
+            <div>
               <Label className="text-xs">Phone</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -634,7 +845,11 @@ export default function SettingsPage() {
             <Button
               className="bg-indigo-600 hover:bg-indigo-700"
               onClick={handleSaveUser}
-              disabled={createUser.isPending || updateUser.isPending}
+              disabled={
+                createUser.isPending
+                || updateUser.isPending
+                || (!editingUser && planUsage != null && !canAddUserWithRole(planUsage, userForm.role))
+              }
             >
               {editingUser
                 ? (updateUser.isPending ? "Saving..." : "Save Changes")

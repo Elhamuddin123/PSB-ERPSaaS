@@ -6,6 +6,7 @@ import { tenants, users, subscriptions } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "./lib/password";
 import { nextNumber } from "./lib/numbering";
+import { calculateSubscriptionTotal, DURATION_OPTIONS } from "@contracts/plans";
 
 
 function slugify(name: string): string {
@@ -35,6 +36,16 @@ export const registrationRouter = createRouter({
     )
     .mutation(async ({ input }) => {
       const db = getDb();
+
+      const allowedDurations = new Set(DURATION_OPTIONS.map((d) => d.months));
+      if (!allowedDurations.has(input.durationMonths as 1 | 3 | 6 | 12)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid subscription duration",
+        });
+      }
+
+      const pricing = calculateSubscriptionTotal(input.plan, input.durationMonths);
 
       // ── VALIDATIONS ──
       // Check duplicate email
@@ -72,11 +83,6 @@ export const registrationRouter = createRouter({
       });
       const tenantId = Number(tenantResult[0].insertId);
 
-      const tenant = await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1);
       // Ensure tenant status persisted as "pending" (some inserts observed empty status)
       await db.update(tenants).set({ status: "pending" }).where(eq(tenants.id, tenantId));
 
@@ -110,12 +116,6 @@ export const registrationRouter = createRouter({
         status: "pending",
       });
 
-      const subscription = await db
-        .select()
-        .from(subscriptions)
-        .where(eq(subscriptions.tenantId, tenantId))
-        .limit(1);
-
       return {
         success: true,
         tenantId,
@@ -124,6 +124,7 @@ export const registrationRouter = createRouter({
         agencyName: input.agencyName,
         plan: input.plan,
         durationMonths: input.durationMonths,
+        pricing,
       };
     }),
 

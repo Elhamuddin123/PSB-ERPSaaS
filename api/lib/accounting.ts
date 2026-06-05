@@ -5,16 +5,15 @@
  * All operations are designed to run inside an existing transaction.
  */
 
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   journalEntries,
   journalEntryLines,
-  ledgerEntries,
-  chartOfAccounts,
 } from "@db/schema";
-import type { getDb } from "../queries/connection";
+import type { DbOrTx } from "../queries/connection";
+import { postLedgerLines } from "./ledger-posting";
 
-export type DbOrTx = ReturnType<typeof getDb>;
+export type { DbOrTx };
 
 export interface PostingLine {
   accountId: number;
@@ -78,40 +77,14 @@ export async function postJournal(
     }))
   );
 
-  // Ledger entries + COA updates
-  for (const line of input.lines) {
-    const ledgerAgg = await db
-      .select({ balance: sql<number>`COALESCE(SUM(debit - credit), 0)` })
-      .from(ledgerEntries)
-      .where(eq(ledgerEntries.accountId, line.accountId));
-
-    const priorBalance = Number(ledgerAgg[0]?.balance ?? 0);
-    const newBalance = priorBalance + Number(line.debit) - Number(line.credit);
-
-    await db.insert(ledgerEntries).values({
-      tenantId: input.tenantId,
-      journalEntryId: journalId,
-      accountId: line.accountId,
-      date: input.date,
-      description: line.description,
-      debit: line.debit,
-      credit: line.credit,
-      balance: newBalance.toFixed(2),
-      entryType: "transaction",
-      referenceType: input.referenceType,
-      referenceId: input.referenceId,
-    });
-
-    await db
-      .update(chartOfAccounts)
-      .set({ currentBalance: newBalance.toFixed(2) })
-      .where(
-        and(
-          eq(chartOfAccounts.id, line.accountId),
-          eq(chartOfAccounts.tenantId, input.tenantId)
-        )
-      );
-  }
+  await postLedgerLines(db, {
+    tenantId: input.tenantId,
+    journalEntryId: journalId,
+    date: input.date,
+    referenceType: input.referenceType,
+    referenceId: input.referenceId,
+    lines: input.lines,
+  });
 
   return journalId;
 }

@@ -1,9 +1,20 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery } from "./middleware";
+import { createRouter, authedQuery, agentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { customers, leads, interactions, tickets, invoices, customerTransactions } from "@db/schema";
 import { eq, desc, sql, and, isNull } from "drizzle-orm";
+
+const optionalEmail = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().email().max(320).optional(),
+);
+
+function emptyToUndefined(value?: string) {
+  if (value == null) return undefined;
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
 
 export const crmRouter = createRouter({
   // ─── CUSTOMERS ───────────────────────────────────────────────────────────
@@ -117,11 +128,11 @@ export const crmRouter = createRouter({
       };
     }),
 
-  createCustomer: authedQuery
+  createCustomer: agentQuery
     .input(z.object({
       firstName: z.string().min(1),
       lastName: z.string().min(1),
-      email: z.string().email().optional(),
+      email: optionalEmail,
       phone: z.string().optional(),
       company: z.string().optional(),
       jobTitle: z.string().optional(),
@@ -136,6 +147,14 @@ export const crmRouter = createRouter({
       const code = `CUST-${Date.now().toString(36).toUpperCase()}`;
       const result = await db.insert(customers).values({
         ...input,
+        email: input.email ?? undefined,
+        phone: emptyToUndefined(input.phone),
+        company: emptyToUndefined(input.company),
+        jobTitle: emptyToUndefined(input.jobTitle),
+        address: emptyToUndefined(input.address),
+        city: emptyToUndefined(input.city),
+        country: emptyToUndefined(input.country),
+        notes: emptyToUndefined(input.notes),
         tenantId: ctx.user!.tenantId as number,
         customerCode: code,
         status: "active",
@@ -145,12 +164,12 @@ export const crmRouter = createRouter({
       return { id: Number(result[0].insertId) };
     }),
 
-  updateCustomer: authedQuery
+  updateCustomer: agentQuery
     .input(z.object({
       id: z.number(),
       firstName: z.string().optional(),
       lastName: z.string().optional(),
-      email: z.string().email().optional(),
+      email: optionalEmail,
       phone: z.string().optional(),
       company: z.string().optional(),
       status: z.enum(["active", "inactive", "blacklisted", "vip"]).optional(),
@@ -162,6 +181,10 @@ export const crmRouter = createRouter({
       if (Object.keys(update).length === 0) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
       }
+      if ("email" in update) update.email = update.email ?? undefined;
+      if ("phone" in update) update.phone = emptyToUndefined(update.phone);
+      if ("company" in update) update.company = emptyToUndefined(update.company);
+      if ("notes" in update) update.notes = emptyToUndefined(update.notes);
       await db.update(customers).set(update).where(and(eq(customers.id, id), eq(customers.tenantId, ctx.user!.tenantId as number)));
       return { success: true };
     }),
@@ -194,11 +217,11 @@ export const crmRouter = createRouter({
       return { items, total: countResult[0]?.count ?? 0 };
     }),
 
-  createLead: authedQuery
+  createLead: agentQuery
     .input(z.object({
       firstName: z.string().min(1),
       lastName: z.string().min(1),
-      email: z.string().email().optional(),
+      email: optionalEmail,
       phone: z.string().optional(),
       company: z.string().optional(),
       source: z.string().optional(),
@@ -212,6 +235,11 @@ export const crmRouter = createRouter({
       const { expectedCloseDate, ...rest } = input;
       const result = await db.insert(leads).values({
         ...rest,
+        email: rest.email ?? undefined,
+        phone: emptyToUndefined(rest.phone),
+        company: emptyToUndefined(rest.company),
+        source: emptyToUndefined(rest.source),
+        notes: emptyToUndefined(rest.notes),
         tenantId: ctx.user!.tenantId as number,
         expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate) : undefined,
         status: "new",
@@ -219,7 +247,7 @@ export const crmRouter = createRouter({
       return { id: Number(result[0].insertId) };
     }),
 
-  updateLeadStatus: authedQuery
+  updateLeadStatus: agentQuery
     .input(z.object({
       id: z.number(),
       status: z.enum(["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"]),
@@ -246,7 +274,7 @@ export const crmRouter = createRouter({
       });
     }),
 
-  createInteraction: authedQuery
+  createInteraction: agentQuery
     .input(z.object({
       customerId: z.number().optional(),
       leadId: z.number().optional(),
@@ -285,7 +313,7 @@ export const crmRouter = createRouter({
     };
   }),
 
-  deleteCustomer: authedQuery
+  deleteCustomer: agentQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();

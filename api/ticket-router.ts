@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, tenantAdminQuery, agentQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery, agentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 
 import {
@@ -11,7 +11,6 @@ import {
   walletTransactions,
   journalEntries,
   journalEntryLines,
-  ledgerEntries,
   chartOfAccounts,
   notifications,
   customers,
@@ -34,6 +33,8 @@ import {
 } from "drizzle-orm";
 import { nextNumber } from "./lib/numbering";
 import { auditLog } from "./lib/audit";
+import { createPendingTicket, validateTicketCreatePrerequisites } from "./lib/ticket-create";
+import { postLedgerLines } from "./lib/ledger-posting";
 
 // =====================================================
 // JSON metadata helper (MariaDB returns JSON as strings)
@@ -45,6 +46,46 @@ function getTicketMetadata(ticket: typeof tickets.$inferSelect) {
   }
   return ticket.metadata as any;
 }
+
+const optionalValidDateString = z
+  .string()
+  .optional()
+  .refine((value) => !value || !isNaN(new Date(value).getTime()), { message: "Date must be valid" });
+
+const optionalId = z.preprocess(
+  (value) => (typeof value === "number" && value <= 0 ? undefined : value),
+  z.number().optional(),
+);
+
+const ticketSharedInputSchema = {
+  airlineId: optionalId,
+  customerId: optionalId,
+  walletId: z.number().min(1, "Wallet is required"),
+  travelDate: optionalValidDateString,
+  returnDate: optionalValidDateString,
+  routeFrom: z.string().max(10).optional(),
+  routeTo: z.string().max(10).optional(),
+  tripType: z.enum(["one_way", "round_trip", "multi_city"]).default("one_way"),
+  class: z.enum(["economy", "premium_economy", "business", "first"]).default("economy"),
+  baseFare: z.string().default("0"),
+  taxAmount: z.string().default("0"),
+  totalAmount: z.string().refine((value) => Number(value) > 0, { message: "Ticket price is required" }),
+  commissionAmount: z.string().default("0"),
+  paidAmount: z.string().optional(),
+  supplierCost: z.string().optional(),
+  expense: z.string().optional(),
+  netPayable: z.string().default("0"),
+  notes: z.string().optional(),
+};
+
+const ticketPassengerInputSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
+  passengerType: z.enum(["adult", "child", "infant"]).default("adult"),
+  passportNumber: z.string().optional(),
+  nationality: z.string().optional(),
+  seatNumber: z.string().optional(),
+});
 
 function ensureTicketTenant(ctx: any, label = "") {
   const tid = ctx.user?.tenantId;
@@ -175,31 +216,17 @@ async function approveTicket(
       },
     ]);
 
-    const journalLines = [
-      { accountId: debitAccount.id, description: ticket.customerId ? "Accounts Receivable - Ticket Sale" : "Wallet deduction for ticket booking", debit: totalAmount.toFixed(2), credit: "0.00" },
-      { accountId: revenueAccount.id, description: "Ticket sales revenue", debit: "0.00", credit: totalAmount.toFixed(2) },
-    ];
-
-    for (const line of journalLines) {
-      const account = await db.query.chartOfAccounts.findFirst({
-        where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      });
-      const currentBalance = Number(account?.currentBalance ?? 0);
-      const newAccBalance = currentBalance + Number(line.debit) - Number(line.credit);
-      await db.insert(ledgerEntries).values({
-        tenantId,
-        journalEntryId: journalId,
-        accountId: line.accountId,
-        date: new Date(),
-        description: line.description,
-        debit: line.debit,
-        credit: line.credit,
-        balance: newAccBalance.toFixed(2),
-      });
-      await db.update(chartOfAccounts).set({ currentBalance: newAccBalance.toFixed(2) }).where(
-        and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      );
-    }
+    await postLedgerLines(db, {
+      tenantId,
+      journalEntryId: journalId,
+      date: new Date(),
+      referenceType: "ticket",
+      referenceId: ticket.id,
+      lines: [
+        { accountId: debitAccount.id, description: ticket.customerId ? "Accounts Receivable - Ticket Sale" : "Wallet deduction for ticket booking", debit: totalAmount.toFixed(2), credit: "0.00" },
+        { accountId: revenueAccount.id, description: "Ticket sales revenue", debit: "0.00", credit: totalAmount.toFixed(2) },
+      ],
+    });
   }
 
   // Update ticket
@@ -301,29 +328,17 @@ async function approveTicket(
         { journalEntryId: journalId, accountId: commissionRevenueAccount.id, description: "Commission revenue", debit: "0.00", credit: commissionAmount.toFixed(2) },
       ]);
 
-      for (const line of [
-        { accountId: commissionExpenseAccount.id, debit: commissionAmount.toFixed(2), credit: "0.00", description: "Commission expense" },
-        { accountId: commissionRevenueAccount.id, debit: "0.00", credit: commissionAmount.toFixed(2), description: "Commission revenue" },
-      ]) {
-        const account = await db.query.chartOfAccounts.findFirst({
-          where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-        });
-        const currentBal = Number(account?.currentBalance ?? 0);
-        const newBal = currentBal + Number(line.debit) - Number(line.credit);
-        await db.insert(ledgerEntries).values({
-          tenantId,
-          journalEntryId: journalId,
-          accountId: line.accountId,
-          date: new Date(),
-          description: line.description,
-          debit: line.debit,
-          credit: line.credit,
-          balance: newBal.toFixed(2),
-        });
-        await db.update(chartOfAccounts).set({ currentBalance: newBal.toFixed(2) }).where(
-          and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-        );
-      }
+      await postLedgerLines(db, {
+        tenantId,
+        journalEntryId: journalId,
+        date: new Date(),
+        referenceType: "ticket",
+        referenceId: ticket.id,
+        lines: [
+          { accountId: commissionExpenseAccount.id, debit: commissionAmount.toFixed(2), credit: "0.00", description: "Commission expense" },
+          { accountId: commissionRevenueAccount.id, debit: "0.00", credit: commissionAmount.toFixed(2), description: "Commission revenue" },
+        ],
+      });
 
       // Update journal total
       const newTotal = totalAmount + commissionAmount;
@@ -473,26 +488,19 @@ async function refundTicket(
 
     await db.insert(journalEntryLines).values(lines);
 
-    for (const line of lines) {
-      const account = await db.query.chartOfAccounts.findFirst({
-        where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      });
-      const currentBal = Number(account?.currentBalance ?? 0);
-      const newBal = currentBal + Number(line.debit) - Number(line.credit);
-      await db.insert(ledgerEntries).values({
-        tenantId,
-        journalEntryId: journalId,
+    await postLedgerLines(db, {
+      tenantId,
+      journalEntryId: journalId,
+      date: new Date(),
+      referenceType: "ticket",
+      referenceId: ticket.id,
+      lines: lines.map((line) => ({
         accountId: line.accountId,
-        date: new Date(),
         description: line.description,
         debit: line.debit,
         credit: line.credit,
-        balance: newBal.toFixed(2),
-      });
-      await db.update(chartOfAccounts).set({ currentBalance: newBal.toFixed(2) }).where(
-        and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      );
-    }
+      })),
+    });
   }
 
   // Update ticket
@@ -696,248 +704,74 @@ export const ticketRouter = createRouter({
   create: agentQuery
     .input(
       z.object({
-        ticketNumber: z.string().min(1),
-
+        ticketNumber: z.string().optional(),
         pnrCode: z.string().optional(),
-
-        airlineId: z.number(),
-
-        customerId: z.number().optional(),
-
-        walletId: z.number(),
-
-        travelDate: z
-          .string()
-          .refine(
-            (value) =>
-              !isNaN(
-                new Date(value).getTime(),
-              ),
-            {
-              message:
-                "Valid travel date is required",
-            },
-          ),
-
-        returnDate: z
-          .string()
-          .optional()
-          .refine(
-            (value) =>
-              !value ||
-              !isNaN(
-                new Date(value).getTime(),
-              ),
-            {
-              message:
-                "Return date must be valid",
-            },
-          ),
-
-        routeFrom: z
-          .string()
-          .min(2)
-          .max(10),
-
-        routeTo: z
-          .string()
-          .min(2)
-          .max(10),
-
-        tripType: z
-          .enum([
-            "one_way",
-            "round_trip",
-            "multi_city",
-          ])
-          .default("one_way"),
-
-        class: z
-          .enum([
-            "economy",
-            "premium_economy",
-            "business",
-            "first",
-          ])
-          .default("economy"),
-
-        baseFare: z.string(),
-
-        taxAmount: z.string(),
-
-        totalAmount: z.string(),
-
-        commissionAmount: z.string(),
-
-        paidAmount: z.string().optional(),
-
-        supplierCost: z.string().optional(),
-
-        expense: z.string().optional(),
-
-        netPayable: z.string(),
-
-        notes: z.string().optional(),
-
-        passengers: z
-          .array(
-            z.object({
-              firstName: z.string(),
-
-              lastName: z.string(),
-
-              passengerType: z
-                .enum([
-                  "adult",
-                  "child",
-                  "infant",
-                ])
-                .default("adult"),
-
-              passportNumber:
-                z.string().optional(),
-
-              nationality:
-                z.string().optional(),
-
-              seatNumber:
-                z.string().optional(),
-            }),
-          )
-          .optional(),
+        ...ticketSharedInputSchema,
+        passengers: z.array(ticketPassengerInputSchema).min(1, "Passenger first and last name are required"),
       }),
     )
-
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
-
-      const { passengers, ...ticketData } = input;
       const tenantId = ctx.user!.tenantId as number;
-      console.log("[Ticket create] input:", input);
 
-      // Calculate auto fields
-      const ticketPrice = Number(ticketData.totalAmount || "0");
-      const paidAmount = Number(ticketData.paidAmount || "0");
-      console.log("[ticket total]", ticketPrice);
-      let paymentStatus: "pending" | "partial" | "paid" = "pending";
-      if (paidAmount >= ticketPrice && ticketPrice > 0) paymentStatus = "paid";
-      else if (paidAmount > 0) paymentStatus = "partial";
+      await validateTicketCreatePrerequisites(db, tenantId, input.walletId, input.airlineId);
+      const result = await createPendingTicket(db, ctx, input);
+      return { id: result.id, ticketNumber: result.ticketNumber };
+    }),
 
-      // =====================================================
-      // WALLET VALIDATION (early check, no deduction yet)
-      // =====================================================
-      const userWallet = await db.query.wallets.findFirst({
-        where: and(
-          eq(wallets.id, input.walletId),
-          eq(wallets.tenantId, tenantId),
-          eq(wallets.status, "active"),
-        ),
-      });
-      if (!userWallet) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Wallet not found or inactive" });
-      }
+  createBulk: agentQuery
+    .input(
+      z.object({
+        ...ticketSharedInputSchema,
+        entries: z
+          .array(
+            z.object({
+              firstName: z.string().min(1),
+              lastName: z.string().min(1),
+              pnrCode: z.string().optional(),
+              ticketNumber: z.string().optional(),
+            }),
+          )
+          .min(1)
+          .max(30),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const { entries, ...shared } = input;
 
-      // =====================================================
-      // ACCOUNTING ACCOUNTS VALIDATION (early check)
-      // =====================================================
-      const cashAccount = await db.query.chartOfAccounts.findFirst({
-        where: and(eq(chartOfAccounts.code, "1000"), eq(chartOfAccounts.tenantId, tenantId)),
-      });
-      const revenueAccount = await db.query.chartOfAccounts.findFirst({
-        where: and(eq(chartOfAccounts.code, "4000"), eq(chartOfAccounts.tenantId, tenantId)),
-      });
-      if (!cashAccount || !revenueAccount) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Accounting accounts missing" });
-      }
+      await validateTicketCreatePrerequisites(db, tenantId, shared.walletId, shared.airlineId);
 
-      // =====================================================
-      // AIRLINE VALIDATION
-      // =====================================================
-      const airline = await db.query.airlines.findFirst({
-        where: and(eq(airlines.id, input.airlineId), eq(airlines.tenantId, tenantId)),
-      });
-      if (!airline) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Airline not found" });
-      }
-
-      // =====================================================
-      // CREATE TICKET (pending, no financial posting)
-      // =====================================================
-      const result = await db.insert(tickets).values({
-        ...ticketData,
-        tenantId,
-        travelDate: new Date(input.travelDate),
-        returnDate: input.returnDate ? new Date(input.returnDate) : undefined,
-        status: "pending",
-        paymentStatus,
-        issuedBy: ctx.user!.id,
-        metadata: { walletId: input.walletId },
-      });
-
-      const ticketId = Number(result[0].insertId);
-
-      // =====================================================
-      // PASSENGERS
-      // =====================================================
-      if (passengers && passengers.length > 0) {
-        await db.insert(ticketPassengers).values(
-          passengers.map((p) => ({ ...p, ticketId })),
-        );
-      }
-
-      // =====================================================
-      // NOTIFICATION
-      // =====================================================
-      try {
-        await db.insert(notifications).values({
-          tenantId,
-          userId: ctx.user!.id,
-          title: "New Ticket Pending Approval",
-          message: `Ticket ${input.ticketNumber} has been created and is awaiting approval.`,
-          type: "info",
-          category: "ticket",
-          referenceType: "ticket",
-          referenceId: ticketId,
+      const created: { id: number; ticketNumber: string }[] = [];
+      for (const entry of entries) {
+        const result = await createPendingTicket(db, ctx, {
+          ...shared,
+          ticketNumber: entry.ticketNumber,
+          pnrCode: entry.pnrCode,
+          passengers: [
+            {
+              firstName: entry.firstName,
+              lastName: entry.lastName,
+              passengerType: "adult",
+            },
+          ],
         });
-
-        // Notify admins / accountants
-        const admins = await db.select({ id: users.id }).from(users).where(
-          and(eq(users.tenantId, tenantId), inArray(users.role, ["admin", "accountant", "super_admin"]))
-        );
-        if (admins.length > 0) {
-          await db.insert(notifications).values(
-            admins.map((u) => ({
-              tenantId,
-              userId: u.id,
-              title: "New Ticket Pending Approval",
-              message: `Ticket ${input.ticketNumber} has been created and is awaiting approval.`,
-              type: "info" as const,
-              category: "ticket" as const,
-              referenceType: "ticket" as const,
-              referenceId: ticketId,
-            }))
-          );
-        }
-      } catch {
-        // Non-critical: notification failure should not block ticket creation
+        created.push(result);
       }
 
-      await auditLog({
-        ctx,
-        action: "create",
-        entityType: "ticket",
-        entityId: ticketId,
-        newValues: { ticketNumber: input.ticketNumber, status: "pending", amount: input.totalAmount },
-      });
-
-      return { id: ticketId };
+      return {
+        ids: created.map((t) => t.id),
+        count: created.length,
+        tickets: created,
+      };
     }),
 
   // =====================================================
   // APPROVE TICKET
   // =====================================================
 
-  approve: tenantAdminQuery
+  approve: supervisoryQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -977,7 +811,7 @@ export const ticketRouter = createRouter({
   // REJECT TICKET
   // =====================================================
 
-  reject: tenantAdminQuery
+  reject: supervisoryQuery
     .input(z.object({ id: z.number(), reason: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -1040,7 +874,7 @@ export const ticketRouter = createRouter({
   // REFUND TICKET
   // =====================================================
 
-  refund: tenantAdminQuery
+  refund: supervisoryQuery
     .input(z.object({
       id: z.number(),
       refundAmount: z.string().min(1),
@@ -1109,7 +943,7 @@ export const ticketRouter = createRouter({
   // UPDATE STATUS (simple transitions, approval goes through approve/reject)
   // =====================================================
 
-  updateStatus: tenantAdminQuery
+  updateStatus: supervisoryQuery
     .input(
       z.object({
         id: z.number(),
@@ -1239,7 +1073,7 @@ export const ticketRouter = createRouter({
   // DELETE
   // =====================================================
 
-  delete: tenantAdminQuery
+  delete: supervisoryQuery
     .input(
       z.object({
         id: z.number(),

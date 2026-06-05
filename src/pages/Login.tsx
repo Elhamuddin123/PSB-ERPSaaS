@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, LogIn, AlertCircle, Eye, EyeOff, Shield, User, Lock } from "lucide-react";
+import { hasActiveSubscription } from "@/lib/subscription";
 
 export default function LoginPage() {
   const { t } = useTranslation("login");
@@ -29,7 +30,8 @@ export default function LoginPage() {
       const result = await loginMutation.mutateAsync({ email, password });
       console.log("[login success]", result.user?.email);
       await utils.auth.me.invalidate();
-      navigate("/dashboard", { replace: true });
+      const me = await utils.auth.me.fetch();
+      navigate(hasActiveSubscription(me) ? "/dashboard" : "/payment-activation", { replace: true });
     } catch (trpcErr: any) {
       const serverMessage = trpcErr?.message;
       // Fallback to local dev demo login only in development

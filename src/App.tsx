@@ -29,6 +29,8 @@ import RegisterSuccess from "./pages/RegisterSuccess";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "@/hooks/useAuth";
+import RequireRouteAccess from "@/components/auth/RequireRouteAccess";
+import { hasActiveSubscription } from "@/lib/subscription";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -70,200 +72,75 @@ function RedirectIfAuth({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && isLoggedIn) {
-      if (user && user.role !== "super_admin" && (user as any).subscription?.status !== "active") {
-        navigate("/payment-activation", { replace: true });
-        return;
-      }
-      navigate("/dashboard", { replace: true });
+      navigate(hasActiveSubscription(user) ? "/dashboard" : "/payment-activation", { replace: true });
     }
-  }, [navigate, loading, isLoggedIn]);
+  }, [navigate, loading, isLoggedIn, user]);
 
   if (loading || isLoggedIn) return null;
   return <>{children}</>;
 }
 
+function RequireActiveSubscription({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!hasActiveSubscription(user)) {
+    return <Navigate to="/payment-activation" replace />;
+  }
+  return <>{children}</>;
+}
+
+function ProtectedPage({
+  children,
+  requireActiveSubscription = true,
+}: {
+  children: React.ReactNode;
+  requireActiveSubscription?: boolean;
+}) {
+  return (
+    <RequireAuth>
+      {requireActiveSubscription ? (
+        <RequireActiveSubscription>
+          <RequireRouteAccess>
+            <AppLayout>{children}</AppLayout>
+          </RequireRouteAccess>
+        </RequireActiveSubscription>
+      ) : (
+        <RequireRouteAccess>
+          <AppLayout>{children}</AppLayout>
+        </RequireRouteAccess>
+      )}
+    </RequireAuth>
+  );
+}
+
 export default function App() {
-  const { user } = useAuth();
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<RedirectIfAuth><Login /></RedirectIfAuth>} />
       <Route path="/register" element={<RedirectIfAuth><Register /></RedirectIfAuth>} />
       <Route path="/register/success" element={<RegisterSuccess />} />
-      <Route
-        path="/dashboard"
-        element={
-          <RequireAuth>
-            {user && user.role !== "super_admin" && (user as any).subscription?.status !== "active" ? (
-              <Navigate to="/payment-activation" replace />
-            ) : (
-              <AppLayout><Dashboard /></AppLayout>
-            )}
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/wallets"
-        element={
-          <RequireAuth>
-            <AppLayout><Wallets /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/tickets"
-        element={
-          <RequireAuth>
-            <AppLayout><Tickets /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/crm"
-        element={
-          <RequireAuth>
-            <AppLayout><CRM /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/crm/customers/:id"
-        element={
-          <RequireAuth>
-            <AppLayout><CustomerDetail /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/invoices"
-        element={
-          <RequireAuth>
-            <AppLayout><Invoices /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/receivables"
-        element={
-          <RequireAuth>
-            <AppLayout><Receivables /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/deposits"
-        element={
-          <RequireAuth>
-            <AppLayout><Deposits /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/payment-locations"
-        element={
-          <RequireAuth>
-            <AppLayout><PaymentLocations /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/suppliers"
-        element={
-          <RequireAuth>
-            <AppLayout><Suppliers /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/suppliers/:id"
-        element={
-          <RequireAuth>
-            <AppLayout><SupplierDetail /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/payables"
-        element={
-          <RequireAuth>
-            <AppLayout><Payables /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/exchange-rates"
-        element={
-          <RequireAuth>
-            <AppLayout><ExchangeRates /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/bank-reconciliation"
-        element={
-          <RequireAuth>
-            <AppLayout><BankReconciliation /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <RequireAuth>
-            <AppLayout><Reports /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/documents"
-        element={
-          <RequireAuth>
-            <AppLayout><Documents /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/expenses"
-        element={
-          <RequireAuth>
-            <AppLayout><Expenses /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/accounting"
-        element={
-          <RequireAuth>
-            <AppLayout><Accounting /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/ai"
-        element={
-          <RequireAuth>
-            <AppLayout><AIAssistant /></AppLayout>
-          </RequireAuth>
-        }
-      />
-      <Route
- path="/payment-activation"
- element={
-   <RequireAuth>
-      <AppLayout>
-         <PaymentActivation/>
-      </AppLayout>
-   </RequireAuth>
- }
-/>
-      <Route
-        path="/settings"
-        element={
-          <RequireAuth>
-            <AppLayout><Settings /></AppLayout>
-          </RequireAuth>
-        }
-      />
+      <Route path="/dashboard" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
+      <Route path="/wallets" element={<ProtectedPage><Wallets /></ProtectedPage>} />
+      <Route path="/tickets" element={<ProtectedPage><Tickets /></ProtectedPage>} />
+      <Route path="/crm" element={<ProtectedPage><CRM /></ProtectedPage>} />
+      <Route path="/crm/customers/:id" element={<ProtectedPage><CustomerDetail /></ProtectedPage>} />
+      <Route path="/invoices" element={<ProtectedPage><Invoices /></ProtectedPage>} />
+      <Route path="/receivables" element={<ProtectedPage><Receivables /></ProtectedPage>} />
+      <Route path="/deposits" element={<ProtectedPage><Deposits /></ProtectedPage>} />
+      <Route path="/payment-locations" element={<ProtectedPage><PaymentLocations /></ProtectedPage>} />
+      <Route path="/suppliers" element={<ProtectedPage><Suppliers /></ProtectedPage>} />
+      <Route path="/suppliers/:id" element={<ProtectedPage><SupplierDetail /></ProtectedPage>} />
+      <Route path="/payables" element={<ProtectedPage><Payables /></ProtectedPage>} />
+      <Route path="/exchange-rates" element={<ProtectedPage><ExchangeRates /></ProtectedPage>} />
+      <Route path="/bank-reconciliation" element={<ProtectedPage><BankReconciliation /></ProtectedPage>} />
+      <Route path="/reports" element={<ProtectedPage><Reports /></ProtectedPage>} />
+      <Route path="/documents" element={<ProtectedPage><Documents /></ProtectedPage>} />
+      <Route path="/expenses" element={<ProtectedPage><Expenses /></ProtectedPage>} />
+      <Route path="/accounting" element={<ProtectedPage><Accounting /></ProtectedPage>} />
+      <Route path="/ai" element={<ProtectedPage><AIAssistant /></ProtectedPage>} />
+      <Route path="/payment-activation" element={<ProtectedPage requireActiveSubscription={false}><PaymentActivation /></ProtectedPage>} />
+      <Route path="/settings" element={<ProtectedPage><Settings /></ProtectedPage>} />
       <Route
         path="/admin"
         element={

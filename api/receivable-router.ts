@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, tenantAdminQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { customerTransactions, customers, invoices, chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries, notifications } from "@db/schema";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
@@ -118,7 +118,7 @@ export const receivableRouter = createRouter({
     return buckets;
   }),
 
-  createPayment: tenantAdminQuery
+  createPayment: supervisoryQuery
     .input(z.object({
       customerId: z.number(),
       invoiceId: z.number().optional(),

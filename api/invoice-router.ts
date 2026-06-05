@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, tenantAdminQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { invoices, invoiceItems, customers, tickets, ticketPassengers, airlines, customerTransactions, chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries, notifications } from "@db/schema";
 import { eq, desc, sql, and, isNull, inArray } from "drizzle-orm";
@@ -66,7 +66,7 @@ export const invoiceRouter = createRouter({
       return { ...inv, items: itemsList, customer: customerRow, ticket: ticketRow };
     }),
 
-  generateFromTicket: tenantAdminQuery
+  generateFromTicket: supervisoryQuery
     .input(z.object({ ticketId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -133,7 +133,7 @@ export const invoiceRouter = createRouter({
       return { id: invoiceId, invoiceNumber };
     }),
 
-  updateStatus: tenantAdminQuery
+  updateStatus: supervisoryQuery
     .input(z.object({
       id: z.number(),
       status: z.enum(["draft", "sent", "partial", "paid", "overdue", "cancelled"]),
@@ -146,7 +146,7 @@ export const invoiceRouter = createRouter({
       return { success: true };
     }),
 
-  recordPayment: tenantAdminQuery
+  recordPayment: supervisoryQuery
     .input(z.object({
       id: z.number(),
       amount: z.string().min(1),

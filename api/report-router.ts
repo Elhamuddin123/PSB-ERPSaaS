@@ -2,10 +2,12 @@ import { z } from "zod";
 import { createRouter, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
-  tickets, customers, suppliers, bills, expenses, ledgerEntries,
-  chartOfAccounts, journalEntries, journalEntryLines, wallets, walletTransactions,
+  tickets, customers, suppliers, bills, expenses, expenseCategories, ledgerEntries,
+  chartOfAccounts, journalEntries, journalEntryLines, wallets, walletTransactions, airlines,
 } from "@db/schema";
-import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { eq, desc, sql, and, inArray, isNull } from "drizzle-orm";
+import { buildTrialBalance, buildIncomeStatement, type AccountType } from "./lib/accounting-balance";
+import { getSetting } from "./lib/settings";
 
 export const reportRouter = createRouter({
   // ─── REVENUE BY CUSTOMER ───────────────────────────────────────────────────
@@ -14,9 +16,13 @@ export const reportRouter = createRouter({
     .query(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
-      const conditions = [eq(tickets.tenantId, tenantId), eq(tickets.status, "confirmed")];
-      if (input?.fromDate) conditions.push(sql`${tickets.createdAt} >= ${input.fromDate}`);
-      if (input?.toDate) conditions.push(sql`${tickets.createdAt} <= ${input.toDate + " 23:59:59"}`);
+      const conditions = [
+        eq(tickets.tenantId, tenantId),
+        eq(tickets.status, "confirmed"),
+        isNull(tickets.deletedAt),
+      ];
+      if (input?.fromDate) conditions.push(sql`${tickets.bookingDate} >= ${input.fromDate}`);
+      if (input?.toDate) conditions.push(sql`${tickets.bookingDate} <= ${input.toDate + " 23:59:59"}`);
 
       const result = await db.select({
         customerId: tickets.customerId,
@@ -34,13 +40,95 @@ export const reportRouter = createRouter({
       return result;
     }),
 
+  // ─── REVENUE DETAIL (individual ticket sales) ────────────────────────────
+  revenueDetail: authedQuery
+    .input(z.object({ fromDate: z.string().optional(), toDate: z.string().optional(), limit: z.number().default(500) }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const conditions = [
+        eq(tickets.tenantId, tenantId),
+        eq(tickets.status, "confirmed"),
+        isNull(tickets.deletedAt),
+      ];
+      if (input?.fromDate) conditions.push(sql`${tickets.bookingDate} >= ${input.fromDate}`);
+      if (input?.toDate) conditions.push(sql`${tickets.bookingDate} <= ${input.toDate + " 23:59:59"}`);
+
+      const where = and(...conditions);
+
+      const items = await db
+        .select({
+          id: tickets.id,
+          ticketNumber: tickets.ticketNumber,
+          pnrCode: tickets.pnrCode,
+          bookingDate: tickets.bookingDate,
+          travelDate: tickets.travelDate,
+          routeFrom: tickets.routeFrom,
+          routeTo: tickets.routeTo,
+          customerId: tickets.customerId,
+          customerName: sql<string>`TRIM(CONCAT(COALESCE(${customers.firstName}, ''), ' ', COALESCE(${customers.lastName}, '')))`,
+          airlineName: airlines.name,
+          baseFare: tickets.baseFare,
+          taxAmount: tickets.taxAmount,
+          totalAmount: tickets.totalAmount,
+          commissionAmount: tickets.commissionAmount,
+          paidAmount: tickets.paidAmount,
+          supplierCost: tickets.supplierCost,
+          paymentStatus: tickets.paymentStatus,
+          status: tickets.status,
+        })
+        .from(tickets)
+        .leftJoin(customers, eq(tickets.customerId, customers.id))
+        .leftJoin(airlines, eq(tickets.airlineId, airlines.id))
+        .where(where)
+        .orderBy(desc(tickets.bookingDate))
+        .limit(input.limit);
+
+      const summaryResult = await db
+        .select({
+          totalTickets: sql<number>`count(*)`,
+          totalRevenue: sql<number>`COALESCE(SUM(${tickets.totalAmount}), 0)`,
+          totalCommission: sql<number>`COALESCE(SUM(${tickets.commissionAmount}), 0)`,
+          totalPaid: sql<number>`COALESCE(SUM(${tickets.paidAmount}), 0)`,
+          totalSupplierCost: sql<number>`COALESCE(SUM(${tickets.supplierCost}), 0)`,
+        })
+        .from(tickets)
+        .where(where);
+
+      const summary = summaryResult[0];
+
+      return {
+        items: items.map((row) => ({
+          ...row,
+          customerName: row.customerName?.trim() || "Walk-in",
+          totalAmount: Number(row.totalAmount),
+          commissionAmount: Number(row.commissionAmount),
+          paidAmount: Number(row.paidAmount),
+          baseFare: Number(row.baseFare),
+          taxAmount: Number(row.taxAmount),
+          supplierCost: Number(row.supplierCost),
+        })),
+        summary: {
+          totalTickets: Number(summary?.totalTickets ?? 0),
+          totalRevenue: Number(summary?.totalRevenue ?? 0),
+          totalCommission: Number(summary?.totalCommission ?? 0),
+          totalPaid: Number(summary?.totalPaid ?? 0),
+          totalSupplierCost: Number(summary?.totalSupplierCost ?? 0),
+        },
+      };
+    }),
+
   // ─── EXPENSE BREAKDOWN ─────────────────────────────────────────────────────
   expenseBreakdown: authedQuery
     .input(z.object({ fromDate: z.string().optional(), toDate: z.string().optional() }))
     .query(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
-      const conditions = [eq(expenses.tenantId, tenantId), eq(expenses.status, "approved")];
+      const conditions = [
+        eq(expenses.tenantId, tenantId),
+        eq(expenses.status, "approved"),
+        isNull(expenses.deletedAt),
+      ];
       if (input?.fromDate) conditions.push(sql`${expenses.expenseDate} >= ${input.fromDate}`);
       if (input?.toDate) conditions.push(sql`${expenses.expenseDate} <= ${input.toDate}`);
 
@@ -55,6 +143,82 @@ export const reportRouter = createRouter({
         .orderBy(desc(sql`SUM(${expenses.amount})`));
 
       return result;
+    }),
+
+  // ─── EXPENSE DETAIL (individual expense records) ───────────────────────────
+  expenseDetail: authedQuery
+    .input(z.object({ fromDate: z.string().optional(), toDate: z.string().optional(), limit: z.number().default(500) }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const conditions = [
+        eq(expenses.tenantId, tenantId),
+        eq(expenses.status, "approved"),
+        isNull(expenses.deletedAt),
+      ];
+      if (input?.fromDate) conditions.push(sql`${expenses.expenseDate} >= ${input.fromDate}`);
+      if (input?.toDate) conditions.push(sql`${expenses.expenseDate} <= ${input.toDate}`);
+
+      const where = and(...conditions);
+
+      const items = await db
+        .select({
+          id: expenses.id,
+          title: expenses.title,
+          description: expenses.description,
+          expenseDate: expenses.expenseDate,
+          categoryName: expenseCategories.name,
+          vendor: expenses.vendor,
+          amount: expenses.amount,
+          currency: expenses.currency,
+          paymentMethod: expenses.paymentMethod,
+          receiptNumber: expenses.receiptNumber,
+          status: expenses.status,
+        })
+        .from(expenses)
+        .leftJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
+        .where(where)
+        .orderBy(desc(expenses.expenseDate), desc(expenses.id))
+        .limit(input.limit);
+
+      const summaryResult = await db
+        .select({
+          count: sql<number>`count(*)`,
+          totalAmount: sql<number>`COALESCE(SUM(${expenses.amount}), 0)`,
+        })
+        .from(expenses)
+        .where(where);
+
+      const byCategory = await db
+        .select({
+          category: expenseCategories.name,
+          total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)`,
+          count: sql<number>`count(*)`,
+        })
+        .from(expenses)
+        .leftJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
+        .where(where)
+        .groupBy(expenseCategories.name)
+        .orderBy(desc(sql`SUM(${expenses.amount})`));
+
+      const summary = summaryResult[0];
+
+      return {
+        items: items.map((row) => ({
+          ...row,
+          categoryName: row.categoryName || "Uncategorized",
+          amount: Number(row.amount),
+        })),
+        summary: {
+          count: Number(summary?.count ?? 0),
+          totalAmount: Number(summary?.totalAmount ?? 0),
+        },
+        byCategory: byCategory.map((row) => ({
+          category: row.category || "Uncategorized",
+          total: Number(row.total),
+          count: Number(row.count),
+        })),
+      };
     }),
 
   // ─── SUPPLIER PAYABLES SUMMARY ─────────────────────────────────────────────
@@ -164,9 +328,9 @@ export const reportRouter = createRouter({
       };
     }),
 
-  // ─── TRIAL BALANCE EXPORT ──────────────────────────────────────────────────
+  // ─── TRIAL BALANCE ─────────────────────────────────────────────────────────
   trialBalance: authedQuery
-    .input(z.object({ asOfDate: z.string().optional() }))
+    .input(z.object({ asOfDate: z.string().optional() }).optional())
     .query(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
@@ -175,24 +339,105 @@ export const reportRouter = createRouter({
         .where(and(eq(chartOfAccounts.tenantId, tenantId), eq(chartOfAccounts.status, "active")))
         .orderBy(chartOfAccounts.code);
 
-      const result = await Promise.all(accounts.map(async (account) => {
-        const conditions = [eq(ledgerEntries.accountId, Number(account.id)), eq(ledgerEntries.tenantId, tenantId)];
-        if (input?.asOfDate) conditions.push(sql`${ledgerEntries.date} <= ${input.asOfDate}`);
+      const ledgerConditions = [eq(ledgerEntries.tenantId, tenantId)];
+      if (input?.asOfDate) {
+        ledgerConditions.push(sql`${ledgerEntries.date} <= ${input.asOfDate}`);
+      }
 
-        const totals = await db.select({
-          debit: sql<number>`COALESCE(SUM(${ledgerEntries.debit}), 0)`,
-          credit: sql<number>`COALESCE(SUM(${ledgerEntries.credit}), 0)`,
-        }).from(ledgerEntries).where(and(...conditions));
+      const ledgerData = await db
+        .select({
+          accountId: ledgerEntries.accountId,
+          totalDebit: sql<number>`COALESCE(SUM(${ledgerEntries.debit}), 0)`,
+          totalCredit: sql<number>`COALESCE(SUM(${ledgerEntries.credit}), 0)`,
+        })
+        .from(ledgerEntries)
+        .where(and(...ledgerConditions))
+        .groupBy(ledgerEntries.accountId);
 
-        return {
-          ...account,
-          totalDebit: Number(totals[0]?.debit ?? 0),
-          totalCredit: Number(totals[0]?.credit ?? 0),
-          netBalance: Number(totals[0]?.debit ?? 0) - Number(totals[0]?.credit ?? 0),
-        };
-      }));
+      const ledgerMap = new Map(
+        ledgerData.map((row) => [
+          row.accountId,
+          {
+            accountId: row.accountId,
+            totalDebit: Number(row.totalDebit),
+            totalCredit: Number(row.totalCredit),
+          },
+        ]),
+      );
 
-      return result;
+      return buildTrialBalance(
+        accounts.map((a) => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          type: a.type as AccountType,
+        })),
+        ledgerMap,
+      );
+    }),
+
+  // ─── INCOME STATEMENT ──────────────────────────────────────────────────────
+  incomeStatement: authedQuery
+    .input(z.object({ fromDate: z.string().optional(), toDate: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const accounts = await db.select().from(chartOfAccounts)
+        .where(and(
+          eq(chartOfAccounts.tenantId, tenantId),
+          eq(chartOfAccounts.status, "active"),
+          sql`${chartOfAccounts.type} IN ('revenue', 'expense')`,
+        ))
+        .orderBy(chartOfAccounts.code);
+
+      const accountIds = accounts.map((a) => a.id);
+      const ledgerConditions = [eq(ledgerEntries.tenantId, tenantId)];
+      if (accountIds.length > 0) ledgerConditions.push(inArray(ledgerEntries.accountId, accountIds));
+      if (input?.fromDate) ledgerConditions.push(sql`${ledgerEntries.date} >= ${input.fromDate}`);
+      if (input?.toDate) ledgerConditions.push(sql`${ledgerEntries.date} <= ${input.toDate}`);
+
+      const ledgerData = accountIds.length > 0
+        ? await db
+            .select({
+              accountId: ledgerEntries.accountId,
+              totalDebit: sql<number>`COALESCE(SUM(${ledgerEntries.debit}), 0)`,
+              totalCredit: sql<number>`COALESCE(SUM(${ledgerEntries.credit}), 0)`,
+            })
+            .from(ledgerEntries)
+            .where(and(...ledgerConditions))
+            .groupBy(ledgerEntries.accountId)
+        : [];
+
+      const ledgerMap = new Map(
+        ledgerData.map((row) => [
+          row.accountId,
+          {
+            accountId: row.accountId,
+            totalDebit: Number(row.totalDebit),
+            totalCredit: Number(row.totalCredit),
+          },
+        ]),
+      );
+
+      const taxRateRaw = await getSetting(db, tenantId, "default_tax_rate");
+      const taxProvisionRate = Number(taxRateRaw || 0);
+
+      return buildIncomeStatement(
+        accounts.map((a) => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          type: a.type as AccountType,
+          subtype: a.subtype,
+        })),
+        ledgerMap,
+        {
+          fromDate: input?.fromDate ?? null,
+          toDate: input?.toDate ?? null,
+          taxProvisionRate,
+        },
+      );
     }),
 
   // ─── WALLET ACTIVITY ───────────────────────────────────────────────────────

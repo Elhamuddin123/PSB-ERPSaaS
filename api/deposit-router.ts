@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery } from "./middleware";
+import { createRouter, authedQuery, agentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   deposits,
@@ -148,7 +148,7 @@ export const depositRouter = createRouter({
       return deposit;
     }),
 
-  create: authedQuery
+  create: agentQuery
     .input(z.object({
       walletId: z.number(),
       customerId: z.number().optional(),

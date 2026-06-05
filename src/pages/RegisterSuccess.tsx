@@ -18,12 +18,19 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PLATFORM_PAYMENT_CONTACT } from "@contracts/plans";
 
 interface LocationState {
   token: string;
   agencyName: string;
   plan: string;
   durationMonths: number;
+  pricing?: {
+    totalAmount: number | null;
+    discountPercent: number;
+    currency: string;
+    contactSales?: boolean;
+  };
 }
 
 export default function RegisterSuccessPage() {
@@ -43,7 +50,7 @@ export default function RegisterSuccessPage() {
 
   if (!state?.token) return null;
 
-  const { token, agencyName, plan, durationMonths } = state;
+  const { token, agencyName, plan, durationMonths, pricing } = state;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(token);
@@ -85,15 +92,16 @@ export default function RegisterSuccessPage() {
           <div class="info-row"><span class="label">Agency</span><span class="value">${agencyName}</span></div>
           <div class="info-row"><span class="label">Plan</span><span class="value">${plan}</span></div>
           <div class="info-row"><span class="label">Duration</span><span class="value">${durationMonths} months</span></div>
+          ${pricing ? `<div class="info-row"><span class="label">Amount Due</span><span class="value">${pricing.contactSales ? "Contact Sales" : `${pricing.totalAmount!.toFixed(0)} ${pricing.currency}`}</span></div>` : ""}
           <div class="info-row"><span class="label">Status</span><span><span class="status">Pending Payment Verification</span></span></div>
         </div>
         <div style="margin-top: 30px; background: #f8fafc; padding: 20px; border-radius: 8px;">
           <p style="font-weight: 600; margin-bottom: 8px;">Office Information</p>
           <p style="color: #64748b; font-size: 13px; line-height: 1.6;">
-            Pouyan Shahr Balkh Tour & Travel<br>
-            Mazar-e-Sharif, Opposite Court of Appeal<br>
-            Phone: 0711340970<br>
-            Email: Pouyanshahrbalkh.travel@gmail.com
+            ${PLATFORM_PAYMENT_CONTACT.agencyName}<br>
+            ${PLATFORM_PAYMENT_CONTACT.address}<br>
+            Phone: ${PLATFORM_PAYMENT_CONTACT.phone}<br>
+            Email: ${PLATFORM_PAYMENT_CONTACT.email}
           </p>
         </div>
         <div class="footer">
@@ -168,6 +176,14 @@ export default function RegisterSuccessPage() {
                 <span className="text-slate-500">{t("selectedDuration")}</span>
                 <span className="font-medium">{durationMonths} {tc("months", "months")}</span>
               </div>
+              {pricing && (
+                <div className="flex justify-between py-2 border-b border-slate-100">
+                  <span className="text-slate-500">{t("totalPrice", "Total Price")}</span>
+                  <span className="font-semibold text-indigo-600">
+                    {pricing.contactSales ? "Contact Sales" : `${pricing.totalAmount!.toFixed(0)} ${pricing.currency}`}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Instruction */}

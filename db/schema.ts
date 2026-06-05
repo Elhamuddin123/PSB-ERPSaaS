@@ -56,6 +56,7 @@ export const subscriptions = mysqlTable("subscriptions", {
   id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
   tenantId: bigint("tenant_id", { mode: "number", unsigned: true }).notNull().references(() => tenants.id),
   plan: mysqlEnum("plan", ["free", "starter", "professional", "enterprise"]).default("free").notNull(),
+  customSeatsPerRole: int("custom_seats_per_role"),
   durationMonths: int("duration_months").default(1).notNull(),
   status: mysqlEnum("status", ["pending", "active", "expired", "cancelled"]).default("pending").notNull(),
   startsAt: datetime("starts_at"),

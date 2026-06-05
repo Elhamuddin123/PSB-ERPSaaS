@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router";
+import { useState, type MouseEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { changeLanguage, isRTL } from "@/lib/i18n";
+import { canAccessNavItem } from "@/lib/roles";
 import { trpc } from "@/providers/trpc";
 import {
   LayoutDashboard,
@@ -41,28 +42,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t } = useTranslation("sidebar");
   const { i18n } = useTranslation();
 
   const baseNavigation = [
     { name: t("dashboard"), href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "accountant", "manager", "agent", "viewer"] },
-    { name: t("wallets", "Wallets"), href: "/wallets", icon: Wallet, roles: ["super_admin", "admin", "accountant", "manager", "agent"] },
-    { name: t("tickets"), href: "/tickets", icon: Plane, roles: ["super_admin", "admin", "accountant", "manager", "agent", "viewer"] },
-    { name: t("customers", "CRM"), href: "/crm", icon: Users, roles: ["super_admin", "admin", "accountant", "manager", "agent", "viewer"] },
-    { name: t("invoices", "Invoices"), href: "/invoices", icon: FileText, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("receivables", "Receivables"), href: "/receivables", icon: Landmark, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("deposits", "Deposits"), href: "/deposits", icon: PiggyBank, roles: ["super_admin", "admin", "accountant", "manager", "agent"] },
+    { name: t("wallets", "Wallets"), href: "/wallets", icon: Wallet, roles: ["super_admin", "accountant", "manager", "agent"] },
+    { name: t("tickets"), href: "/tickets", icon: Plane, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
+    { name: t("customers", "CRM"), href: "/crm", icon: Users, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
+    { name: t("invoices", "Invoices"), href: "/invoices", icon: FileText, roles: ["super_admin", "accountant", "manager"] },
+    { name: t("receivables", "Receivables"), href: "/receivables", icon: Landmark, roles: ["super_admin", "accountant", "manager"] },
+    { name: t("deposits", "Deposits"), href: "/deposits", icon: PiggyBank, roles: ["super_admin", "accountant", "manager", "agent"] },
     { name: t("locations", "Locations"), href: "/payment-locations", icon: MapPin, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("suppliers", "Suppliers"), href: "/suppliers", icon: Tractor, roles: ["super_admin", "admin", "accountant", "manager", "agent"] },
-    { name: t("payables", "Payables"), href: "/payables", icon: CreditCard, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("exchangeRates", "Exchange Rates"), href: "/exchange-rates", icon: DollarSign, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("bankRecon", "Bank Recon"), href: "/bank-reconciliation", icon: Landmark, roles: ["super_admin", "admin", "accountant", "manager"] },
+    { name: t("suppliers", "Suppliers"), href: "/suppliers", icon: Tractor, roles: ["super_admin", "accountant", "manager", "agent"] },
+    { name: t("payables", "Payables"), href: "/payables", icon: CreditCard, roles: ["super_admin", "accountant", "manager"] },
+    { name: t("exchangeRates", "Exchange Rates"), href: "/exchange-rates", icon: DollarSign, roles: ["super_admin", "accountant", "manager"] },
+    { name: t("bankRecon", "Bank Recon"), href: "/bank-reconciliation", icon: Landmark, roles: ["super_admin", "accountant", "manager"] },
     { name: t("reports"), href: "/reports", icon: BarChart3, roles: ["super_admin", "admin", "accountant", "manager", "viewer"] },
-    { name: t("documents", "Documents"), href: "/documents", icon: FileText, roles: ["super_admin", "admin", "accountant", "manager", "agent"] },
-    { name: t("expenses"), href: "/expenses", icon: Receipt, roles: ["super_admin", "admin", "accountant", "manager", "agent"] },
-    { name: t("accounting", "Accounting"), href: "/accounting", icon: BookOpen, roles: ["super_admin", "admin", "accountant"] },
-    { name: t("ai", "AI Assistant"), href: "/ai", icon: Brain, roles: ["super_admin", "admin", "accountant", "manager", "agent", "viewer"] },
+    { name: t("documents", "Documents"), href: "/documents", icon: FileText, roles: ["super_admin", "accountant", "manager", "agent"] },
+    { name: t("expenses"), href: "/expenses", icon: Receipt, roles: ["super_admin", "accountant", "manager", "agent"] },
+    { name: t("accounting", "Accounting"), href: "/accounting", icon: BookOpen, roles: ["super_admin", "accountant"] },
+    { name: t("ai", "AI Assistant"), href: "/ai", icon: Brain, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
     { name: t("settings"), href: "/settings", icon: Settings, roles: ["super_admin", "admin", "accountant", "manager", "agent", "viewer"] },
   ];
 
@@ -89,8 +91,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const unreadCount = notifications?.length ?? 0;
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     markAllRead.mutate();
+  };
+
+  const openNotification = (notification: { id: number; isRead: boolean }) => {
+    setNotifOpen(false);
+    if (!notification.isRead) {
+      markRead.mutate({ id: notification.id });
+    }
+    navigate(`/settings?tab=notifications&notificationId=${notification.id}`);
   };
 
   const handleLanguageChange = (lng: string) => {
@@ -131,7 +143,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-y-auto py-3 xl:py-4">
           <nav className="space-y-1 px-2">
             {navigation
-              .filter((item) => !user?.role || item.roles.includes(user.role))
+              .filter((item) => canAccessNavItem(user?.role, item.roles))
               .map((item) => {
                 const isActive = location.pathname === item.href || (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
                 return (
@@ -223,7 +235,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <ScrollArea className="h-[calc(100vh-4rem)] py-4">
                   <nav className="space-y-1 px-2">
                     {navigation
-                      .filter((item) => !user?.role || item.roles.includes(user.role))
+                      .filter((item) => canAccessNavItem(user?.role, item.roles))
                       .map((item) => {
                         const isActive = location.pathname === item.href || (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
                         return (
@@ -303,20 +315,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <p className="text-xs text-slate-400 text-center py-4">No notifications</p>
                     )}
                     {(notifications || []).map((n) => (
-                      <div key={n.id} className="px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-0">
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => openNotification(n)}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-0"
+                      >
                         <p className="text-xs font-medium">{n.title}</p>
                         <p className="text-[10px] text-slate-500">{n.message}</p>
                         <div className="flex items-center justify-between mt-1">
                           <span className="text-[9px] text-slate-400">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</span>
-                          {!n.isRead && (
-                            <button onClick={() => markRead.mutate({ id: n.id })} className="text-[10px] text-indigo-600 hover:underline">Mark read</button>
-                          )}
+                          {!n.isRead && <span className="text-[9px] text-indigo-600">Unread</span>}
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </ScrollArea>
                   <div className="px-3 pt-2 border-t">
-                    <Link to="/settings" onClick={() => setNotifOpen(false)} className="text-[10px] text-indigo-600 hover:underline block text-center">
+                    <Link to="/settings?tab=notifications" onClick={() => setNotifOpen(false)} className="text-[10px] text-indigo-600 hover:underline block text-center">
                       View all notifications
                     </Link>
                   </div>
@@ -388,20 +403,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <p className="text-sm text-slate-400 text-center py-6">No notifications</p>
                     )}
                     {(notifications || []).map((n) => (
-                      <div key={n.id} className="px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-0">
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => openNotification(n)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-0"
+                      >
                         <p className="text-sm font-medium">{n.title}</p>
                         <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
                         <div className="flex items-center justify-between mt-1.5">
                           <span className="text-[10px] text-slate-400">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</span>
-                          {!n.isRead && (
-                            <button onClick={() => markRead.mutate({ id: n.id })} className="text-xs text-indigo-600 hover:underline">Mark read</button>
-                          )}
+                          {!n.isRead && <span className="text-[10px] text-indigo-600">Unread</span>}
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </ScrollArea>
                   <div className="px-4 pt-2 border-t">
-                    <Link to="/settings" onClick={() => setNotifOpen(false)} className="text-xs text-indigo-600 hover:underline block text-center py-1">
+                    <Link to="/settings?tab=notifications" onClick={() => setNotifOpen(false)} className="text-xs text-indigo-600 hover:underline block text-center py-1">
                       View all notifications
                     </Link>
                   </div>
@@ -410,7 +428,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        <div className="p-3 sm:p-4 lg:p-6 xl:p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-5 lg:p-6 xl:p-8 max-w-7xl mx-auto w-full">
           {children}
         </div>
       </main>

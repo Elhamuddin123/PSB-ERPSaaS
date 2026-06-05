@@ -13,7 +13,7 @@ import { Wallet, ArrowUpRight, ArrowDownRight, RefreshCw, Plus, Send, FileText, 
 export default function WalletsPage() {
   const { data: wallets, refetch, isLoading: walletsLoading, error: walletsError } = trpc.wallet.list.useQuery();
   const { data: allTransactions } = trpc.wallet.allTransactions.useQuery();
-  const { data: usersData } = trpc.users.list.useQuery();
+  const { data: usersData } = trpc.users.directory.useQuery();
   const users = usersData?.items ?? [];
   const utils = trpc.useUtils();
 

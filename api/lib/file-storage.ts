@@ -19,8 +19,9 @@
 import { randomUUID } from "crypto";
 import { mkdir, writeFile, readFile, access, unlink } from "fs/promises";
 import { join } from "path";
+import { env } from "./env";
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
+const UPLOAD_DIR = env.uploadDir;
 
 /** Whitelisted MIME types for uploads */
 export const ALLOWED_MIME_TYPES = [

@@ -77,7 +77,13 @@ export const adminRouter = createRouter({
 
   // ─── APPROVE REGISTRATION ──────────────────────────────────────────────────
   approveRegistration: superAdminQuery
-    .input(z.object({ tenantId: z.number(), notes: z.string().optional() }))
+    .input(
+      z.object({
+        tenantId: z.number(),
+        notes: z.string().optional(),
+        customSeatsPerRole: z.number().int().min(1).max(999).optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
 
@@ -96,26 +102,38 @@ export const adminRouter = createRouter({
 
       const now = new Date();
       const sub = await db
-        .select({ durationMonths: subscriptions.durationMonths })
+        .select({
+          durationMonths: subscriptions.durationMonths,
+          plan: subscriptions.plan,
+        })
         .from(subscriptions)
         .where(eq(subscriptions.tenantId, input.tenantId))
         .limit(1);
 
       const durationMonths = sub[0]?.durationMonths ?? 1;
+      const plan = sub[0]?.plan ?? "starter";
       const expiresAt = new Date(now);
       expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
 
+      const subscriptionUpdate: Record<string, unknown> = {
+        status: "active",
+        startsAt: now,
+        expiresAt,
+        approvedBy: ctx.user!.id,
+        approvedAt: now,
+      };
+      if (plan === "enterprise" && input.customSeatsPerRole) {
+        subscriptionUpdate.customSeatsPerRole = input.customSeatsPerRole;
+      }
+
       await db.transaction(async (tx) => {
-        await tx.update(tenants).set({ status: "active" }).where(eq(tenants.id, input.tenantId));
+        await tx
+          .update(tenants)
+          .set({ status: "active", plan })
+          .where(eq(tenants.id, input.tenantId));
         await tx
           .update(subscriptions)
-          .set({
-            status: "active",
-            startsAt: now,
-            expiresAt,
-            approvedBy: ctx.user!.id,
-            approvedAt: now,
-          })
+          .set(subscriptionUpdate)
           .where(eq(subscriptions.tenantId, input.tenantId));
         await bootstrapTenant(tx, input.tenantId, ctx.user!.id);
       });
@@ -151,7 +169,7 @@ export const adminRouter = createRouter({
         await tx.update(tenants).set({ status: "rejected" }).where(eq(tenants.id, input.tenantId));
         await tx
           .update(subscriptions)
-          .set({ status: "rejected" })
+          .set({ status: "cancelled" })
           .where(eq(subscriptions.tenantId, input.tenantId));
       });
 
@@ -168,12 +186,22 @@ export const adminRouter = createRouter({
 
   // ─── ACTIVATE SUBSCRIPTION (manual payment approval) ───────────────────────
   activateSubscription: superAdminQuery
-    .input(z.object({ tenantId: z.number() }))
+    .input(
+      z.object({
+        tenantId: z.number(),
+        customSeatsPerRole: z.number().int().min(1).max(999).optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
 
       const sub = await db
-        .select({ id: subscriptions.id, durationMonths: subscriptions.durationMonths, status: subscriptions.status })
+        .select({
+          id: subscriptions.id,
+          durationMonths: subscriptions.durationMonths,
+          status: subscriptions.status,
+          plan: subscriptions.plan,
+        })
         .from(subscriptions)
         .where(eq(subscriptions.tenantId, input.tenantId))
         .limit(1);
@@ -187,17 +215,25 @@ export const adminRouter = createRouter({
       const expiresAt = new Date(now);
       expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
 
+      const subscriptionUpdate: Record<string, unknown> = {
+        status: "active",
+        startsAt: now,
+        expiresAt,
+        approvedBy: ctx.user!.id,
+        approvedAt: now,
+      };
+      if (sub[0].plan === "enterprise" && input.customSeatsPerRole) {
+        subscriptionUpdate.customSeatsPerRole = input.customSeatsPerRole;
+      }
+
       await db.transaction(async (tx) => {
-        await tx.update(tenants).set({ status: "active" }).where(eq(tenants.id, input.tenantId));
+        await tx
+          .update(tenants)
+          .set({ status: "active", plan: sub[0].plan })
+          .where(eq(tenants.id, input.tenantId));
         await tx
           .update(subscriptions)
-          .set({
-            status: "active",
-            startsAt: now,
-            expiresAt,
-            approvedBy: ctx.user!.id,
-            approvedAt: now,
-          })
+          .set(subscriptionUpdate)
           .where(eq(subscriptions.tenantId, input.tenantId));
         await bootstrapTenant(tx, input.tenantId, ctx.user!.id);
       });
@@ -207,10 +243,56 @@ export const adminRouter = createRouter({
         action: "activate_subscription",
         entityType: "subscription",
         entityId: sub[0].id,
-        newValues: { status: "active", expiresAt: expiresAt.toISOString() },
+        newValues: {
+          status: "active",
+          expiresAt: expiresAt.toISOString(),
+          customSeatsPerRole: input.customSeatsPerRole ?? null,
+        },
       });
 
       return { success: true, expiresAt: expiresAt.toISOString() };
+    }),
+
+  setSubscriptionSeats: superAdminQuery
+    .input(
+      z.object({
+        tenantId: z.number(),
+        customSeatsPerRole: z.number().int().min(1).max(999),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+
+      const sub = await db
+        .select({ id: subscriptions.id, plan: subscriptions.plan })
+        .from(subscriptions)
+        .where(eq(subscriptions.tenantId, input.tenantId))
+        .limit(1);
+
+      if (!sub[0]) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+      }
+      if (sub[0].plan !== "enterprise") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Custom seat limits apply only to Enterprise subscriptions",
+        });
+      }
+
+      await db
+        .update(subscriptions)
+        .set({ customSeatsPerRole: input.customSeatsPerRole })
+        .where(eq(subscriptions.tenantId, input.tenantId));
+
+      await auditLog({
+        ctx,
+        action: "set_subscription_seats",
+        entityType: "subscription",
+        entityId: sub[0].id,
+        newValues: { customSeatsPerRole: input.customSeatsPerRole },
+      });
+
+      return { success: true, customSeatsPerRole: input.customSeatsPerRole };
     }),
 
   // ─── DASHBOARD STATS ───────────────────────────────────────────────────────

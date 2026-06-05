@@ -4,6 +4,9 @@ import { createRouter, authedQuery, accountantQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries, expenses, tickets, accountingPeriods } from "@db/schema";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { buildTrialBalance, buildIncomeStatement, type AccountType } from "./lib/accounting-balance";
+import { postLedgerLines } from "./lib/ledger-posting";
+import { getSetting } from "./lib/settings";
 
 export const accountingRouter = createRouter({
   // ─── CHART OF ACCOUNTS ───────────────────────────────────────────────────
@@ -211,19 +214,24 @@ export const accountingRouter = createRouter({
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
       let entry;
+      let lines: Array<{
+        accountId: number;
+        description: string | null;
+        debit: string;
+        credit: string;
+      }> = [];
       try {
         entry = await db.query.journalEntries.findFirst({
           where: and(eq(journalEntries.id, input.id), eq(journalEntries.tenantId, tenantId)),
         });
         if (entry) {
           try {
-            const lines = await db.query.journalEntryLines.findMany({
+            lines = await db.query.journalEntryLines.findMany({
               where: eq(journalEntryLines.journalEntryId, entry.id),
             });
-            (entry as any).lines = Array.isArray(lines) ? lines : [];
           } catch (e: any) {
             console.error("[postJournalEntry] Failed to fetch lines:", e.message);
-            (entry as any).lines = [];
+            lines = [];
           }
         }
       } catch (err: any) {
@@ -238,9 +246,6 @@ export const accountingRouter = createRouter({
       if (entry.status !== "draft") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Journal entry is not in draft status" });
       }
-
-      // Defensive: Drizzle may return undefined for empty relations in some edge cases
-      const lines = entry.lines ?? [];
       if (lines.length === 0) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Journal entry has no lines" });
       }
@@ -248,29 +253,19 @@ export const accountingRouter = createRouter({
       await db.transaction(async (tx) => {
         await tx.update(journalEntries).set({ status: "posted", postedBy: ctx.user!.id, postedAt: new Date() }).where(eq(journalEntries.id, input.id));
 
-        // Create ledger entries
-        for (const line of lines) {
-          const account = await tx.query.chartOfAccounts.findFirst({
-            where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-          });
-          const currentBalance = Number(account?.currentBalance ?? 0);
-          const newBalance = currentBalance + Number(line.debit) - Number(line.credit);
-
-          await tx.insert(ledgerEntries).values({
-            tenantId,
-            journalEntryId: input.id,
+        await postLedgerLines(tx, {
+          tenantId,
+          journalEntryId: input.id,
+          date: entry.date ? new Date(entry.date) : new Date(),
+          referenceType: entry.referenceType ?? undefined,
+          referenceId: entry.referenceId ?? undefined,
+          lines: lines.map((line) => ({
             accountId: line.accountId,
-            date: entry.date ? new Date(entry.date) : new Date(),
             description: line.description || entry.description,
             debit: line.debit,
             credit: line.credit,
-            balance: newBalance.toFixed(2),
-          });
-
-          await tx.update(chartOfAccounts)
-            .set({ currentBalance: newBalance.toFixed(2) })
-            .where(and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)));
-        }
+          })),
+        });
       });
 
       return { success: true };
@@ -306,25 +301,53 @@ export const accountingRouter = createRouter({
     }),
 
   // ─── FINANCIAL STATEMENTS ────────────────────────────────────────────────
-  trialBalance: authedQuery.query(async ({ ctx }) => {
-    const db = getDb();
-    const accounts = await db.query.chartOfAccounts.findMany({
-      where: eq(chartOfAccounts.tenantId, ctx.user!.tenantId as number),
-      orderBy: [chartOfAccounts.code],
-    });
+  trialBalance: authedQuery
+    .input(z.object({ asOfDate: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
 
-    const ledgerData = await db
-      .select({
-        accountId: ledgerEntries.accountId,
-        totalDebit: sql<number>`COALESCE(SUM(debit), 0)`,
-        totalCredit: sql<number>`COALESCE(SUM(credit), 0)`,
-      })
-      .from(ledgerEntries)
-      .where(eq(ledgerEntries.tenantId, ctx.user!.tenantId as number))
-      .groupBy(ledgerEntries.accountId);
+      const accounts = await db.query.chartOfAccounts.findMany({
+        where: and(eq(chartOfAccounts.tenantId, tenantId), eq(chartOfAccounts.status, "active")),
+        orderBy: [chartOfAccounts.code],
+      });
 
-    return { accounts, ledgerData };
-  }),
+      const ledgerConditions = [eq(ledgerEntries.tenantId, tenantId)];
+      if (input?.asOfDate) {
+        ledgerConditions.push(sql`${ledgerEntries.date} <= ${input.asOfDate}`);
+      }
+
+      const ledgerData = await db
+        .select({
+          accountId: ledgerEntries.accountId,
+          totalDebit: sql<number>`COALESCE(SUM(debit), 0)`,
+          totalCredit: sql<number>`COALESCE(SUM(credit), 0)`,
+        })
+        .from(ledgerEntries)
+        .where(and(...ledgerConditions))
+        .groupBy(ledgerEntries.accountId);
+
+      const ledgerMap = new Map(
+        ledgerData.map((row) => [
+          row.accountId,
+          {
+            accountId: row.accountId,
+            totalDebit: Number(row.totalDebit),
+            totalCredit: Number(row.totalCredit),
+          },
+        ]),
+      );
+
+      return buildTrialBalance(
+        accounts.map((a) => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          type: a.type as AccountType,
+        })),
+        ledgerMap,
+      );
+    }),
 
   financialSummary: authedQuery.query(async ({ ctx }) => {
     const db = getDb();
@@ -360,12 +383,16 @@ export const accountingRouter = createRouter({
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
 
-      // Get all revenue and expense accounts with their ledger balances
       const accounts = await db.select().from(chartOfAccounts)
         .where(and(eq(chartOfAccounts.tenantId, tenantId), sql`${chartOfAccounts.type} IN ('revenue', 'expense')`))
         .orderBy(chartOfAccounts.code);
 
-      const accountIds = accounts.map(a => a.id);
+      const accountIds = accounts.map((a) => a.id);
+      const ledgerConditions = [eq(ledgerEntries.tenantId, tenantId)];
+      if (accountIds.length > 0) ledgerConditions.push(inArray(ledgerEntries.accountId, accountIds));
+      if (input?.fromDate) ledgerConditions.push(sql`${ledgerEntries.date} >= ${input.fromDate}`);
+      if (input?.toDate) ledgerConditions.push(sql`${ledgerEntries.date} <= ${input.toDate}`);
+
       const ledgerData = accountIds.length > 0
         ? await db
             .select({
@@ -374,43 +401,56 @@ export const accountingRouter = createRouter({
               totalCredit: sql<number>`COALESCE(SUM(credit), 0)`,
             })
             .from(ledgerEntries)
-            .where(and(
-              eq(ledgerEntries.tenantId, tenantId),
-              inArray(ledgerEntries.accountId, accountIds),
-              input?.fromDate ? sql`${ledgerEntries.date} >= ${input.fromDate}` : undefined,
-              input?.toDate ? sql`${ledgerEntries.date} <= ${input.toDate}` : undefined,
-            ))
+            .where(and(...ledgerConditions))
             .groupBy(ledgerEntries.accountId)
         : [];
 
-      const ledgerMap = new Map(ledgerData.map(l => [l.accountId, l]));
+      const ledgerMap = new Map(
+        ledgerData.map((row) => [
+          row.accountId,
+          {
+            accountId: row.accountId,
+            totalDebit: Number(row.totalDebit),
+            totalCredit: Number(row.totalCredit),
+          },
+        ]),
+      );
 
-      let totalRevenue = 0;
-      let totalExpenses = 0;
-      const revenueAccounts: any[] = [];
-      const expenseAccounts: any[] = [];
+      const taxRateRaw = await getSetting(db, tenantId, "default_tax_rate");
+      const taxProvisionRate = Number(taxRateRaw || 0);
 
-      for (const account of accounts) {
-        const ledger = ledgerMap.get(account.id);
-        const debit = Number(ledger?.totalDebit ?? 0);
-        const credit = Number(ledger?.totalCredit ?? 0);
-        const netBalance = credit - debit; // Revenue: Cr increases, Expense: Dr increases
-
-        if (account.type === "revenue") {
-          totalRevenue += netBalance;
-          revenueAccounts.push({ ...account, debit, credit, netBalance });
-        } else {
-          totalExpenses += debit - credit;
-          expenseAccounts.push({ ...account, debit, credit, netBalance: debit - credit });
-        }
-      }
+      const statement = buildIncomeStatement(
+        accounts.map((a) => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          type: a.type as AccountType,
+          subtype: a.subtype,
+        })),
+        ledgerMap,
+        {
+          fromDate: input?.fromDate ?? null,
+          toDate: input?.toDate ?? null,
+          taxProvisionRate,
+        },
+      );
 
       return {
-        revenueAccounts,
-        expenseAccounts,
-        totalRevenue,
-        totalExpenses,
-        netIncome: totalRevenue - totalExpenses,
+        ...statement,
+        revenueAccounts: statement.revenues,
+        expenseAccounts: [
+          ...statement.costOfRevenue,
+          ...statement.operatingExpenses,
+          ...statement.otherExpenses,
+          ...statement.taxExpenses,
+        ],
+        totalRevenue: statement.totals.totalRevenue,
+        totalExpenses:
+          statement.totals.totalCostOfRevenue +
+          statement.totals.totalOperatingExpenses +
+          statement.totals.totalOtherExpenses +
+          statement.totals.totalTaxExpense,
+        netIncome: statement.totals.netIncome,
       };
     }),
 

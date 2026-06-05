@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { createOAuthCallbackHandler } from "./kimi/auth";
 
 import { Paths } from "@contracts/constants";
+import { env } from "./lib/env";
 import { registerUploadRoutes } from "./upload-handler";
 
 const app = new Hono<{
@@ -24,10 +25,25 @@ app.use(
   }),
 );
 
-// CORS - allow requests from frontend
-const allowedOrigin = process.env.FRONTEND_URL || process.env.VITE_APP_URL || "";
+// CORS - allow requests from frontend (APP_URL)
+const allowedOrigins = env.frontendOrigins;
+
+function resolveCorsOrigin(origin: string | null) {
+  if (!origin) {
+    return null;
+  }
+
+  if (allowedOrigins.length === 0) {
+    // No explicit frontend origin configured. Permit the requesting origin
+    // so credentials can still work across browsers.
+    return origin;
+  }
+
+  return allowedOrigins.includes(origin) ? origin : null;
+}
+
 app.use("*", cors({
-  origin: allowedOrigin || "*",
+  origin: resolveCorsOrigin,
   allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowHeaders: ["Content-Type", "Authorization", "x-dev-auth"],
   credentials: true,
@@ -70,7 +86,7 @@ app.all("/api/*", (c) => {
 export default app;
 
 // Start backend server
-const port = Number(process.env.PORT || 3000);
+const port = env.port;
 
 serve(
   {

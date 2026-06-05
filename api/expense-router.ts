@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, agentQuery, tenantAdminQuery } from "./middleware";
+import { createRouter, authedQuery, agentQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { expenses, expenseCategories, chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries, notifications } from "@db/schema";
+import { expenses, expenseCategories, chartOfAccounts, journalEntries, journalEntryLines, notifications } from "@db/schema";
 import { eq, desc, sql, and, isNull } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
+import { postLedgerLines } from "./lib/ledger-posting";
 // TEMP: removed DB-aware imports after migration
 
 function ensureExpenseTenant(ctx: any, label = "") {
@@ -131,30 +132,17 @@ async function postExpenseAccounting(
       },
     ]);
 
-    // Create ledger entries
-    for (const line of [
-      { accountId: expenseAccount.id, debit: amount.toFixed(2), credit: "0.00", description: expense.title },
-      { accountId: cashAccount.id, debit: "0.00", credit: amount.toFixed(2), description: "Cash/Bank payment" },
-    ]) {
-      const account = await db.query.chartOfAccounts.findFirst({
-        where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      });
-      const currentBalance = Number(account?.currentBalance ?? 0);
-      const newBalance = currentBalance + Number(line.debit) - Number(line.credit);
-      await db.insert(ledgerEntries).values({
-        tenantId,
-        journalEntryId: journalId,
-        accountId: line.accountId,
-        date: new Date(),
-        description: line.description,
-        debit: line.debit,
-        credit: line.credit,
-        balance: newBalance.toFixed(2),
-      });
-      await db.update(chartOfAccounts).set({ currentBalance: newBalance.toFixed(2) }).where(
-        and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      );
-    }
+    await postLedgerLines(db, {
+      tenantId,
+      journalEntryId: journalId,
+      date: new Date(),
+      referenceType: "expense",
+      referenceId: expense.id,
+      lines: [
+        { accountId: expenseAccount.id, debit: amount.toFixed(2), credit: "0.00", description: expense.title },
+        { accountId: cashAccount.id, debit: "0.00", credit: amount.toFixed(2), description: "Cash/Bank payment" },
+      ],
+    });
   }
 
   return { success: true, journalId };
@@ -290,7 +278,7 @@ export const expenseRouter = createRouter({
       return { id: Number(result[0].insertId) };
     }),
 
-  updateStatus: tenantAdminQuery
+  updateStatus: supervisoryQuery
     .input(z.object({
       id: z.number(),
       status: z.enum(["pending", "approved", "rejected", "reimbursed"]),
@@ -386,7 +374,7 @@ export const expenseRouter = createRouter({
     return { statusCounts, monthly };
   }),
 
-  delete: tenantAdminQuery
+  delete: supervisoryQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();

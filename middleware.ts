@@ -1,4 +1,12 @@
 import { ErrorMessages } from "@contracts/constants";
+import {
+  ACCOUNTANT_ROLES,
+  MANAGER_ROLES,
+  OPERATIONAL_ROLES,
+  ROLES,
+  SUPERVISORY_ROLES,
+  hasAnyRole,
+} from "@contracts/roles";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -34,6 +42,13 @@ const requireAuth = t.middleware(async (opts) => {
     });
   }
 
+  if (ctx.user.status !== "active") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Your account is inactive or suspended. Contact your agency admin.",
+    });
+  }
+
   // Check tenant status (only block serious states) and subscription expiry/status
   if (ctx.user.tenantId) {
     const db = getDb();
@@ -61,6 +76,13 @@ const requireAuth = t.middleware(async (opts) => {
         .where(eq(subscriptions.tenantId, ctx.user.tenantId))
         .limit(1);
 
+      if (!sub[0] && ctx.user.role !== ROLES.SUPER_ADMIN && !ALLOWED_FOR_PENDING.has(path)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "No subscription found for this agency. Please contact support.",
+        });
+      }
+
       if (sub[0]) {
         // Expiry handling first
         if (sub[0].expiresAt && new Date(sub[0].expiresAt) < new Date()) {
@@ -70,10 +92,13 @@ const requireAuth = t.middleware(async (opts) => {
         if (sub[0].status === "expired") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Subscription expired. Please renew your package." });
         }
+        if (sub[0].status === "cancelled") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Subscription cancelled. Please contact support to register again." });
+        }
 
         // If subscription is not active, block ERP routes for non-super-admins,
         // but allow a small set of procedures used by the activation page.
-        if (sub[0].status !== "active" && ctx.user.role !== "super_admin" && !ALLOWED_FOR_PENDING.has(path)) {
+        if (sub[0].status !== "active" && ctx.user.role !== ROLES.SUPER_ADMIN && !ALLOWED_FOR_PENDING.has(path)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Subscription not active. Complete payment verification at the office or via the Payment Activation page." });
         }
       }
@@ -102,7 +127,7 @@ function requireAnyRole(...roles: string[]) {
   return t.middleware(async (opts) => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || !roles.includes(ctx.user.role)) {
+    if (!hasAnyRole(ctx.user?.role, roles)) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: ErrorMessages.insufficientRole,
@@ -114,9 +139,31 @@ function requireAnyRole(...roles: string[]) {
 }
 
 export const authedQuery = t.procedure.use(requireAuth);
-export const adminQuery = authedQuery.use(requireRole("admin"));
-export const superAdminQuery = authedQuery.use(requireRole("super_admin"));
-export const tenantAdminQuery = authedQuery.use(requireAnyRole("admin", "super_admin"));
-export const managerQuery = authedQuery.use(requireAnyRole("manager", "admin", "super_admin"));
-export const accountantQuery = authedQuery.use(requireAnyRole("accountant", "admin", "super_admin"));
-export const agentQuery = authedQuery.use(requireAnyRole("agent", "accountant", "manager", "admin", "super_admin"));
+
+/** Agency staff management — agency admin only (not super admin). */
+const requireAgencyAdmin = t.middleware(async (opts) => {
+  const { ctx, next } = opts;
+
+  if (!ctx.user || ctx.user.role !== ROLES.AGENCY_ADMIN) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only agency admins can manage staff users.",
+    });
+  }
+
+  if (!ctx.user.tenantId) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Platform users cannot manage agency staff.",
+    });
+  }
+
+  return next({ ctx: { ...ctx, user: ctx.user } });
+});
+
+export const agencyAdminQuery = authedQuery.use(requireAgencyAdmin);
+export const superAdminQuery = authedQuery.use(requireRole(ROLES.SUPER_ADMIN));
+export const supervisoryQuery = authedQuery.use(requireAnyRole(...SUPERVISORY_ROLES));
+export const managerQuery = authedQuery.use(requireAnyRole(...MANAGER_ROLES));
+export const accountantQuery = authedQuery.use(requireAnyRole(...ACCOUNTANT_ROLES));
+export const agentQuery = authedQuery.use(requireAnyRole(...OPERATIONAL_ROLES));

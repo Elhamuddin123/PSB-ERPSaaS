@@ -1,4 +1,6 @@
 import { trpc } from "@/providers/trpc";
+import { useAuth } from "@/hooks/useAuth";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,14 +42,22 @@ type StatCard = {
 };
 
 export default function Dashboard() {
-  const { data: stats, isLoading: statsLoading } = trpc.dashboard.stats.useQuery();
-  const { data: ticketTrend } = trpc.dashboard.ticketTrend.useQuery();
-  const { data: recentTickets } = trpc.dashboard.recentTickets.useQuery();
-  const { data: recentTransactions } = trpc.dashboard.recentTransactions.useQuery();
-  const { data: statusDist } = trpc.dashboard.ticketStatusDistribution.useQuery();
-  const { data: topCustomers } = trpc.dashboard.topCustomers.useQuery();
-  const { data: expenseCats } = trpc.dashboard.expenseByCategory.useQuery();
-  const { data: notifications } = trpc.dashboard.unreadNotifications.useQuery();
+  const { user } = useAuth();
+  const isAgencyAdmin = user?.role === "admin";
+  const { data: stats, isLoading: statsLoading } = trpc.dashboard.stats.useQuery(undefined, {
+    enabled: !isAgencyAdmin,
+  });
+  const { data: ticketTrend } = trpc.dashboard.ticketTrend.useQuery(undefined, { enabled: !isAgencyAdmin });
+  const { data: recentTickets } = trpc.dashboard.recentTickets.useQuery(undefined, { enabled: !isAgencyAdmin });
+  const { data: recentTransactions } = trpc.dashboard.recentTransactions.useQuery(undefined, { enabled: !isAgencyAdmin });
+  const { data: statusDist } = trpc.dashboard.ticketStatusDistribution.useQuery(undefined, { enabled: !isAgencyAdmin });
+  const { data: topCustomers } = trpc.dashboard.topCustomers.useQuery(undefined, { enabled: !isAgencyAdmin });
+  const { data: expenseCats } = trpc.dashboard.expenseByCategory.useQuery(undefined, { enabled: !isAgencyAdmin });
+  const { data: notifications } = trpc.dashboard.unreadNotifications.useQuery(undefined, { enabled: !isAgencyAdmin });
+
+  if (isAgencyAdmin) {
+    return <AdminDashboard />;
+  }
 
   const statusColor: Record<string, string> = {
     confirmed: "bg-emerald-100 text-emerald-800",

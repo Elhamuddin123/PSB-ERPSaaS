@@ -11,6 +11,15 @@ export interface AuthUser {
   avatar: string | null;
   role: string;
   department?: string;
+  tenantId?: number | null;
+  subscription?: {
+    status: "pending" | "active" | "expired" | "cancelled";
+    plan?: string;
+    durationMonths?: number;
+    startsAt?: Date | string | null;
+    expiresAt?: Date | string | null;
+  } | null;
+  registrationToken?: string | null;
 }
 
 export function useAuth() {
