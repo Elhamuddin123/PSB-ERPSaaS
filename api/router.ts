@@ -22,6 +22,7 @@ import { settingsRouter } from "./settings-router";
 import { registrationRouter } from "./registration-router";
 import { adminRouter } from "./admin-router";
 import { usersRouter } from "./users-router";
+import { loanRouter } from "./loan-router";
 import { createRouter, publicQuery } from "./middleware";
 
 export const appRouter = createRouter({
@@ -50,6 +51,7 @@ export const appRouter = createRouter({
   registration: registrationRouter,
   admin: adminRouter,
   users: usersRouter,
+  loan: loanRouter,
 });
 
 export type AppRouter = typeof appRouter;

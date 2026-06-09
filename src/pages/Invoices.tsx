@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Eye, DollarSign, Download } from "lucide-react";
+import { Search, Eye, DollarSign, Download, Trash2 } from "lucide-react";
 import { generateInvoicePDF } from "@/lib/invoicePdf";
+import { useAuth } from "@/hooks/useAuth";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -31,10 +33,13 @@ const statusColors: Record<string, string> = {
 };
 
 export default function InvoicesPage() {
+  const { user } = useAuth();
+  const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  const utils = trpc.useUtils();
   const { data, isLoading, error, refetch } = trpc.invoice.list.useQuery(
     { search: search || undefined, status: statusFilter || undefined, page: 1, limit: 50 }
   );
@@ -44,10 +49,21 @@ export default function InvoicesPage() {
   );
 
   const recordPayment = trpc.invoice.recordPayment.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.invoice.list.invalidate();
+      await utils.receivable.list.invalidate();
       refetch();
       setSelectedId(null);
     },
+    onError: (err) => alert(err.message),
+  });
+
+  const deleteInvoice = trpc.invoice.delete.useMutation({
+    onSuccess: async () => {
+      await utils.invoice.list.invalidate();
+      refetch();
+    },
+    onError: (err) => alert(err.message),
   });
 
   const [paymentForm, setPaymentForm] = useState({ amount: "" });
@@ -132,6 +148,22 @@ export default function InvoicesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-1">
+                      {canManage && Number(inv.paidAmount) === 0 && !inv.ticketId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500"
+                          title="Delete invoice"
+                          disabled={deleteInvoice.isPending}
+                          onClick={() => {
+                            if (confirm(`Delete invoice ${inv.invoiceNumber}?`)) {
+                              deleteInvoice.mutate({ id: inv.id });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button size="sm" variant="ghost" onClick={() => setSelectedId(inv.id)}>

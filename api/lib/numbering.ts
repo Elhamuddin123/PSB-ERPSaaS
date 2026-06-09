@@ -20,6 +20,7 @@ export type NumberPrefix =
   | "INV"   // invoices
   | "EXP"   // expenses
   | "TCK"   // tickets
+  | "LOAN"  // customer cash loans
   | "REG";  // registration tokens
 
 const PREFIX_PAD: Record<NumberPrefix, number> = {
@@ -30,6 +31,7 @@ const PREFIX_PAD: Record<NumberPrefix, number> = {
   INV: 5,
   EXP: 5,
   TCK: 5,
+  LOAN: 5,
   REG: 6,
 };
 

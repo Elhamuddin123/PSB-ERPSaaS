@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Receipt, Search, Plus, CheckCircle, XCircle, Clock, DollarSign, BookOpen } from "lucide-react";
+import { Receipt, Search, Plus, CheckCircle, XCircle, Clock, DollarSign, BookOpen, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
@@ -19,6 +21,8 @@ const statusConfig: Record<string, { color: string; icon: any }> = {
 };
 
 export default function ExpensesPage() {
+  const { user } = useAuth();
+  const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -39,6 +43,15 @@ export default function ExpensesPage() {
     },
     onError: (err) => alert(err.message),
   });
+  const deleteExpense = trpc.expense.delete.useMutation({
+    onSuccess: async () => {
+      await utils.expense.list.invalidate();
+      await utils.expense.stats.invalidate();
+      refetch();
+    },
+    onError: (err) => alert(err.message),
+  });
+
   const updateStatus = trpc.expense.updateStatus.useMutation({
     onSuccess: async () => {
       await utils.expense.list.invalidate();
@@ -214,6 +227,22 @@ export default function ExpensesPage() {
                             <DollarSign className="h-3 w-3 mr-1" /> Reimburse
                           </Button>
                         </div>
+                      )}
+                      {canManage && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 h-7 w-7 p-0 ml-1"
+                          title="Delete (reverses accounting if posted)"
+                          disabled={deleteExpense.isPending}
+                          onClick={() => {
+                            if (confirm(`Delete expense "${expense.title}"?${expense.status === "approved" ? " Accounting will be reversed." : ""}`)) {
+                              deleteExpense.mutate({ id: expense.id });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       )}
                     </td>
                   </tr>

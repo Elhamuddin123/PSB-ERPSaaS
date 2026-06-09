@@ -12,9 +12,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Plus, MapPin, Phone, Clock, Mail } from "lucide-react";
+import { Search, Plus, MapPin, Phone, Clock, Mail, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 
 export default function PaymentLocationsPage() {
+  const { user } = useAuth();
+  const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [newLoc, setNewLoc] = useState({ name: "", city: "", address: "", phone: "", email: "", openingHours: "" });
@@ -22,6 +26,13 @@ export default function PaymentLocationsPage() {
   const { data, isLoading, error, refetch } = trpc.paymentLocation.list.useQuery({});
   const createLocation = trpc.paymentLocation.create.useMutation({
     onSuccess: () => { refetch(); setCreateOpen(false); setNewLoc({ name: "", city: "", address: "", phone: "", email: "", openingHours: "" }); },
+    onError: (err) => alert(err.message),
+  });
+  const deleteLocation = trpc.paymentLocation.delete.useMutation({
+    onSuccess: (result) => {
+      refetch();
+      if (result.deactivated) alert("Location has linked deposits and was deactivated instead of deleted.");
+    },
     onError: (err) => alert(err.message),
   });
 
@@ -92,9 +103,26 @@ export default function PaymentLocationsPage() {
                       {loc.city}
                     </div>
                   </div>
-                  <Badge className={loc.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}>
-                    {loc.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={loc.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}>
+                      {loc.status}
+                    </Badge>
+                    {canManage && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-red-500"
+                        disabled={deleteLocation.isPending}
+                        onClick={() => {
+                          if (confirm(`Delete location "${loc.name}"? Locations with deposits will be deactivated.`)) {
+                            deleteLocation.mutate({ id: loc.id });
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {loc.address && <p className="text-sm text-slate-600 mt-2">{loc.address}</p>}
                 <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-500">

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { suppliers, supplierContacts, bills, supplierPayments } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
@@ -253,18 +253,31 @@ export const supplierRouter = createRouter({
     }),
 
   // ─── DELETE SUPPLIER ───────────────────────────────────────────────────────
-  delete: authedQuery
+  delete: supervisoryQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ensureTenant(ctx, "delete");
-      console.log("[Supplier delete] input:", input);
 
-      // Check for related bills
+      const supplier = await db.select().from(suppliers)
+        .where(and(eq(suppliers.id, input.id), eq(suppliers.tenantId, tenantId)))
+        .limit(1);
+      if (!supplier[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Supplier not found" });
+
       const billCount = await db.select({ count: sql<number>`count(*)` }).from(bills)
         .where(and(eq(bills.supplierId, input.id), eq(bills.tenantId, tenantId)));
       if ((billCount[0]?.count ?? 0) > 0) {
         throw new TRPCError({ code: "CONFLICT", message: "Cannot delete supplier with existing bills" });
+      }
+
+      const paymentCount = await db.select({ count: sql<number>`count(*)` }).from(supplierPayments)
+        .where(and(eq(supplierPayments.supplierId, input.id), eq(supplierPayments.tenantId, tenantId)));
+      if ((paymentCount[0]?.count ?? 0) > 0) {
+        throw new TRPCError({ code: "CONFLICT", message: "Cannot delete supplier with payment history" });
+      }
+
+      if (Number(supplier[0].balanceDue) > 0) {
+        throw new TRPCError({ code: "CONFLICT", message: "Cannot delete supplier with outstanding balance" });
       }
 
       await db.delete(supplierContacts)
@@ -272,7 +285,13 @@ export const supplierRouter = createRouter({
       await db.delete(suppliers)
         .where(and(eq(suppliers.id, input.id), eq(suppliers.tenantId, tenantId)));
 
-      await auditLog({ ctx, action: "supplier_deleted", entityType: "supplier", entityId: input.id });
+      await auditLog({
+        ctx,
+        action: "supplier_deleted",
+        entityType: "supplier",
+        entityId: input.id,
+        oldValues: { companyName: supplier[0].companyName },
+      });
 
       return { success: true };
     }),

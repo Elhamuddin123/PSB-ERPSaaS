@@ -16,8 +16,6 @@ import {
   customers,
   customerTransactions,
   invoices,
-  invoiceItems,
-  users,
 } from "@db/schema";
 
 import {
@@ -31,10 +29,14 @@ import {
   inArray,
   isNull,
 } from "drizzle-orm";
-import { nextNumber } from "./lib/numbering";
 import { auditLog } from "./lib/audit";
 import { createPendingTicket, validateTicketCreatePrerequisites } from "./lib/ticket-create";
+import { approveTicket, computeTicketFinancials } from "./lib/ticket-approval";
+import { reverseApprovedTicket } from "./lib/ticket-reverse";
 import { postLedgerLines } from "./lib/ledger-posting";
+import { reversePostedJournals } from "./lib/journal-reverse";
+import { getAccountByCode, postWalletCredit, TICKET_COST_CODE } from "./lib/wallet-coa";
+import { recordCustomerPayment } from "./lib/customer-payment";
 
 // =====================================================
 // JSON metadata helper (MariaDB returns JSON as strings)
@@ -71,6 +73,7 @@ const ticketSharedInputSchema = {
   taxAmount: z.string().default("0"),
   totalAmount: z.string().refine((value) => Number(value) > 0, { message: "Ticket price is required" }),
   commissionAmount: z.string().default("0"),
+  discountAmount: z.string().default("0"),
   paidAmount: z.string().optional(),
   supplierCost: z.string().optional(),
   expense: z.string().optional(),
@@ -98,291 +101,6 @@ function ensureTicketTenant(ctx: any, label = "") {
 }
 
 // =====================================================
-// APPROVAL HELPER
-// =====================================================
-
-async function approveTicket(
-  db: import("./queries/connection").DbOrTx,
-  ticket: typeof tickets.$inferSelect,
-  user: { id: number; tenantId: number | null },
-) {
-  const tenantId = user.tenantId as number;
-  const totalAmount = Number(ticket.totalAmount);
-  console.log("[approve ticket]", ticket);
-  console.log("[wallet deduction amount]", totalAmount);
-
-  // Extract walletId from metadata
-  const metadata = getTicketMetadata(ticket);
-  let walletId = metadata?.walletId ?? null;
-  console.log("[approve walletId from metadata]", walletId);
-
-  if (!walletId) {
-    // Fallback: find any active wallet for this tenant
-    const fallbackWallet = await db.query.wallets.findFirst({
-      where: and(eq(wallets.tenantId, tenantId), eq(wallets.status, "active")),
-      orderBy: [desc(wallets.createdAt)],
-    });
-    if (fallbackWallet) {
-      console.log("[approve fallback wallet]", fallbackWallet.id);
-      walletId = fallbackWallet.id;
-    }
-  }
-
-  if (!walletId) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Ticket wallet not recorded and no active wallet found" });
-  }
-
-  const userWallet = await db.query.wallets.findFirst({
-    where: and(eq(wallets.id, walletId), eq(wallets.tenantId, tenantId), eq(wallets.status, "active")),
-  });
-  console.log("[approve wallet]", userWallet);
-  if (!userWallet) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Wallet not found or inactive" });
-  }
-  if (Number(userWallet.balance) < totalAmount) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient wallet balance" });
-  }
-
-  const cashAccount = await db.query.chartOfAccounts.findFirst({
-    where: and(eq(chartOfAccounts.code, "1000"), eq(chartOfAccounts.tenantId, tenantId)),
-  });
-  const arAccount = await db.query.chartOfAccounts.findFirst({
-    where: and(eq(chartOfAccounts.code, "1200"), eq(chartOfAccounts.tenantId, tenantId)),
-  });
-  const revenueAccount = await db.query.chartOfAccounts.findFirst({
-    where: and(eq(chartOfAccounts.code, "4000"), eq(chartOfAccounts.tenantId, tenantId)),
-  });
-  if (!cashAccount || !arAccount || !revenueAccount) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Accounting accounts missing" });
-  }
-
-  // Determine debit account: AR if customer is invoiced, Cash if walk-in
-  const debitAccount = ticket.customerId ? arAccount : cashAccount;
-
-  // Wallet deduction (atomic with guard)
-  const debitResult = await db.update(wallets)
-    .set({ balance: sql`${wallets.balance} - ${totalAmount.toFixed(2)}` })
-    .where(and(eq(wallets.id, userWallet.id), sql`${wallets.balance} >= ${totalAmount.toFixed(2)}`));
-  if (debitResult[0].affectedRows === 0) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient wallet balance" });
-  }
-
-  const updatedWallet = await db.query.wallets.findFirst({
-    where: eq(wallets.id, userWallet.id),
-  });
-
-  // Wallet transaction
-  await db.insert(walletTransactions).values({
-    walletId: userWallet.id,
-    tenantId,
-    type: "debit",
-    amount: totalAmount.toFixed(2),
-    balanceAfter: updatedWallet!.balance,
-    description: `Ticket booking: ${ticket.ticketNumber}`,
-    referenceType: "ticket",
-    referenceId: ticket.id,
-    createdBy: user.id,
-  });
-
-  // Journal entry
-  const journalResult = await db.insert(journalEntries).values({
-    tenantId,
-    entryNumber: `JE-${Date.now()}`,
-    date: new Date(),
-    description: `Ticket Sale ${ticket.ticketNumber}`,
-    referenceType: "ticket",
-    referenceId: ticket.id,
-    status: "posted",
-    totalDebit: totalAmount.toFixed(2),
-    totalCredit: totalAmount.toFixed(2),
-  });
-  const journalId = Number(journalResult[0].insertId ?? 0);
-
-  if (journalId > 0) {
-    await db.insert(journalEntryLines).values([
-      {
-        journalEntryId: journalId,
-        accountId: debitAccount.id,
-        description: ticket.customerId ? "Accounts Receivable - Ticket Sale" : "Wallet deduction for ticket booking",
-        debit: totalAmount.toFixed(2),
-        credit: "0.00",
-      },
-      {
-        journalEntryId: journalId,
-        accountId: revenueAccount.id,
-        description: "Ticket sales revenue",
-        debit: "0.00",
-        credit: totalAmount.toFixed(2),
-      },
-    ]);
-
-    await postLedgerLines(db, {
-      tenantId,
-      journalEntryId: journalId,
-      date: new Date(),
-      referenceType: "ticket",
-      referenceId: ticket.id,
-      lines: [
-        { accountId: debitAccount.id, description: ticket.customerId ? "Accounts Receivable - Ticket Sale" : "Wallet deduction for ticket booking", debit: totalAmount.toFixed(2), credit: "0.00" },
-        { accountId: revenueAccount.id, description: "Ticket sales revenue", debit: "0.00", credit: totalAmount.toFixed(2) },
-      ],
-    });
-  }
-
-  // Update ticket
-  await db.update(tickets).set({ status: "confirmed", paymentStatus: "paid" }).where(eq(tickets.id, ticket.id));
-
-  // =====================================================
-  // CUSTOMER RECEIVABLE (if customer exists)
-  // =====================================================
-  if (ticket.customerId) {
-    // Get current customer balance
-    const balanceResult = await db
-      .select({ total: sql<number>`COALESCE(SUM(CASE WHEN type = 'receivable' THEN amount WHEN type IN ('payment','deposit','credit','refund') THEN -amount ELSE 0 END), 0)` })
-      .from(customerTransactions)
-      .where(and(eq(customerTransactions.tenantId, tenantId), eq(customerTransactions.customerId, ticket.customerId)));
-    const currentBalance = Number(balanceResult[0]?.total ?? 0);
-    const newBalance = currentBalance + totalAmount;
-
-    await db.insert(customerTransactions).values({
-      tenantId,
-      customerId: ticket.customerId,
-      ticketId: ticket.id,
-      type: "receivable",
-      amount: totalAmount.toFixed(2),
-      balance: newBalance.toFixed(2),
-      description: `Ticket sale: ${ticket.ticketNumber}`,
-      createdBy: user.id,
-    });
-
-    // Update customer stats
-    await db.update(customers).set({
-      totalBookings: sql`${customers.totalBookings} + 1`,
-      totalRevenue: sql`${customers.totalRevenue} + ${totalAmount.toFixed(2)}`,
-      lastBookingDate: new Date(),
-    }).where(eq(customers.id, ticket.customerId));
-  }
-
-  // =====================================================
-  // INVOICE AUTO-GENERATION (if customer exists)
-  // =====================================================
-  if (ticket.customerId) {
-    try {
-      const invoiceNumber = await nextNumber(db, tenantId, "INV");
-
-      const invoiceResult = await db.insert(invoices).values({
-        tenantId,
-        customerId: ticket.customerId,
-        invoiceNumber,
-        ticketId: ticket.id,
-        issueDate: new Date(),
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        subtotal: totalAmount.toFixed(2),
-        taxAmount: Number(ticket.taxAmount).toFixed(2),
-        totalAmount: totalAmount.toFixed(2),
-        paidAmount: "0.00",
-        status: "sent",
-        notes: `Generated from ticket ${ticket.ticketNumber}`,
-        createdBy: user.id,
-      });
-      const invoiceId = Number(invoiceResult[0].insertId);
-
-      const paxList = await db.select().from(ticketPassengers).where(eq(ticketPassengers.ticketId, ticket.id));
-      const paxNames = paxList.map(p => `${p.firstName} ${p.lastName}`).join(", ");
-      const airline = await db.query.airlines.findFirst({ where: and(eq(airlines.id, ticket.airlineId || 0), eq(airlines.tenantId, tenantId)) });
-
-      await db.insert(invoiceItems).values({
-        invoiceId,
-        description: `Flight: ${ticket.routeFrom} → ${ticket.routeTo} | ${airline?.name || ""} | ${paxNames}`,
-        quantity: 1,
-        unitPrice: totalAmount.toFixed(2),
-        totalPrice: totalAmount.toFixed(2),
-      });
-
-      // Link receivable to invoice
-      await db.update(customerTransactions)
-        .set({ invoiceId })
-        .where(and(
-          eq(customerTransactions.tenantId, tenantId),
-          eq(customerTransactions.ticketId, ticket.id),
-          eq(customerTransactions.type, "receivable"),
-        ));
-    } catch {
-      // Non-critical: invoice generation failure should not block approval
-    }
-  }
-
-  // Commission accounting
-  const commissionAmount = Number(ticket.commissionAmount ?? 0);
-  if (commissionAmount > 0 && journalId > 0) {
-    const commissionExpenseAccount = await db.query.chartOfAccounts.findFirst({
-      where: and(eq(chartOfAccounts.code, "5000"), eq(chartOfAccounts.tenantId, tenantId)),
-    });
-    const commissionRevenueAccount = await db.query.chartOfAccounts.findFirst({
-      where: and(eq(chartOfAccounts.code, "4100"), eq(chartOfAccounts.tenantId, tenantId)),
-    });
-
-    if (commissionExpenseAccount && commissionRevenueAccount) {
-      await db.insert(journalEntryLines).values([
-        { journalEntryId: journalId, accountId: commissionExpenseAccount.id, description: "Commission expense", debit: commissionAmount.toFixed(2), credit: "0.00" },
-        { journalEntryId: journalId, accountId: commissionRevenueAccount.id, description: "Commission revenue", debit: "0.00", credit: commissionAmount.toFixed(2) },
-      ]);
-
-      await postLedgerLines(db, {
-        tenantId,
-        journalEntryId: journalId,
-        date: new Date(),
-        referenceType: "ticket",
-        referenceId: ticket.id,
-        lines: [
-          { accountId: commissionExpenseAccount.id, debit: commissionAmount.toFixed(2), credit: "0.00", description: "Commission expense" },
-          { accountId: commissionRevenueAccount.id, debit: "0.00", credit: commissionAmount.toFixed(2), description: "Commission revenue" },
-        ],
-      });
-
-      // Update journal total
-      const newTotal = totalAmount + commissionAmount;
-      await db.update(journalEntries).set({
-        totalDebit: newTotal.toFixed(2),
-        totalCredit: newTotal.toFixed(2),
-      }).where(eq(journalEntries.id, journalId));
-    }
-  }
-
-  // Notification
-  try {
-    await db.insert(notifications).values({
-      tenantId,
-      userId: user.id,
-      title: "Ticket Approved",
-      message: `Ticket ${ticket.ticketNumber} has been approved and processed.`,
-      type: "success",
-      category: "ticket",
-      referenceType: "ticket",
-      referenceId: ticket.id,
-    });
-
-    // Notify creator
-    if (ticket.issuedBy && ticket.issuedBy !== user.id) {
-      await db.insert(notifications).values({
-        tenantId,
-        userId: ticket.issuedBy,
-        title: "Ticket Approved",
-        message: `Your ticket ${ticket.ticketNumber} has been approved and processed.`,
-        type: "success",
-        category: "ticket",
-        referenceType: "ticket",
-        referenceId: ticket.id,
-      });
-    }
-  } catch {
-    // Non-critical
-  }
-
-  return { success: true };
-}
-
-// =====================================================
 // REFUND HELPER
 // =====================================================
 
@@ -395,9 +113,10 @@ async function refundTicket(
   reason: string,
 ) {
   const tenantId = user.tenantId as number;
+  const fin = computeTicketFinancials(ticket);
   const totalReversal = refundAmount + penaltyAmount;
+  const isFullRefund = Math.abs(totalReversal - fin.totalAmount) < 0.01;
 
-  // Extract walletId from metadata
   const metadata = getTicketMetadata(ticket);
   const walletId = metadata?.walletId ?? null;
   if (!walletId) {
@@ -411,9 +130,12 @@ async function refundTicket(
     throw new TRPCError({ code: "BAD_REQUEST", message: "Wallet not found" });
   }
 
-  // Credit wallet with refund amount (atomic)
+  const walletCredit = isFullRefund
+    ? fin.walletDeduction
+    : fin.walletDeduction * (refundAmount / fin.totalAmount);
+
   await db.update(wallets)
-    .set({ balance: sql`${wallets.balance} + ${refundAmount.toFixed(2)}` })
+    .set({ balance: sql`${wallets.balance} + ${walletCredit.toFixed(2)}` })
     .where(eq(wallets.id, userWallet.id));
 
   const updatedWallet = await db.query.wallets.findFirst({
@@ -424,7 +146,7 @@ async function refundTicket(
     walletId: userWallet.id,
     tenantId,
     type: "refund",
-    amount: refundAmount.toFixed(2),
+    amount: walletCredit.toFixed(2),
     balanceAfter: updatedWallet!.balance,
     description: `Ticket refund: ${ticket.ticketNumber}${reason ? ` - ${reason}` : ""}`,
     referenceType: "ticket",
@@ -432,100 +154,213 @@ async function refundTicket(
     createdBy: user.id,
   });
 
-  // Reversal journal entry
-  const revenueAccount = await db.query.chartOfAccounts.findFirst({
-    where: and(eq(chartOfAccounts.code, "4000"), eq(chartOfAccounts.tenantId, tenantId)),
-  });
-  const creditAccount = ticket.customerId
-    ? await db.query.chartOfAccounts.findFirst({ where: and(eq(chartOfAccounts.code, "1200"), eq(chartOfAccounts.tenantId, tenantId)) })
-    : await db.query.chartOfAccounts.findFirst({ where: and(eq(chartOfAccounts.code, "1000"), eq(chartOfAccounts.tenantId, tenantId)) });
-
-  if (!revenueAccount || !creditAccount) {
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Required COA accounts missing for refund posting" });
-  }
-
-  // Get or create penalty revenue account if needed
-  let penaltyAccount = null;
-  if (penaltyAmount > 0) {
-    penaltyAccount = await db.query.chartOfAccounts.findFirst({
-      where: and(eq(chartOfAccounts.code, "4200"), eq(chartOfAccounts.tenantId, tenantId)),
+  if (isFullRefund) {
+    await reversePostedJournals(db, tenantId, "ticket", ticket.id, "Ticket refund");
+    await reversePostedJournals(db, tenantId, "ticket_wallet", ticket.id, "Ticket wallet refund");
+  } else {
+    const ratio = totalReversal / fin.totalAmount;
+    const cashAccount = await db.query.chartOfAccounts.findFirst({
+      where: and(eq(chartOfAccounts.code, "1000"), eq(chartOfAccounts.tenantId, tenantId)),
     });
-    if (!penaltyAccount) {
-      const result = await db.insert(chartOfAccounts).values({
-        tenantId,
-        code: "4200",
-        name: "Penalty Revenue",
-        type: "revenue",
-        currentBalance: "0.00",
-        status: "active",
-        currency: "USD",
+    const arAccount = await db.query.chartOfAccounts.findFirst({
+      where: and(eq(chartOfAccounts.code, "1200"), eq(chartOfAccounts.tenantId, tenantId)),
+    });
+    const revenueAccount = await db.query.chartOfAccounts.findFirst({
+      where: and(eq(chartOfAccounts.code, "4000"), eq(chartOfAccounts.tenantId, tenantId)),
+    });
+    const commissionRevenueAccount = await db.query.chartOfAccounts.findFirst({
+      where: and(eq(chartOfAccounts.code, "4100"), eq(chartOfAccounts.tenantId, tenantId)),
+    });
+
+    if (!cashAccount || !arAccount || !revenueAccount) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Required COA accounts missing for refund posting" });
+    }
+
+    let penaltyAccount = null;
+    if (penaltyAmount > 0) {
+      penaltyAccount = await db.query.chartOfAccounts.findFirst({
+        where: and(eq(chartOfAccounts.code, "4200"), eq(chartOfAccounts.tenantId, tenantId)),
       });
-      penaltyAccount = { id: Number(result[0].insertId), code: "4200", name: "Penalty Revenue", type: "revenue" as const, currentBalance: "0.00" };
+      if (!penaltyAccount) {
+        const result = await db.insert(chartOfAccounts).values({
+          tenantId,
+          code: "4200",
+          name: "Penalty Revenue",
+          type: "revenue",
+          currentBalance: "0.00",
+          status: "active",
+          currency: "USD",
+        });
+        penaltyAccount = { id: Number(result[0].insertId) };
+      }
     }
-  }
 
-  const journalResult = await db.insert(journalEntries).values({
-    tenantId,
-    entryNumber: `JE-${Date.now()}`,
-    date: new Date(),
-    description: `Ticket Refund ${ticket.ticketNumber}${reason ? ` - ${reason}` : ""}`,
-    referenceType: "ticket",
-    referenceId: ticket.id,
-    status: "posted",
-    totalDebit: totalReversal.toFixed(2),
-    totalCredit: totalReversal.toFixed(2),
-  });
-  const journalId = Number(journalResult[0].insertId ?? 0);
+    const fareRev = fin.fareRevenue * ratio;
+    const netComm = fin.netCommission * ratio;
+    const creditAccount = ticket.customerId ? arAccount : cashAccount;
 
-  if (journalId > 0) {
-    const lines = [
-      { journalEntryId: journalId, accountId: revenueAccount.id, description: "Revenue reversal - ticket refund", debit: totalReversal.toFixed(2), credit: "0.00" },
-      { journalEntryId: journalId, accountId: creditAccount.id, description: "Cash/AR refund to customer", debit: "0.00", credit: refundAmount.toFixed(2) },
-    ];
+    const journalLines: { accountId: number; description: string; debit: string; credit: string }[] = [];
+    if (fareRev > 0) {
+      journalLines.push({
+        accountId: revenueAccount.id,
+        description: "Partial fare revenue reversal",
+        debit: fareRev.toFixed(2),
+        credit: "0.00",
+      });
+    }
+    if (netComm > 0 && commissionRevenueAccount) {
+      journalLines.push({
+        accountId: commissionRevenueAccount.id,
+        description: "Partial commission revenue reversal",
+        debit: netComm.toFixed(2),
+        credit: "0.00",
+      });
+    }
+    journalLines.push({
+      accountId: creditAccount.id,
+      description: "Cash/AR refund to customer",
+      debit: "0.00",
+      credit: refundAmount.toFixed(2),
+    });
     if (penaltyAmount > 0 && penaltyAccount) {
-      lines.push({ journalEntryId: journalId, accountId: penaltyAccount.id, description: "Cancellation penalty", debit: "0.00", credit: penaltyAmount.toFixed(2) });
+      journalLines.push({
+        accountId: penaltyAccount.id,
+        description: "Cancellation penalty",
+        debit: "0.00",
+        credit: penaltyAmount.toFixed(2),
+      });
     }
 
-    await db.insert(journalEntryLines).values(lines);
+    const journalDebit = journalLines.reduce((s, l) => s + Number(l.debit), 0);
+    const journalCredit = journalLines.reduce((s, l) => s + Number(l.credit), 0);
+    if (Math.abs(journalDebit - journalCredit) > 0.01) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Refund journal entry is not balanced" });
+    }
 
-    await postLedgerLines(db, {
+    const journalResult = await db.insert(journalEntries).values({
       tenantId,
-      journalEntryId: journalId,
+      entryNumber: `JE-${Date.now()}`,
       date: new Date(),
+      description: `Ticket Partial Refund ${ticket.ticketNumber}${reason ? ` - ${reason}` : ""}`,
       referenceType: "ticket",
       referenceId: ticket.id,
-      lines: lines.map((line) => ({
-        accountId: line.accountId,
-        description: line.description,
-        debit: line.debit,
-        credit: line.credit,
-      })),
+      status: "posted",
+      totalDebit: journalDebit.toFixed(2),
+      totalCredit: journalCredit.toFixed(2),
     });
+    const journalId = Number(journalResult[0].insertId ?? 0);
+
+    if (journalId > 0) {
+      await db.insert(journalEntryLines).values(
+        journalLines.map((line) => ({ journalEntryId: journalId, ...line })),
+      );
+      await postLedgerLines(db, {
+        tenantId,
+        journalEntryId: journalId,
+        date: new Date(),
+        referenceType: "ticket",
+        referenceId: ticket.id,
+        lines: journalLines,
+      });
+    }
+
+    const ticketCostAccount = await getAccountByCode(db, tenantId, TICKET_COST_CODE);
+    if (ticketCostAccount && walletCredit > 0) {
+      await postWalletCredit(
+        db,
+        userWallet,
+        walletCredit,
+        ticketCostAccount.id,
+        `Partial ticket supplier cost reversal: ${ticket.ticketNumber}`,
+        "ticket_wallet",
+        ticket.id,
+        `Partial wallet credit for ticket refund ${ticket.ticketNumber}`,
+      );
+    }
   }
 
-  // Update ticket
   await db.update(tickets).set({ status: "refunded", paymentStatus: "refunded" }).where(eq(tickets.id, ticket.id));
 
-  // Customer transaction
   if (ticket.customerId) {
-    await db.insert(customerTransactions).values({
-      tenantId,
-      customerId: ticket.customerId,
-      ticketId: ticket.id,
-      type: "refund",
-      amount: refundAmount.toFixed(2),
-      balance: refundAmount.toFixed(2),
-      description: `Ticket refund: ${ticket.ticketNumber}${reason ? ` - ${reason}` : ""}`,
-      createdBy: user.id,
-    });
+    if (isFullRefund) {
+      const existingTx = await db.select().from(customerTransactions).where(
+        and(
+          eq(customerTransactions.tenantId, tenantId),
+          eq(customerTransactions.ticketId, ticket.id),
+        ),
+      );
 
-    // Update customer stats
+      const balanceResult = await db
+        .select({ total: sql<number>`COALESCE(SUM(CASE WHEN type = 'receivable' THEN amount WHEN type IN ('payment','deposit','credit','refund') THEN -amount ELSE 0 END), 0)` })
+        .from(customerTransactions)
+        .where(and(eq(customerTransactions.tenantId, tenantId), eq(customerTransactions.customerId, ticket.customerId)));
+      let runningBalance = Number(balanceResult[0]?.total ?? 0);
+
+      for (const tx of existingTx) {
+        if (tx.type === "receivable") {
+          runningBalance = Math.max(0, runningBalance - Number(tx.amount));
+          await db.insert(customerTransactions).values({
+            tenantId,
+            customerId: ticket.customerId,
+            ticketId: ticket.id,
+            type: "credit",
+            amount: tx.amount,
+            balance: runningBalance.toFixed(2),
+            description: `Refund reversal of receivable: ${ticket.ticketNumber}`,
+            createdBy: user.id,
+          });
+        } else if (tx.type === "payment") {
+          runningBalance += Number(tx.amount);
+          await db.insert(customerTransactions).values({
+            tenantId,
+            customerId: ticket.customerId,
+            ticketId: ticket.id,
+            type: "receivable",
+            amount: tx.amount,
+            balance: runningBalance.toFixed(2),
+            description: `Refund reversal of payment: ${ticket.ticketNumber}`,
+            createdBy: user.id,
+          });
+        }
+      }
+
+      if (refundAmount > 0) {
+        runningBalance = Math.max(0, runningBalance - refundAmount);
+        await db.insert(customerTransactions).values({
+          tenantId,
+          customerId: ticket.customerId,
+          ticketId: ticket.id,
+          type: "refund",
+          amount: refundAmount.toFixed(2),
+          balance: runningBalance.toFixed(2),
+          description: `Ticket refund: ${ticket.ticketNumber}${reason ? ` - ${reason}` : ""}`,
+          createdBy: user.id,
+        });
+      }
+    } else {
+      const balanceResult = await db
+        .select({ total: sql<number>`COALESCE(SUM(CASE WHEN type = 'receivable' THEN amount WHEN type IN ('payment','deposit','credit','refund') THEN -amount ELSE 0 END), 0)` })
+        .from(customerTransactions)
+        .where(and(eq(customerTransactions.tenantId, tenantId), eq(customerTransactions.customerId, ticket.customerId)));
+      const runningBalance = Math.max(0, Number(balanceResult[0]?.total ?? 0) - refundAmount);
+
+      await db.insert(customerTransactions).values({
+        tenantId,
+        customerId: ticket.customerId,
+        ticketId: ticket.id,
+        type: "refund",
+        amount: refundAmount.toFixed(2),
+        balance: runningBalance.toFixed(2),
+        description: `Partial ticket refund: ${ticket.ticketNumber}${reason ? ` - ${reason}` : ""}`,
+        createdBy: user.id,
+      });
+    }
+
     await db.update(customers).set({
       totalBookings: sql`GREATEST(0, ${customers.totalBookings} - 1)`,
       totalRevenue: sql`GREATEST(0, ${customers.totalRevenue} - ${totalReversal.toFixed(2)})`,
     }).where(eq(customers.id, ticket.customerId));
 
-    // Cancel invoice if exists
     try {
       await db.update(invoices).set({ status: "cancelled" }).where(
         and(eq(invoices.ticketId, ticket.id), eq(invoices.tenantId, tenantId)),
@@ -794,7 +629,7 @@ export const ticketRouter = createRouter({
         if (!fresh || fresh.status !== "pending") {
           throw new TRPCError({ code: "CONFLICT", message: "Ticket is not pending approval" });
         }
-        return approveTicket(tx, fresh, ctx.user!);
+        return approveTicket(tx, fresh, { ...ctx.user!, role: ctx.user!.role });
       });
       await auditLog({
         ctx,
@@ -868,6 +703,70 @@ export const ticketRouter = createRouter({
       });
 
       return { success: true };
+    }),
+
+  // =====================================================
+  // RECORD PAYMENT (against ticket invoice — unified AR path)
+  // =====================================================
+
+  recordPayment: supervisoryQuery
+    .input(z.object({
+      id: z.number(),
+      amount: z.string().min(1),
+      paymentMethod: z.string().default("cash"),
+      referenceNumber: z.string().optional(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const amount = Number(input.amount);
+
+      const ticket = await db.query.tickets.findFirst({
+        where: and(eq(tickets.id, input.id), eq(tickets.tenantId, tenantId)),
+      });
+      if (!ticket) throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+      if (!ticket.customerId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Walk-in tickets have no customer account to bill" });
+      }
+      if (!["confirmed", "completed"].includes(ticket.status)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Only approved tickets accept payments" });
+      }
+
+      const result = await db.transaction(async (tx) => {
+        const paymentResult = await recordCustomerPayment(tx, {
+          tenantId,
+          customerId: ticket.customerId!,
+          amount,
+          userId: ctx.user!.id,
+          ticketId: ticket.id,
+          paymentMethod: input.paymentMethod,
+          referenceNumber: input.referenceNumber,
+          description: input.description,
+          source: "ticket",
+        });
+
+        const fin = computeTicketFinancials(ticket);
+        const newPaid = Number(ticket.paidAmount ?? 0) + amount;
+        const paymentStatus = newPaid >= fin.customerCharge ? "paid" : "partial";
+
+        await tx.update(tickets).set({
+          paidAmount: newPaid.toFixed(2),
+          paymentStatus,
+        }).where(eq(tickets.id, ticket.id));
+
+        return paymentResult;
+      });
+
+      await auditLog({
+        ctx,
+        action: "payment",
+        entityType: "ticket",
+        entityId: input.id,
+        newValues: { amount: input.amount, paymentMethod: input.paymentMethod, invoiceId: result.invoiceId },
+      });
+
+      return { success: true, ...result };
     }),
 
   // =====================================================
@@ -971,7 +870,7 @@ export const ticketRouter = createRouter({
           if (!fresh || fresh.status !== "pending") {
             throw new TRPCError({ code: "CONFLICT", message: "Ticket is not pending approval" });
           }
-          return approveTicket(tx, fresh, ctx.user!);
+          return approveTicket(tx, fresh, { ...ctx.user!, role: ctx.user!.role });
         });
       }
 
@@ -1084,19 +983,37 @@ export const ticketRouter = createRouter({
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
 
-      // Soft delete: mark ticket as deleted instead of hard delete
-      await db.update(tickets).set({
-        deletedAt: new Date(),
-        deletedBy: ctx.user!.id,
-      }).where(
-        and(
-          eq(tickets.id, input.id),
-          eq(tickets.tenantId, tenantId),
-        ),
-      );
+      const existing = await db.query.tickets.findFirst({
+        where: and(eq(tickets.id, input.id), eq(tickets.tenantId, tenantId), isNull(tickets.deletedAt)),
+      });
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+      }
 
-      return {
-        success: true,
-      };
+      await db.transaction(async (tx) => {
+        const fresh = await tx.query.tickets.findFirst({
+          where: and(eq(tickets.id, input.id), eq(tickets.tenantId, tenantId), isNull(tickets.deletedAt)),
+        });
+        if (!fresh) throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+
+        if (["confirmed", "completed"].includes(fresh.status)) {
+          await reverseApprovedTicket(tx, fresh, ctx.user!.id);
+        }
+
+        await tx.update(tickets).set({
+          deletedAt: new Date(),
+          deletedBy: ctx.user!.id,
+        }).where(eq(tickets.id, input.id));
+      });
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "ticket",
+        entityId: input.id,
+        oldValues: { status: existing.status, ticketNumber: existing.ticketNumber },
+      });
+
+      return { success: true };
     }),
 });

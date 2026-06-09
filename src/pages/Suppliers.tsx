@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tractor, Search, Plus, Phone, Mail, MapPin, Building2, ArrowRight, Globe, CreditCard } from "lucide-react";
+import { Tractor, Search, Plus, Phone, Mail, MapPin, Building2, ArrowRight, Globe, CreditCard, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 import { Link } from "react-router";
 
 const statusColors: Record<string, string> = {
@@ -28,6 +30,8 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function SuppliersPage() {
+  const { user } = useAuth();
+  const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("__all__");
   const [statusFilter, setStatusFilter] = useState("__all__");
@@ -41,6 +45,14 @@ export default function SuppliersPage() {
     status: statusFilter !== "__all__" ? statusFilter : undefined,
   });
   console.log("[Suppliers] suppliersData:", suppliersData, "isLoading:", isLoading, "error:", error);
+
+  const deleteSupplier = trpc.supplier.delete.useMutation({
+    onSuccess: async () => {
+      await utils.supplier.list.invalidate();
+      await utils.supplier.stats.invalidate();
+    },
+    onError: (err) => alert(err.message),
+  });
 
   const createSupplier = trpc.supplier.create.useMutation({
     onSuccess: async () => {
@@ -294,7 +306,26 @@ export default function SuppliersPage() {
                         <p className="text-[10px] sm:text-xs text-slate-500">{supplier.supplierCode} · {typeLabels[supplier.supplierType] || supplier.supplierType}</p>
                       </div>
                     </div>
-                    <Badge className={`text-[10px] sm:text-xs flex-shrink-0 ${statusColors[supplier.status] || ""}`}>{supplier.status}</Badge>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Badge className={`text-[10px] sm:text-xs ${statusColors[supplier.status] || ""}`}>{supplier.status}</Badge>
+                      {canManage && Number(supplier.balanceDue) === 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-red-500"
+                          disabled={deleteSupplier.isPending}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (confirm(`Delete supplier "${supplier.companyName}"?`)) {
+                              deleteSupplier.mutate({ id: supplier.id });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-2 space-y-0.5 text-xs sm:text-sm text-slate-600">
                     {supplier.tradeName && <p className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3 flex-shrink-0" /> {supplier.tradeName}</p>}

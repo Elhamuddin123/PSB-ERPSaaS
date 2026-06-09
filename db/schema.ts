@@ -128,6 +128,7 @@ export const wallets = mysqlTable("wallets", {
   reservedBalance: decimal("reserved_balance", { precision: 15, scale: 2 }).default("0.00").notNull(),
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }).default("0.00").notNull(),
   dueBalance: decimal("due_balance", { precision: 15, scale: 2 }).default("0.00").notNull(),
+  accountId: bigint("account_id", { mode: "number", unsigned: true }).references(() => chartOfAccounts.id),
   status: mysqlEnum("status", ["active", "frozen", "closed"]).default("active").notNull(),
   createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
@@ -198,6 +199,7 @@ export const tickets = mysqlTable("tickets", {
   taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
   commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
   paidAmount: decimal("paid_amount", { precision: 12, scale: 2 }).default("0.00").notNull(),
   supplierCost: decimal("supplier_cost", { precision: 12, scale: 2 }).default("0.00").notNull(),
   expense: decimal("expense", { precision: 12, scale: 2 }).default("0.00").notNull(),
@@ -490,6 +492,48 @@ export const customerTransactions = mysqlTable("customer_transactions", {
 });
 
 export type CustomerTransaction = typeof customerTransactions.$inferSelect;
+
+export const customerLoans = mysqlTable("customer_loans", {
+  id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  tenantId: bigint("tenant_id", { mode: "number", unsigned: true }).notNull().references(() => tenants.id),
+  customerId: bigint("customer_id", { mode: "number", unsigned: true }).notNull().references(() => customers.id),
+  loanNumber: varchar("loan_number", { length: 50 }).notNull(),
+  principalAmount: decimal("principal_amount", { precision: 15, scale: 2 }).notNull(),
+  repaidAmount: decimal("repaid_amount", { precision: 15, scale: 2 }).default("0.00").notNull(),
+  balanceAmount: decimal("balance_amount", { precision: 15, scale: 2 }).notNull(),
+  status: mysqlEnum("status", ["active", "repaid", "written_off"]).default("active").notNull(),
+  loanDate: date("loan_date").notNull(),
+  dueDate: date("due_date"),
+  description: text("description"),
+  notes: text("notes"),
+  createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull().$onUpdate(() => new Date()),
+  deletedAt: datetime("deleted_at"),
+  deletedBy: bigint("deleted_by", { mode: "number", unsigned: true }).references(() => users.id),
+}, (table) => [
+  index("customer_loans_tenant_idx").on(table.tenantId),
+  index("customer_loans_customer_idx").on(table.customerId),
+  uniqueIndex("customer_loans_number_unique").on(table.tenantId, table.loanNumber),
+]);
+
+export type CustomerLoan = typeof customerLoans.$inferSelect;
+
+export const customerLoanRepayments = mysqlTable("customer_loan_repayments", {
+  id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  tenantId: bigint("tenant_id", { mode: "number", unsigned: true }).notNull().references(() => tenants.id),
+  loanId: bigint("loan_id", { mode: "number", unsigned: true }).notNull().references(() => customerLoans.id),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method", { length: 50 }).default("cash").notNull(),
+  referenceNumber: varchar("reference_number", { length: 100 }),
+  notes: text("notes"),
+  createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+  index("loan_repayments_loan_idx").on(table.loanId),
+]);
+
+export type CustomerLoanRepayment = typeof customerLoanRepayments.$inferSelect;
 
 export const invoices = mysqlTable("invoices", {
   id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),

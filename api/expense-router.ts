@@ -6,6 +6,7 @@ import { expenses, expenseCategories, chartOfAccounts, journalEntries, journalEn
 import { eq, desc, sql, and, isNull } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { postLedgerLines } from "./lib/ledger-posting";
+import { reversePostedJournals } from "./lib/journal-reverse";
 // TEMP: removed DB-aware imports after migration
 
 function ensureExpenseTenant(ctx: any, label = "") {
@@ -378,10 +379,31 @@ export const expenseRouter = createRouter({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
-      await db.update(expenses).set({
-        deletedAt: new Date(),
-        deletedBy: ctx.user!.id,
-      }).where(and(eq(expenses.id, input.id), eq(expenses.tenantId, ctx.user!.tenantId as number)));
+      const tenantId = ctx.user!.tenantId as number;
+
+      const existing = await db.query.expenses.findFirst({
+        where: and(eq(expenses.id, input.id), eq(expenses.tenantId, tenantId), isNull(expenses.deletedAt)),
+      });
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Expense not found" });
+
+      await db.transaction(async (tx) => {
+        if (["approved", "reimbursed"].includes(existing.status)) {
+          await reversePostedJournals(tx, tenantId, "expense", existing.id, "Expense reversal");
+        }
+        await tx.update(expenses).set({
+          deletedAt: new Date(),
+          deletedBy: ctx.user!.id,
+        }).where(eq(expenses.id, input.id));
+      });
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "expense",
+        entityId: input.id,
+        oldValues: { title: existing.title, status: existing.status, amount: existing.amount },
+      });
+
       return { success: true };
     }),
 });

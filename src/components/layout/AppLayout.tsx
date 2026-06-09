@@ -35,6 +35,7 @@ import {
   BarChart3,
   Shield,
   Globe,
+  HandCoins,
 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -53,7 +54,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { name: t("tickets"), href: "/tickets", icon: Plane, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
     { name: t("customers", "CRM"), href: "/crm", icon: Users, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
     { name: t("invoices", "Invoices"), href: "/invoices", icon: FileText, roles: ["super_admin", "accountant", "manager"] },
-    { name: t("receivables", "Receivables"), href: "/receivables", icon: Landmark, roles: ["super_admin", "accountant", "manager"] },
+    { name: t("receivables", "Receivables"), href: "/receivables", icon: Landmark, roles: ["super_admin", "admin", "accountant", "manager"] },
+    { name: t("loans", "Cash Loans"), href: "/loans", icon: HandCoins, roles: ["super_admin", "admin", "accountant", "manager"] },
     { name: t("deposits", "Deposits"), href: "/deposits", icon: PiggyBank, roles: ["super_admin", "accountant", "manager", "agent"] },
     { name: t("locations", "Locations"), href: "/payment-locations", icon: MapPin, roles: ["super_admin", "admin", "accountant", "manager"] },
     { name: t("suppliers", "Suppliers"), href: "/suppliers", icon: Tractor, roles: ["super_admin", "accountant", "manager", "agent"] },

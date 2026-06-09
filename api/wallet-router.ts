@@ -3,15 +3,25 @@ import { TRPCError } from "@trpc/server";
 import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { wallets, walletTransactions, notifications } from "@db/schema";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, ne } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
+import {
+  ensureWalletCoaAccount,
+  getAccountByCode,
+  postWalletCredit,
+  postWalletTransfer,
+  CASH_ACCOUNT_CODE,
+} from "./lib/wallet-coa";
 
 export const walletRouter = createRouter({
   list: authedQuery.query(async ({ ctx }) => {
     const db = getDb();
     console.log("[Wallet query] list tenantId:", ctx.user?.tenantId);
     return db.query.wallets.findMany({
-      where: eq(wallets.tenantId, ctx.user!.tenantId as number),
+      where: and(
+        eq(wallets.tenantId, ctx.user!.tenantId as number),
+        ne(wallets.status, "closed"),
+      ),
       orderBy: [desc(wallets.createdAt)],
     });
   }),
@@ -143,6 +153,8 @@ export const walletRouter = createRouter({
             createdBy: ctx.user!.id,
           },
         ]);
+
+        await postWalletTransfer(tx, fromWallet, toWallet, amount, description);
       });
 
       await auditLog({
@@ -215,37 +227,40 @@ create: supervisoryQuery
         status: "active",
       });
 
-    const walletId = Number(
-      result[0].insertId,
-    );
+    const walletId = Number(result[0].insertId);
 
-    // Create initial transaction
-    if (initialBalance > 0) {
-      await db
-        .insert(walletTransactions)
-        .values({
-          walletId,
-
-          tenantId: ctx.user!.tenantId as number,
-
-          type: "credit",
-
-          amount:
-            initialBalance.toFixed(2),
-
-          balanceAfter:
-            initialBalance.toFixed(2),
-
-          description:
-            "Initial wallet funding",
-
-          createdBy: ctx.user!.id,
-        });
+    const wallet = await db.query.wallets.findFirst({ where: eq(wallets.id, walletId) });
+    if (wallet) {
+      await ensureWalletCoaAccount(db, tenantId, wallet);
     }
 
-    return {
-      id: walletId,
-    };
+    if (initialBalance > 0 && wallet) {
+      await db.insert(walletTransactions).values({
+        walletId,
+        tenantId,
+        type: "credit",
+        amount: initialBalance.toFixed(2),
+        balanceAfter: initialBalance.toFixed(2),
+        description: "Initial wallet funding",
+        createdBy: ctx.user!.id,
+      });
+
+      const cashAccount = await getAccountByCode(db, tenantId, CASH_ACCOUNT_CODE);
+      if (cashAccount) {
+        await postWalletCredit(
+          db,
+          wallet,
+          initialBalance,
+          cashAccount.id,
+          "Funding from cash on hand",
+          "wallet_funding",
+          walletId,
+          `Initial funding: ${wallet.name}`,
+        );
+      }
+    }
+
+    return { id: walletId };
   }),
 
   lockFunds: supervisoryQuery
@@ -408,6 +423,14 @@ create: supervisoryQuery
       const actualBalance = Number(wallet.balance);
       const discrepancy = actualBalance - expectedBalance;
 
+      let coaBalance: number | null = null;
+      let coaDiscrepancy: number | null = null;
+      const walletAccount = await ensureWalletCoaAccount(db, tenantId, wallet);
+      if (walletAccount) {
+        coaBalance = Number(walletAccount.currentBalance);
+        coaDiscrepancy = actualBalance - coaBalance;
+      }
+
       return {
         walletId: wallet.id,
         walletName: wallet.name,
@@ -415,6 +438,48 @@ create: supervisoryQuery
         actualBalance,
         discrepancy,
         isBalanced: Math.abs(discrepancy) < 0.01,
+        coaBalance,
+        coaDiscrepancy,
+        isCoaBalanced: coaDiscrepancy === null || Math.abs(coaDiscrepancy) < 0.01,
       };
+    }),
+
+  delete: supervisoryQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const wallet = await db.query.wallets.findFirst({
+        where: and(eq(wallets.id, input.id), eq(wallets.tenantId, tenantId)),
+      });
+      if (!wallet) throw new TRPCError({ code: "NOT_FOUND", message: "Wallet not found" });
+      if (wallet.status === "closed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Wallet is already closed" });
+      }
+      if (Number(wallet.balance) !== 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Wallet balance must be $0 before deletion. Current balance: $${Number(wallet.balance).toLocaleString()}`,
+        });
+      }
+      if (Number(wallet.reservedBalance) !== 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Wallet has reserved funds. Unlock funds before deletion.",
+        });
+      }
+
+      await db.update(wallets).set({ status: "closed" }).where(eq(wallets.id, input.id));
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "wallet",
+        entityId: input.id,
+        oldValues: { name: wallet.name, balance: wallet.balance },
+      });
+
+      return { success: true };
     }),
 });

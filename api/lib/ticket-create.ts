@@ -39,6 +39,7 @@ export type CreateTicketInput = {
   taxAmount: string;
   totalAmount: string;
   commissionAmount: string;
+  discountAmount?: string;
   paidAmount?: string;
   supplierCost?: string;
   expense?: string;
@@ -98,9 +99,18 @@ export async function createPendingTicket(
   }
 
   const ticketPrice = Number(ticketData.totalAmount || "0");
+  const discountAmount = Number(ticketData.discountAmount || "0");
+  const commissionAmount = Number(ticketData.commissionAmount || "0");
   const paidAmount = Number(ticketData.paidAmount || "0");
+  const customerCharge = ticketPrice - discountAmount;
+  const netPayable = ticketPrice - commissionAmount;
+
+  if (discountAmount > commissionAmount) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Customer discount cannot exceed airline commission" });
+  }
+
   let paymentStatus: "pending" | "partial" | "paid" = "pending";
-  if (paidAmount >= ticketPrice && ticketPrice > 0) paymentStatus = "paid";
+  if (paidAmount >= customerCharge && customerCharge > 0) paymentStatus = "paid";
   else if (paidAmount > 0) paymentStatus = "partial";
 
   const routeFrom = (ticketData.routeFrom?.trim() || "TBD").slice(0, 10);
@@ -110,6 +120,8 @@ export async function createPendingTicket(
     ...ticketData,
     airlineId: ticketData.airlineId ?? undefined,
     customerId: ticketData.customerId ?? undefined,
+    discountAmount: discountAmount.toFixed(2),
+    netPayable: netPayable.toFixed(2),
     routeFrom,
     routeTo,
     ticketNumber,

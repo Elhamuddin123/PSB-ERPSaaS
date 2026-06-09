@@ -2,9 +2,12 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { invoices, invoiceItems, customers, tickets, ticketPassengers, airlines, customerTransactions, chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries, notifications } from "@db/schema";
+import { invoices, invoiceItems, customers, tickets, ticketPassengers, airlines, customerTransactions, chartOfAccounts, journalEntries, journalEntryLines, notifications } from "@db/schema";
 import { eq, desc, sql, and, isNull, inArray } from "drizzle-orm";
 import { nextNumber } from "./lib/numbering";
+import { recordCustomerPayment } from "./lib/customer-payment";
+import { reversePostedJournals } from "./lib/journal-reverse";
+import { auditLog } from "./lib/audit";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -158,106 +161,45 @@ export const invoiceRouter = createRouter({
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
       const amount = Number(input.amount);
-      if (isNaN(amount) || amount <= 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be positive" });
-      }
 
-      const invoiceRow = await db.select().from(invoices).where(
-        and(eq(invoices.id, input.id), eq(invoices.tenantId, tenantId)),
-      ).limit(1);
-      const invoice = invoiceRow[0];
+      const invoice = await db.query.invoices.findFirst({
+        where: and(eq(invoices.id, input.id), eq(invoices.tenantId, tenantId)),
+      });
       if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found" });
       if (!invoice.customerId) throw new TRPCError({ code: "BAD_REQUEST", message: "Invoice has no customer" });
 
-      const customer = invoice.customerId
-        ? await db.select().from(customers).where(
-            and(eq(customers.id, invoice.customerId), eq(customers.tenantId, tenantId))
-          ).limit(1).then(r => r[0] || null)
-        : null;
+      const customer = await db.query.customers.findFirst({
+        where: and(eq(customers.id, invoice.customerId), eq(customers.tenantId, tenantId)),
+      });
 
       await db.transaction(async (tx) => {
-        // Update invoice paid amount and status
-        const newPaid = Number(invoice.paidAmount) + amount;
-        const newStatus = newPaid >= Number(invoice.totalAmount) ? "paid" : "partial";
-        await tx.update(invoices).set({
-          paidAmount: newPaid.toFixed(2),
-          status: newStatus as "draft" | "sent" | "partial" | "paid" | "overdue" | "cancelled",
-        }).where(and(eq(invoices.id, input.id), eq(invoices.tenantId, tenantId)));
-
-        // Create customer transaction
-        const balanceResult = await tx
-          .select({ total: sql<number>`COALESCE(SUM(CASE WHEN type = 'receivable' THEN amount WHEN type IN ('payment','deposit','credit','refund') THEN -amount ELSE 0 END), 0)` })
-          .from(customerTransactions)
-          .where(and(eq(customerTransactions.tenantId, tenantId), eq(customerTransactions.customerId, invoice.customerId)));
-        const currentBalance = Number(balanceResult[0]?.total ?? 0);
-
-        await tx.insert(customerTransactions).values({
+        await recordCustomerPayment(tx, {
           tenantId,
           customerId: invoice.customerId,
+          amount,
+          userId: ctx.user!.id,
           invoiceId: invoice.id,
-          type: "payment",
-          amount: amount.toFixed(2),
-          balance: Math.max(0, currentBalance - amount).toFixed(2),
-          description: input.description || `Invoice payment (${input.paymentMethod})`,
+          paymentMethod: input.paymentMethod,
           referenceNumber: input.referenceNumber,
-          createdBy: ctx.user!.id,
+          description: input.description,
+          source: "invoice",
         });
 
-        // Create accounting journal (Debit Cash, Credit AR)
-        const cashAccount = await tx.query.chartOfAccounts.findFirst({
-          where: and(eq(chartOfAccounts.code, "1000"), eq(chartOfAccounts.tenantId, tenantId)),
-        });
-        const arAccount = await tx.query.chartOfAccounts.findFirst({
-          where: and(eq(chartOfAccounts.code, "1200"), eq(chartOfAccounts.tenantId, tenantId)),
-        });
-
-        if (cashAccount && arAccount) {
-          const journalResult = await tx.insert(journalEntries).values({
-            tenantId,
-            entryNumber: `JE-${Date.now()}`,
-            date: new Date(),
-            description: `Invoice payment: ${invoice.invoiceNumber}`,
-            referenceType: "invoice_payment",
-            referenceId: invoice.id,
-            totalDebit: amount.toFixed(2),
-            totalCredit: amount.toFixed(2),
-            status: "posted",
+        if (invoice.ticketId) {
+          const ticket = await tx.query.tickets.findFirst({
+            where: and(eq(tickets.id, invoice.ticketId), eq(tickets.tenantId, tenantId)),
           });
-          const journalId = Number(journalResult[0].insertId ?? 0);
-          if (journalId > 0) {
-            await tx.insert(journalEntryLines).values([
-              { journalEntryId: journalId, accountId: cashAccount.id, description: "Cash received", debit: amount.toFixed(2), credit: "0.00" },
-              { journalEntryId: journalId, accountId: arAccount.id, description: "AR reduction", debit: "0.00", credit: amount.toFixed(2) },
-            ]);
-
-            for (const line of [
-              { accountId: cashAccount.id, debit: amount.toFixed(2), credit: "0.00", description: "Cash received" },
-              { accountId: arAccount.id, debit: "0.00", credit: amount.toFixed(2), description: "AR reduction" },
-            ]) {
-              const account = await tx.query.chartOfAccounts.findFirst({
-                where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-              });
-              const currentBal = Number(account?.currentBalance ?? 0);
-              const newBal = currentBal + Number(line.debit) - Number(line.credit);
-              await tx.insert(ledgerEntries).values({
-                tenantId,
-                journalEntryId: journalId,
-                accountId: line.accountId,
-                date: new Date(),
-                description: line.description,
-                debit: line.debit,
-                credit: line.credit,
-                balance: newBal.toFixed(2),
-              });
-              await tx.update(chartOfAccounts).set({ currentBalance: newBal.toFixed(2) }).where(
-                and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-              );
-            }
+          if (ticket) {
+            const newPaid = Number(ticket.paidAmount ?? 0) + amount;
+            const customerCharge = Number(invoice.totalAmount);
+            await tx.update(tickets).set({
+              paidAmount: newPaid.toFixed(2),
+              paymentStatus: newPaid >= customerCharge ? "paid" : "partial",
+            }).where(eq(tickets.id, ticket.id));
           }
         }
       });
 
-      // Notification (outside tx)
       try {
         await db.insert(notifications).values({
           tenantId,
@@ -270,6 +212,78 @@ export const invoiceRouter = createRouter({
           referenceId: invoice.id,
         });
       } catch { /* non-critical */ }
+
+      return { success: true };
+    }),
+
+  delete: supervisoryQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const invoice = await db.query.invoices.findFirst({
+        where: and(eq(invoices.id, input.id), eq(invoices.tenantId, tenantId), isNull(invoices.deletedAt)),
+      });
+      if (!invoice) throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found" });
+
+      if (Number(invoice.paidAmount) > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot delete invoice with recorded payments. Reverse payments first.",
+        });
+      }
+      if (invoice.ticketId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot delete ticket-linked invoice. Delete or reverse the ticket instead.",
+        });
+      }
+
+      await db.transaction(async (tx) => {
+        const payments = await tx.select().from(customerTransactions).where(
+          and(
+            eq(customerTransactions.tenantId, tenantId),
+            eq(customerTransactions.invoiceId, invoice.id),
+            eq(customerTransactions.type, "receivable"),
+          ),
+        );
+
+        for (const recv of payments) {
+          const balanceResult = await tx
+            .select({ total: sql<number>`COALESCE(SUM(CASE WHEN type = 'receivable' THEN amount WHEN type IN ('payment','deposit','credit','refund') THEN -amount ELSE 0 END), 0)` })
+            .from(customerTransactions)
+            .where(and(eq(customerTransactions.tenantId, tenantId), eq(customerTransactions.customerId, recv.customerId)));
+          const runningBalance = Math.max(0, Number(balanceResult[0]?.total ?? 0) - Number(recv.amount));
+
+          await tx.insert(customerTransactions).values({
+            tenantId,
+            customerId: recv.customerId,
+            invoiceId: invoice.id,
+            type: "credit",
+            amount: recv.amount,
+            balance: runningBalance.toFixed(2),
+            description: `Invoice deleted: ${invoice.invoiceNumber}`,
+            createdBy: ctx.user!.id,
+          });
+        }
+
+        await reversePostedJournals(tx, tenantId, "invoice_payment", invoice.id, "Invoice reversal");
+
+        await tx.update(invoices).set({
+          status: "cancelled",
+          deletedAt: new Date(),
+          deletedBy: ctx.user!.id,
+        }).where(eq(invoices.id, invoice.id));
+      });
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "invoice",
+        entityId: input.id,
+        oldValues: { invoiceNumber: invoice.invoiceNumber, totalAmount: invoice.totalAmount },
+      });
 
       return { success: true };
     }),

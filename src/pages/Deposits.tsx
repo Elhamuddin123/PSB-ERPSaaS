@@ -21,7 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Plus, CheckCircle, XCircle, Clock, DollarSign, Download } from "lucide-react";
+import { Search, Plus, CheckCircle, XCircle, Clock, DollarSign, Download, Trash2 } from "lucide-react";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 import { generateDepositReceiptPDF } from "@/lib/pdf-generator";
 
 const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
@@ -31,8 +32,6 @@ const statusConfig: Record<string, { color: string; icon: any; label: string }> 
   rejected: { color: "bg-red-100 text-red-700", icon: XCircle, label: "Rejected" },
   expired: { color: "bg-slate-100 text-slate-700", icon: Clock, label: "Expired" },
 };
-
-const canApproveRoles = new Set(["super_admin", "manager", "accountant"]);
 
 export default function DepositsPage() {
   const [search, setSearch] = useState("");
@@ -49,7 +48,7 @@ export default function DepositsPage() {
   });
 
   const { user } = useAuth();
-  const canApprove = canApproveRoles.has(user?.role || "");
+  const canApprove = hasAnyRole(user?.role, SUPERVISORY_ROLES);
 
   const utils = trpc.useUtils();
   const { data, isLoading, error, refetch } = trpc.deposit.list.useQuery(
@@ -70,6 +69,14 @@ export default function DepositsPage() {
   });
   const updateStatus = trpc.deposit.updateStatus.useMutation({
     onSuccess: () => refetch(),
+    onError: (err) => alert(err.message),
+  });
+  const deleteDeposit = trpc.deposit.delete.useMutation({
+    onSuccess: async () => {
+      await utils.deposit.list.invalidate();
+      await utils.deposit.stats.invalidate();
+      refetch();
+    },
     onError: (err) => alert(err.message),
   });
 
@@ -259,6 +266,22 @@ export default function DepositsPage() {
                           }
                         }}>
                           <Download className="h-3 w-3 mr-1" /> Receipt
+                        </Button>
+                      )}
+                      {canApprove && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 h-7 w-7 p-0"
+                          title="Delete (reverses accounting if approved)"
+                          disabled={deleteDeposit.isPending}
+                          onClick={() => {
+                            if (confirm(`Delete deposit ${d.depositCode}?${d.status === "approved" ? " Accounting will be reversed." : ""}`)) {
+                              deleteDeposit.mutate({ id: d.id });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
                     </TableCell>

@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/table";
 import {
   Receipt, Search, Plus, AlertCircle, DollarSign, CreditCard,
-  TrendingUp, Download,
+  TrendingUp, Download, Trash2,
 } from "lucide-react";
 import { generatePaymentVoucherPDF } from "@/lib/pdf-generator";
+import { useAuth } from "@/hooks/useAuth";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 
 const billStatusColors: Record<string, string> = {
   draft: "bg-slate-100 text-slate-800",
@@ -36,6 +38,8 @@ const paymentMethodLabels: Record<string, string> = {
 };
 
 export default function PayablesPage() {
+  const { user } = useAuth();
+  const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("__all__");
   const [createBillOpen, setCreateBillOpen] = useState(false);
@@ -74,6 +78,16 @@ export default function PayablesPage() {
       setPaymentOpen(false);
       setSelectedBill(null);
       resetPaymentForm();
+    },
+    onError: (err) => alert(err.message),
+  });
+
+  const deleteBill = trpc.payable.deleteBill.useMutation({
+    onSuccess: async () => {
+      await utils.payable.bills.invalidate();
+      await utils.payable.stats.invalidate();
+      await utils.payable.agingReport.invalidate();
+      await utils.supplier.stats.invalidate();
     },
     onError: (err) => alert(err.message),
   });
@@ -369,10 +383,26 @@ export default function PayablesPage() {
                       <TableCell className="text-xs">${Number(bill.amountPaid).toLocaleString()}</TableCell>
                       <TableCell className="text-xs font-semibold">${Number(bill.balanceDue).toLocaleString()}</TableCell>
                       <TableCell><Badge className={`text-[10px] ${billStatusColors[bill.status] || ""}`}>{bill.status}</Badge></TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
                         {bill.status !== "paid" && bill.status !== "cancelled" && (
                           <Button size="sm" variant="ghost" onClick={() => openPayment(bill as any)}>
                             Pay
+                          </Button>
+                        )}
+                        {canManage && Number(bill.amountPaid) === 0 && bill.status !== "cancelled" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-500 h-8 w-8 p-0"
+                            title="Delete bill (reverses accounting)"
+                            disabled={deleteBill.isPending}
+                            onClick={() => {
+                              if (confirm(`Delete bill ${bill.billNumber}? Accounting will be reversed.`)) {
+                                deleteBill.mutate({ id: bill.id });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </TableCell>

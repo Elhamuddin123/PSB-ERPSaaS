@@ -24,7 +24,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:backfill-wallets": "npx tsx api/scripts/backfill-wallet-coa.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",

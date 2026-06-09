@@ -30,5 +30,11 @@
   "cancel": "Cancel",
   "confirm": "Confirm",
   "exportPDF": "Export PDF",
-  "exportExcel": "Export Excel"
+  "exportExcel": "Export Excel",
+  "resetData": "Reset Data",
+  "resetDataTitle": "Reset agency data",
+  "resetDataWarning": "This permanently deletes all business data for this agency: tickets, customers, accounting, wallets, payables, deposits, and more. Users and subscription are kept. Default chart of accounts and wallets will be recreated.",
+  "resetDataConfirmLabel": "Type the agency name to confirm:",
+  "resetDataSuccess": "Agency data has been reset",
+  "resetDataConfirm": "Reset all data"
 }

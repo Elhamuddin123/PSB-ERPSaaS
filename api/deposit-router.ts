@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, agentQuery } from "./middleware";
+import { createRouter, authedQuery, agentQuery, supervisoryQuery } from "./middleware";
+import { reverseApprovedDeposit } from "./lib/deposit-reverse";
+import { postLedgerLines } from "./lib/ledger-posting";
+import {
+  ensureWalletCoaAccount,
+  getAccountByCode,
+  CUSTOMER_DEPOSITS_CODE,
+} from "./lib/wallet-coa";
 import { getDb } from "./queries/connection";
 import {
   deposits,
@@ -9,37 +16,30 @@ import {
   chartOfAccounts,
   journalEntries,
   journalEntryLines,
-  ledgerEntries,
   customers,
   customerTransactions,
   notifications,
   paymentLocations,
   users,
 } from "@db/schema";
-import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { eq, desc, sql, and, inArray, isNull } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { nextNumber } from "./lib/numbering";
 
 async function postDepositAccounting(
   db: import("./queries/connection").DbOrTx,
   deposit: typeof deposits.$inferSelect,
+  wallet: typeof wallets.$inferSelect,
   tenantId: number,
-  _userId: number,
 ) {
   const amount = Number(deposit.amount);
 
-  // Get accounts
-  const cashAccount = await db.query.chartOfAccounts.findFirst({
-    where: and(eq(chartOfAccounts.code, "1000"), eq(chartOfAccounts.tenantId, tenantId)),
-  });
-  const depositAccount = await db.query.chartOfAccounts.findFirst({
-    where: and(eq(chartOfAccounts.code, "2100"), eq(chartOfAccounts.tenantId, tenantId)),
-  });
-  if (!cashAccount || !depositAccount) {
+  const walletAccount = await ensureWalletCoaAccount(db, tenantId, wallet);
+  const depositAccount = await getAccountByCode(db, tenantId, CUSTOMER_DEPOSITS_CODE);
+  if (!depositAccount) {
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Required COA accounts missing for deposit posting" });
   }
 
-  // Create journal entry
   const journalResult = await db.insert(journalEntries).values({
     tenantId,
     entryNumber: `JE-${Date.now()}`,
@@ -54,34 +54,21 @@ async function postDepositAccounting(
   const journalId = Number(journalResult[0].insertId ?? 0);
 
   if (journalId > 0) {
-    await db.insert(journalEntryLines).values([
-      { journalEntryId: journalId, accountId: cashAccount.id, description: "Cash/Bank received", debit: amount.toFixed(2), credit: "0.00" },
-      { journalEntryId: journalId, accountId: depositAccount.id, description: "Customer deposit liability", debit: "0.00", credit: amount.toFixed(2) },
-    ]);
-
-    for (const line of [
-      { accountId: cashAccount.id, debit: amount.toFixed(2), credit: "0.00", description: "Cash/Bank received" },
-      { accountId: depositAccount.id, debit: "0.00", credit: amount.toFixed(2), description: "Customer deposit liability" },
-    ]) {
-      const account = await db.query.chartOfAccounts.findFirst({
-        where: and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      });
-      const currentBal = Number(account?.currentBalance ?? 0);
-      const newBal = currentBal + Number(line.debit) - Number(line.credit);
-      await db.insert(ledgerEntries).values({
-        tenantId,
-        journalEntryId: journalId,
-        accountId: line.accountId,
-        date: new Date(),
-        description: line.description,
-        debit: line.debit,
-        credit: line.credit,
-        balance: newBal.toFixed(2),
-      });
-      await db.update(chartOfAccounts).set({ currentBalance: newBal.toFixed(2) }).where(
-        and(eq(chartOfAccounts.id, line.accountId), eq(chartOfAccounts.tenantId, tenantId)),
-      );
-    }
+    const lines = [
+      { accountId: walletAccount.id, description: `Wallet funded: ${wallet.name}`, debit: amount.toFixed(2), credit: "0.00" },
+      { accountId: depositAccount.id, description: "Customer deposit liability", debit: "0.00", credit: amount.toFixed(2) },
+    ];
+    await db.insert(journalEntryLines).values(
+      lines.map((line) => ({ journalEntryId: journalId, ...line })),
+    );
+    await postLedgerLines(db, {
+      tenantId,
+      journalEntryId: journalId,
+      date: new Date(),
+      referenceType: "deposit",
+      referenceId: deposit.id,
+      lines,
+    });
   }
 
   return { success: true, journalId };
@@ -212,7 +199,7 @@ export const depositRouter = createRouter({
       return { id: depositId, depositCode };
     }),
 
-  updateStatus: authedQuery
+  updateStatus: supervisoryQuery
     .input(z.object({
       id: z.number(),
       status: z.enum(["pending", "under_review", "approved", "rejected", "expired"]),
@@ -265,8 +252,7 @@ export const depositRouter = createRouter({
             createdBy: ctx.user!.id,
           });
 
-          // Post accounting
-          await postDepositAccounting(tx, deposit, tenantId, ctx.user!.id);
+          await postDepositAccounting(tx, deposit, wallet, tenantId);
 
           // Create customer transaction if linked
           if (deposit.customerId) {
@@ -335,6 +321,44 @@ export const depositRouter = createRouter({
           }
         }
       } catch { /* non-critical */ }
+
+      return { success: true };
+    }),
+
+  delete: supervisoryQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const deposit = await db.query.deposits.findFirst({
+        where: and(eq(deposits.id, input.id), eq(deposits.tenantId, tenantId), isNull(deposits.deletedAt)),
+      });
+      if (!deposit) throw new TRPCError({ code: "NOT_FOUND", message: "Deposit not found" });
+
+      await db.transaction(async (tx) => {
+        const fresh = await tx.query.deposits.findFirst({
+          where: and(eq(deposits.id, input.id), eq(deposits.tenantId, tenantId), isNull(deposits.deletedAt)),
+        });
+        if (!fresh) throw new TRPCError({ code: "NOT_FOUND", message: "Deposit not found" });
+
+        if (fresh.status === "approved") {
+          await reverseApprovedDeposit(tx, fresh, ctx.user!.id);
+        }
+
+        await tx.update(deposits).set({
+          deletedAt: new Date(),
+          deletedBy: ctx.user!.id,
+        }).where(eq(deposits.id, input.id));
+      });
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "deposit",
+        entityId: input.id,
+        oldValues: { depositCode: deposit.depositCode, status: deposit.status, amount: deposit.amount },
+      });
 
       return { success: true };
     }),

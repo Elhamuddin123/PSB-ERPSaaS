@@ -30,5 +30,11 @@
   "cancel": "لغوه",
   "confirm": "تصدیق",
   "exportPDF": "PDF صادرول",
-  "exportExcel": "Excel صادرول"
+  "exportExcel": "Excel صادرول",
+  "resetData": "ډیټا بیا تنظیم",
+  "resetDataTitle": "د ادارې ډیټا بیا تنظیم",
+  "resetDataWarning": "د دې ادارې ټول سوداګریز ډیټا د تل لپاره ړنګیږي: ټکټونه، پیرودونکي، محاسبه، بټۍ او نور. کارونکي او ګډون ساتل کیږي. د حساب او بټۍ ډیفالټ بیا جوړیږي.",
+  "resetDataConfirmLabel": "د تایید لپاره د ادارې نوم ولیکئ:",
+  "resetDataSuccess": "د ادارې ډیټا بیا تنظیم شو",
+  "resetDataConfirm": "ټول ډیټا بیا تنظیم"
 }

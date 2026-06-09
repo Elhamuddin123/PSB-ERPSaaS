@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { paymentLocations } from "@db/schema";
+import { paymentLocations, deposits } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
+import { auditLog } from "./lib/audit";
 
 export const paymentLocationRouter = createRouter({
   list: authedQuery
@@ -90,12 +91,43 @@ export const paymentLocationRouter = createRouter({
       return { success: true };
     }),
 
-  delete: authedQuery
+  delete: supervisoryQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
+
+      const location = await db.query.paymentLocations.findFirst({
+        where: and(eq(paymentLocations.id, input.id), eq(paymentLocations.tenantId, tenantId)),
+      });
+      if (!location) throw new TRPCError({ code: "NOT_FOUND", message: "Payment location not found" });
+
+      const depositCount = await db.select({ count: sql<number>`count(*)` })
+        .from(deposits)
+        .where(and(eq(deposits.tenantId, tenantId), eq(deposits.locationId, input.id)));
+
+      if ((depositCount[0]?.count ?? 0) > 0) {
+        await db.update(paymentLocations).set({ status: "inactive" }).where(eq(paymentLocations.id, input.id));
+        await auditLog({
+          ctx,
+          action: "deactivate",
+          entityType: "payment_location",
+          entityId: input.id,
+          oldValues: { name: location.name, reason: "Has linked deposits" },
+        });
+        return { success: true, deactivated: true };
+      }
+
       await db.delete(paymentLocations).where(and(eq(paymentLocations.id, input.id), eq(paymentLocations.tenantId, tenantId)));
-      return { success: true };
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "payment_location",
+        entityId: input.id,
+        oldValues: { name: location.name },
+      });
+
+      return { success: true, deactivated: false };
     }),
 });

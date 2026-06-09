@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
-import { Plane, Search, Plus, Eye, CheckCircle, XCircle, RotateCcw, FileText, Download, Trash2, Users } from "lucide-react";
+import { Plane, Search, Plus, Eye, CheckCircle, XCircle, RotateCcw, FileText, Download, Trash2, Users, DollarSign } from "lucide-react";
 import { generateTicketVoucherPDF } from "@/lib/pdf-generator";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 
 const statusColors: Record<string, string> = {
   confirmed: "bg-emerald-100 text-emerald-800",
@@ -27,8 +28,6 @@ const classLabels: Record<string, string> = {
   business: "Business",
   first: "First",
 };
-
-const canApproveRoles = new Set(["super_admin", "manager", "accountant"]);
 
 type BulkTicketEntry = {
   id: string;
@@ -75,9 +74,11 @@ export default function TicketsPage() {
   const [viewTicket, setViewTicket] = useState<number | null>(null);
   const [refundTicketId, setRefundTicketId] = useState<number | null>(null);
   const [refundForm, setRefundForm] = useState({ refundAmount: "", penaltyAmount: "", reason: "" });
+  const [payTicketId, setPayTicketId] = useState<number | null>(null);
+  const [paymentForm, setPaymentForm] = useState({ amount: "", description: "" });
 
   const { user } = useAuth();
-  const canApprove = canApproveRoles.has(user?.role || "");
+  const canApprove = hasAnyRole(user?.role, SUPERVISORY_ROLES);
 
   const { data: wallets } = trpc.wallet.list.useQuery();
   const { data: customersData } = trpc.crm.customers.useQuery({ limit: 1000 });
@@ -97,14 +98,14 @@ export default function TicketsPage() {
     ticketNumber: string; pnrCode: string; airlineId: number; customerId: number | undefined;
     travelDate: string; returnDate: string; routeFrom: string; routeTo: string;
     tripType: "one_way" | "round_trip" | "multi_city"; class: "economy" | "premium_economy" | "business" | "first";
-    ticketPrice: string; taxAmount: string; commissionAmount: string; notes: string;
+    ticketPrice: string; taxAmount: string; commissionAmount: string; discountAmount: string; notes: string;
     passengerFirstName: string; passengerLastName: string;
     walletId: number; paidAmount: string;
   }>({
     ticketNumber: "", pnrCode: "", airlineId: 0, customerId: undefined,
     travelDate: "", returnDate: "", routeFrom: "", routeTo: "",
     tripType: "one_way", class: "economy",
-    ticketPrice: "", taxAmount: "", commissionAmount: "", notes: "",
+    ticketPrice: "", taxAmount: "", commissionAmount: "", discountAmount: "", notes: "",
     passengerFirstName: "", passengerLastName: "",
     walletId: 0, paidAmount: "",
   });
@@ -114,7 +115,7 @@ export default function TicketsPage() {
       ticketNumber: "", pnrCode: "", airlineId: 0, customerId: undefined,
       travelDate: "", returnDate: "", routeFrom: "", routeTo: "",
       tripType: "one_way" as const, class: "economy" as const,
-      ticketPrice: "", taxAmount: "", commissionAmount: "", notes: "",
+      ticketPrice: "", taxAmount: "", commissionAmount: "", discountAmount: "", notes: "",
       passengerFirstName: "", passengerLastName: "",
       walletId: 0, paidAmount: "",
     });
@@ -126,13 +127,16 @@ export default function TicketsPage() {
     const ticketPrice = Math.max(0, Number(newTicket.ticketPrice) || 0);
     const tax = Math.max(0, Number(newTicket.taxAmount) || 0);
     const commission = Math.max(0, Number(newTicket.commissionAmount) || 0);
+    const discount = Math.max(0, Number(newTicket.discountAmount) || 0);
     const baseFare = Math.max(0, ticketPrice - tax);
     const totalAmount = ticketPrice;
-    const netPayable = Math.max(0, ticketPrice - commission);
+    const netCommission = Math.max(0, commission - discount);
+    const customerCharge = Math.max(0, ticketPrice - discount);
+    const walletDeduction = Math.max(0, ticketPrice - commission);
     const paidAmount = Math.max(0, Number(newTicket.paidAmount) || 0);
-    const remainingDue = Math.max(0, totalAmount - paidAmount);
-    return { ticketPrice, tax, commission, baseFare, totalAmount, netPayable, paidAmount, remainingDue };
-  }, [newTicket.ticketPrice, newTicket.taxAmount, newTicket.commissionAmount, newTicket.paidAmount]);
+    const remainingDue = Math.max(0, customerCharge - paidAmount);
+    return { ticketPrice, tax, commission, discount, baseFare, totalAmount, netCommission, customerCharge, walletDeduction, paidAmount, remainingDue };
+  }, [newTicket.ticketPrice, newTicket.taxAmount, newTicket.commissionAmount, newTicket.discountAmount, newTicket.paidAmount]);
 
   const invalidateTicketQueries = async () => {
     await utils.ticket.list.invalidate();
@@ -174,6 +178,13 @@ export default function TicketsPage() {
     onError: (err) => alert(err.message),
   });
 
+  const deleteTicket = trpc.ticket.delete.useMutation({
+    onSuccess: async () => {
+      await invalidateTicketQueries();
+    },
+    onError: (err) => alert(err.message),
+  });
+
   const rejectTicket = trpc.ticket.reject.useMutation({
     onSuccess: async () => {
       await utils.ticket.list.invalidate();
@@ -181,6 +192,17 @@ export default function TicketsPage() {
       await utils.dashboard.stats.invalidate();
       await utils.dashboard.recentTickets.invalidate();
       refetch();
+    },
+    onError: (err) => alert(err.message),
+  });
+
+  const recordPayment = trpc.ticket.recordPayment.useMutation({
+    onSuccess: async () => {
+      await invalidateTicketQueries();
+      await utils.invoice.list.invalidate();
+      await utils.receivable.list.invalidate();
+      setPayTicketId(null);
+      setPaymentForm({ amount: "", description: "" });
     },
     onError: (err) => alert(err.message),
   });
@@ -218,7 +240,8 @@ export default function TicketsPage() {
     totalAmount: computed.totalAmount.toString(),
     paidAmount: newTicket.paidAmount || "0",
     commissionAmount: newTicket.commissionAmount || "0",
-    netPayable: computed.netPayable.toString(),
+    discountAmount: newTicket.discountAmount || "0",
+    netPayable: computed.walletDeduction.toString(),
     notes: newTicket.notes.trim() || undefined,
     walletId: newTicket.walletId,
   });
@@ -324,7 +347,9 @@ export default function TicketsPage() {
                 <div><OptionalLabel>Tax Amount</OptionalLabel><Input type="number" min="0" step="0.01" value={newTicket.taxAmount} onChange={e => setNewTicket({...newTicket, taxAmount: e.target.value})} placeholder="0.00" /></div>
                 <div><OptionalLabel>Paid Amount</OptionalLabel><Input type="number" min="0" step="0.01" value={newTicket.paidAmount} onChange={e => setNewTicket({...newTicket, paidAmount: e.target.value})} placeholder="0.00" /></div>
                 <div><OptionalLabel>Commission Amount</OptionalLabel><Input type="number" min="0" step="0.01" value={newTicket.commissionAmount} onChange={e => setNewTicket({...newTicket, commissionAmount: e.target.value})} placeholder="0.00" /></div>
-                <div><OptionalLabel>Total Amount</OptionalLabel><Input type="number" value={computed.totalAmount || ""} disabled className="bg-slate-50 dark:bg-slate-800" /></div>
+                <div><OptionalLabel>Customer Discount</OptionalLabel><Input type="number" min="0" step="0.01" max={newTicket.commissionAmount || undefined} value={newTicket.discountAmount} onChange={e => setNewTicket({...newTicket, discountAmount: e.target.value})} placeholder="0.00" title="Discount is deducted from commission" /></div>
+                <div><OptionalLabel>Customer Charge</OptionalLabel><Input type="number" value={computed.customerCharge || ""} disabled className="bg-slate-50 dark:bg-slate-800" /></div>
+                <div><OptionalLabel>Wallet Deduction</OptionalLabel><Input type="number" value={computed.walletDeduction || ""} disabled className="bg-slate-50 dark:bg-slate-800" title="Ticket price minus airline commission" /></div>
                 <div><OptionalLabel>Remaining Due</OptionalLabel><Input type="number" value={computed.remainingDue || ""} disabled className="bg-slate-50 dark:bg-slate-800" /></div>
               </div>
 
@@ -336,9 +361,11 @@ export default function TicketsPage() {
                     <span className="text-slate-600">Ticket Price:</span><span className="text-right font-medium">${computed.ticketPrice.toLocaleString()}</span>
                     <span className="text-slate-600">Tax:</span><span className="text-right font-medium">${computed.tax.toLocaleString()}</span>
                     <span className="text-slate-600">Base Fare:</span><span className="text-right font-medium">${computed.baseFare.toLocaleString()}</span>
+                    <span className="text-slate-600">Airline Commission:</span><span className="text-right font-medium">${computed.commission.toLocaleString()}</span>
+                    <span className="text-slate-600">Customer Discount:</span><span className="text-right font-medium text-red-600">-${computed.discount.toLocaleString()}</span>
+                    <span className="text-slate-600">Net Commission:</span><span className="text-right font-medium">${computed.netCommission.toLocaleString()}</span>
                     <span className="text-slate-600">Paid:</span><span className="text-right font-medium">${computed.paidAmount.toLocaleString()}</span>
-                    <span className="text-slate-600">Commission:</span><span className="text-right font-medium">${computed.commission.toLocaleString()}</span>
-                    <span className="text-slate-600 font-bold">Net Payable:</span><span className="text-right font-bold">${computed.netPayable.toLocaleString()}</span>
+                    <span className="text-slate-600 font-bold">Wallet Deduction:</span><span className="text-right font-bold">${computed.walletDeduction.toLocaleString()}</span>
                     <span className="text-slate-600 font-bold text-amber-600">Remaining Due:</span><span className="text-right font-bold text-amber-600">${computed.remainingDue.toLocaleString()}</span>
                   </div>
                 </div>
@@ -661,9 +688,41 @@ export default function TicketsPage() {
                               <Download className="h-3 w-3 mr-1" /> Voucher
                             </Button>
                           )}
+                          {(ticket.status === "confirmed" || ticket.status === "completed") && ticket.customerId && ticket.paymentStatus !== "paid" && canApprove && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-blue-600 h-7 text-xs px-2"
+                              onClick={() => {
+                                setPayTicketId(ticket.id);
+                                const discount = Number((ticket as { discountAmount?: string }).discountAmount ?? 0);
+                                const charge = Number(ticket.totalAmount) - discount;
+                                const paid = Number((ticket as { paidAmount?: string }).paidAmount ?? 0);
+                                setPaymentForm({ amount: String(Math.max(0, charge - paid)), description: "" });
+                              }}
+                            >
+                              <DollarSign className="h-3 w-3 mr-1" /> Pay
+                            </Button>
+                          )}
                           {ticket.status === "confirmed" && canApprove && (
                             <Button size="sm" variant="ghost" className="text-slate-600 h-7 text-xs px-2" onClick={() => { setRefundTicketId(ticket.id); setRefundForm({ refundAmount: String(ticket.totalAmount), penaltyAmount: "", reason: "" }); }}>
                               <RotateCcw className="h-3 w-3 mr-1" /> Refund
+                            </Button>
+                          )}
+                          {canApprove && ticket.status !== "refunded" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-500 h-7 w-7 p-0"
+                              title="Delete ticket (reverses accounting if approved)"
+                              disabled={deleteTicket.isPending}
+                              onClick={() => {
+                                if (confirm(`Delete ticket ${ticket.ticketNumber}?${ticket.status === "confirmed" ? " This will reverse all accounting entries." : ""}`)) {
+                                  deleteTicket.mutate({ id: ticket.id });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           )}
                         </div>
@@ -702,6 +761,35 @@ export default function TicketsPage() {
         <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-lg">
           <DialogHeader><DialogTitle>Ticket Details</DialogTitle></DialogHeader>
           {viewTicket && <TicketDetails id={viewTicket} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Dialog */}
+      <Dialog open={!!payTicketId} onOpenChange={() => setPayTicketId(null)}>
+        <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-lg">
+          <DialogHeader><DialogTitle>Record Ticket Payment</DialogTitle></DialogHeader>
+          <div className="space-y-3 pt-4">
+            <p className="text-xs text-slate-500">Payment is applied to the ticket invoice via the unified AR path (no duplicate journals).</p>
+            <div>
+              <label className="text-sm text-slate-500">Amount</label>
+              <Input type="number" step="0.01" value={paymentForm.amount} onChange={e => setPaymentForm(s => ({ ...s, amount: e.target.value }))} placeholder="0.00" />
+            </div>
+            <div>
+              <label className="text-sm text-slate-500">Description</label>
+              <Input value={paymentForm.description} onChange={e => setPaymentForm(s => ({ ...s, description: e.target.value }))} placeholder="Optional note..." />
+            </div>
+            <Button
+              className="w-full bg-indigo-600"
+              disabled={!paymentForm.amount || recordPayment.isPending}
+              onClick={() => recordPayment.mutate({
+                id: payTicketId!,
+                amount: paymentForm.amount,
+                description: paymentForm.description || undefined,
+              })}
+            >
+              {recordPayment.isPending ? "Processing..." : "Confirm Payment"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -768,7 +856,8 @@ function TicketDetails({ id }: { id: number }) {
           <span className="text-slate-600">Tax:</span><span className="text-right font-medium">${Number(ticket.taxAmount).toLocaleString()}</span>
           <span className="text-slate-600">Total:</span><span className="text-right font-bold">${Number(ticket.totalAmount).toLocaleString()}</span>
           <span className="text-slate-600">Commission:</span><span className="text-right font-medium">${Number(ticket.commissionAmount).toLocaleString()}</span>
-          <span className="text-slate-600">Net Payable:</span><span className="text-right font-bold">${Number(ticket.netPayable).toLocaleString()}</span>
+          <span className="text-slate-600">Discount:</span><span className="text-right font-medium">${Number(ticket.discountAmount ?? 0).toLocaleString()}</span>
+          <span className="text-slate-600">Wallet Deduction:</span><span className="text-right font-bold">${Number(ticket.netPayable).toLocaleString()}</span>
         </div>
       </div>
       {ticket.passengers && ticket.passengers.length > 0 && (

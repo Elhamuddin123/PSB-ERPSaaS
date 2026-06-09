@@ -31,6 +31,7 @@ import {
   Mail,
   Phone,
   MapPin,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,6 +65,9 @@ export default function AdminPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] =
     useState<"approve" | "reject" | null>(null);
+
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetConfirmName, setResetConfirmName] = useState("");
 
   const [selectedTenant, setSelectedTenant] =
     useState<Tenant | null>(null);
@@ -112,6 +116,20 @@ export default function AdminPage() {
         toast.error(err.message),
     });
 
+  const resetMutation =
+    trpc.admin.resetAgencyData.useMutation({
+      onSuccess: () => {
+        toast.success(t("resetDataSuccess"));
+        utils.admin.registrations.invalidate();
+        utils.admin.stats.invalidate();
+        setResetDialogOpen(false);
+        setResetConfirmName("");
+        setSelectedTenant(null);
+      },
+      onError: (err) =>
+        toast.error(err.message),
+    });
+
   const openDialog = (
     action: "approve" | "reject",
     tenant: Tenant
@@ -135,6 +153,25 @@ export default function AdminPage() {
       });
     }
   };
+
+  const openResetDialog = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setResetConfirmName("");
+    setResetDialogOpen(true);
+  };
+
+  const handleResetConfirm = () => {
+    if (!selectedTenant) return;
+    resetMutation.mutate({
+      tenantId: selectedTenant.id,
+      confirmName: resetConfirmName,
+    });
+  };
+
+  const canResetAgency = (status?: string) =>
+    status === "active" ||
+    status === "suspended" ||
+    status === "trial";
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
@@ -303,7 +340,7 @@ export default function AdminPage() {
                       <TableCell>
                         <Badge
                           className={statusBadge(
-                            item.status
+                            item.status ?? ""
                           )}
                         >
                           {item.status || "—"}
@@ -338,6 +375,17 @@ export default function AdminPage() {
                               <XCircle className="h-4 w-4" />
                             </Button>
                           </div>
+                        ) : canResetAgency(item.status) ? (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() =>
+                              openResetDialog(item)
+                            }
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            {t("resetData")}
+                          </Button>
                         ) : (
                           <span>—</span>
                         )}
@@ -395,6 +443,65 @@ export default function AdminPage() {
               "approve"
                 ? "Approve"
                 : "Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={resetDialogOpen}
+        onOpenChange={setResetDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t("resetDataTitle")}
+            </DialogTitle>
+
+            <DialogDescription className="space-y-2">
+              <span className="block font-medium text-foreground">
+                {selectedTenant?.name}
+              </span>
+              <span className="block text-destructive">
+                {t("resetDataWarning")}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-sm text-slate-600">
+              {t("resetDataConfirmLabel")}
+            </label>
+            <Input
+              value={resetConfirmName}
+              onChange={(e) =>
+                setResetConfirmName(e.target.value)
+              }
+              placeholder={selectedTenant?.name ?? ""}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResetDialogOpen(false);
+                setResetConfirmName("");
+              }}
+            >
+              {t("cancel")}
+            </Button>
+
+            <Button
+              variant="destructive"
+              disabled={
+                resetMutation.isPending ||
+                resetConfirmName.trim() !==
+                  (selectedTenant?.name ?? "").trim()
+              }
+              onClick={handleResetConfirm}
+            >
+              {t("resetDataConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

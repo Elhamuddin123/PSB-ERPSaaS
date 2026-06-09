@@ -6,6 +6,7 @@ import { tenants, subscriptions } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { bootstrapTenant } from "./lib/bootstrap";
+import { resetTenantData } from "./lib/reset-tenant-data";
 
 export const adminRouter = createRouter({
   // ─── PENDING REGISTRATIONS ─────────────────────────────────────────────────
@@ -293,6 +294,50 @@ export const adminRouter = createRouter({
       });
 
       return { success: true, customSeatsPerRole: input.customSeatsPerRole };
+    }),
+
+  // ─── RESET AGENCY DATA (super admin only) ───────────────────────────────────
+  resetAgencyData: superAdminQuery
+    .input(z.object({
+      tenantId: z.number(),
+      confirmName: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, input.tenantId),
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agency not found" });
+      }
+      if (tenant.name.trim() !== input.confirmName.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Confirmation name does not match the agency name",
+        });
+      }
+      if (tenant.status === "pending" || tenant.status === "rejected") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot reset data for agencies that are pending or rejected",
+        });
+      }
+
+      const result = await db.transaction(async (tx) =>
+        resetTenantData(tx, input.tenantId, ctx.user!.id),
+      );
+
+      await auditLog({
+        ctx,
+        action: "reset_agency_data",
+        entityType: "tenant",
+        entityId: input.tenantId,
+        oldValues: { tenantName: tenant.name },
+        newValues: { reset: true, bootstrapped: true },
+      });
+
+      return { success: true, ...result };
     }),
 
   // ─── DASHBOARD STATS ───────────────────────────────────────────────────────

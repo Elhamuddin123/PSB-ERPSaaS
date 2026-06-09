@@ -48,11 +48,19 @@ export default function ReceivablesPage() {
   );
   const { data: agingData } = trpc.receivable.aging.useQuery();
 
+  const utils = trpc.useUtils();
   const createPayment = trpc.receivable.createPayment.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.receivable.list.invalidate();
+      await utils.receivable.customerBalance.invalidate();
+      await utils.receivable.statement.invalidate();
+      await utils.receivable.aging.invalidate();
+      await utils.invoice.list.invalidate();
+      await utils.crm.customerDetail.invalidate();
       refetch();
       setPaymentForm({ amount: "", description: "" });
     },
+    onError: (err) => alert(err.message),
   });
 
   const agingBuckets = agingData
@@ -246,6 +254,7 @@ export default function ReceivablesPage() {
                                 onClick={() =>
                                   createPayment.mutate({
                                     customerId: tx.customerId,
+                                    invoiceId: tx.type === "receivable" && tx.invoiceId ? tx.invoiceId : undefined,
                                     amount: paymentForm.amount,
                                     description: paymentForm.description,
                                   })

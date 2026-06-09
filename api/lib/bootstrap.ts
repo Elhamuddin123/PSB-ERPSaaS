@@ -32,8 +32,10 @@ export async function bootstrapTenant(
   if (existingCoa.length === 0) {
     await db.insert(chartOfAccounts).values([
       { tenantId, code: "1000", name: "Cash on Hand", type: "asset", subtype: "current_asset", currentBalance: "0.00", status: "active", currency: "USD" },
+      { tenantId, code: "1050", name: "Operational Wallets", type: "asset", subtype: "current_asset", currentBalance: "0.00", status: "active", currency: "USD" },
       { tenantId, code: "1100", name: "Bank Account - Main", type: "asset", subtype: "current_asset", isBankAccount: true, currentBalance: "0.00", status: "active", currency: "USD" },
       { tenantId, code: "1200", name: "Accounts Receivable", type: "asset", subtype: "current_asset", currentBalance: "0.00", status: "active", currency: "USD" },
+      { tenantId, code: "1250", name: "Customer Loans Receivable", type: "asset", subtype: "current_asset", currentBalance: "0.00", status: "active", currency: "USD" },
       { tenantId, code: "1300", name: "Commission Receivable", type: "asset", subtype: "current_asset", currentBalance: "0.00", status: "active", currency: "USD" },
       { tenantId, code: "2000", name: "Accounts Payable", type: "liability", subtype: "current_liability", currentBalance: "0.00", status: "active", currency: "USD" },
       { tenantId, code: "2100", name: "Customer Deposits", type: "liability", subtype: "current_liability", currentBalance: "0.00", status: "active", currency: "USD" },

@@ -4,11 +4,13 @@ import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   bills, billItems, suppliers, supplierPayments,
-  chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries,
+  chartOfAccounts, journalEntries, journalEntryLines,
 } from "@db/schema";
 import { eq, desc, sql, and, isNull, inArray } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { nextNumber } from "./lib/numbering";
+import { reversePostedJournals } from "./lib/journal-reverse";
+import { postLedgerLines } from "./lib/ledger-posting";
 
 function ensureTenant(ctx: any, label = "") {
   const tid = ctx.user?.tenantId;
@@ -251,71 +253,33 @@ export const payableRouter = createRouter({
         });
         const journalEntryId = Number(jeResult[0].insertId);
 
-        // Journal lines
-        await tx.insert(journalEntryLines).values([
+        const billJournalLines = [
           {
-            journalEntryId,
             accountId: Number(expenseAccount.id),
             description: `Expense for bill ${billNumber}`,
             debit: totalAmount.toFixed(2),
             credit: "0.00",
           },
           {
-            journalEntryId,
             accountId: Number(apAccount.id),
             description: `AP for bill ${billNumber}`,
             debit: "0.00",
             credit: totalAmount.toFixed(2),
           },
-        ]);
+        ];
 
-        // Ledger entries
-        const expenseLedgerBalance = await tx.select({
-          balance: sql<number>`COALESCE(SUM(debit - credit), 0)`,
-        }).from(ledgerEntries).where(eq(ledgerEntries.accountId, Number(expenseAccount.id)));
-        const newExpenseBalance = Number(expenseLedgerBalance[0]?.balance ?? 0) + totalAmount;
+        await tx.insert(journalEntryLines).values(
+          billJournalLines.map((line) => ({ journalEntryId, ...line })),
+        );
 
-        const apLedgerBalance = await tx.select({
-          balance: sql<number>`COALESCE(SUM(debit - credit), 0)`,
-        }).from(ledgerEntries).where(eq(ledgerEntries.accountId, Number(apAccount.id)));
-        const newApBalance = Number(apLedgerBalance[0]?.balance ?? 0) - totalAmount;
-
-        await tx.insert(ledgerEntries).values([
-          {
-            tenantId,
-            journalEntryId,
-            accountId: Number(expenseAccount.id),
-            date: new Date(input.issueDate),
-            description: `Expense for bill ${billNumber}`,
-            debit: totalAmount.toFixed(2),
-            credit: "0.00",
-            balance: newExpenseBalance.toFixed(2),
-            entryType: "transaction",
-            referenceType: "bill",
-            referenceId: billId,
-          },
-          {
-            tenantId,
-            journalEntryId,
-            accountId: Number(apAccount.id),
-            date: new Date(input.issueDate),
-            description: `AP for bill ${billNumber}`,
-            debit: "0.00",
-            credit: totalAmount.toFixed(2),
-            balance: newApBalance.toFixed(2),
-            entryType: "transaction",
-            referenceType: "bill",
-            referenceId: billId,
-          },
-        ]);
-
-        // Update COA balances
-        await tx.update(chartOfAccounts).set({
-          currentBalance: newExpenseBalance.toFixed(2),
-        }).where(eq(chartOfAccounts.id, Number(expenseAccount.id)));
-        await tx.update(chartOfAccounts).set({
-          currentBalance: newApBalance.toFixed(2),
-        }).where(eq(chartOfAccounts.id, Number(apAccount.id)));
+        await postLedgerLines(tx, {
+          tenantId,
+          journalEntryId,
+          date: new Date(input.issueDate),
+          referenceType: "bill",
+          referenceId: billId,
+          lines: billJournalLines,
+        });
 
         // Update bill with journal entry
         await tx.update(bills).set({ journalEntryId }).where(eq(bills.id, billId));
@@ -416,62 +380,32 @@ export const payableRouter = createRouter({
         });
         const journalEntryId = Number(jeResult[0].insertId);
 
-        await tx.insert(journalEntryLines).values([
+        const paymentJournalLines = [
           {
-            journalEntryId,
             accountId: Number(apAccount.id),
             description: `AP payment ${paymentNumber}`,
             debit: input.amount.toFixed(2),
             credit: "0.00",
           },
           {
-            journalEntryId,
             accountId: Number(cashAccount.id),
             description: `Cash payment ${paymentNumber}`,
             debit: "0.00",
             credit: input.amount.toFixed(2),
           },
-        ]);
+        ];
 
-        // Ledger
-        const apLedgerBalance = await tx.select({ balance: sql<number>`COALESCE(SUM(debit - credit), 0)` })
-          .from(ledgerEntries).where(eq(ledgerEntries.accountId, Number(apAccount.id)));
-        const newApBalance = Number(apLedgerBalance[0]?.balance ?? 0) + input.amount;
+        await tx.insert(journalEntryLines).values(
+          paymentJournalLines.map((line) => ({ journalEntryId, ...line })),
+        );
 
-        const cashLedgerBalance = await tx.select({ balance: sql<number>`COALESCE(SUM(debit - credit), 0)` })
-          .from(ledgerEntries).where(eq(ledgerEntries.accountId, Number(cashAccount.id)));
-        const newCashBalance = Number(cashLedgerBalance[0]?.balance ?? 0) - input.amount;
-
-        await tx.insert(ledgerEntries).values([
-          {
-            tenantId,
-            journalEntryId,
-            accountId: Number(apAccount.id),
-            date: new Date(input.paymentDate),
-            description: `AP payment ${paymentNumber}`,
-            debit: input.amount.toFixed(2),
-            credit: "0.00",
-            balance: newApBalance.toFixed(2),
-            entryType: "transaction",
-            referenceType: "supplier_payment",
-          },
-          {
-            tenantId,
-            journalEntryId,
-            accountId: Number(cashAccount.id),
-            date: new Date(input.paymentDate),
-            description: `Cash payment ${paymentNumber}`,
-            debit: "0.00",
-            credit: input.amount.toFixed(2),
-            balance: newCashBalance.toFixed(2),
-            entryType: "transaction",
-            referenceType: "supplier_payment",
-          },
-        ]);
-
-        // Update COA
-        await tx.update(chartOfAccounts).set({ currentBalance: newApBalance.toFixed(2) }).where(eq(chartOfAccounts.id, Number(apAccount.id)));
-        await tx.update(chartOfAccounts).set({ currentBalance: newCashBalance.toFixed(2) }).where(eq(chartOfAccounts.id, Number(cashAccount.id)));
+        await postLedgerLines(tx, {
+          tenantId,
+          journalEntryId,
+          date: new Date(input.paymentDate),
+          referenceType: "supplier_payment",
+          lines: paymentJournalLines,
+        });
 
         // Create payment record
         const paymentResult = await tx.insert(supplierPayments).values({
@@ -609,6 +543,59 @@ export const payableRouter = createRouter({
           daysOverdue: Math.max(0, Math.floor((now.getTime() - new Date(b.dueDate).getTime()) / (1000 * 60 * 60 * 24))),
         })),
       };
+    }),
+
+  // ─── DELETE BILL ───────────────────────────────────────────────────────────
+  deleteBill: supervisoryQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ensureTenant(ctx, "deleteBill");
+
+      const bill = await db.select().from(bills)
+        .where(and(eq(bills.id, input.id), eq(bills.tenantId, tenantId), isNull(bills.deletedAt)))
+        .limit(1);
+      if (!bill[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Bill not found" });
+
+      if (Number(bill[0].amountPaid) > 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot delete bill with payments recorded" });
+      }
+
+      const paymentCount = await db.select({ count: sql<number>`count(*)` })
+        .from(supplierPayments)
+        .where(and(eq(supplierPayments.billId, input.id), eq(supplierPayments.tenantId, tenantId)));
+      if ((paymentCount[0]?.count ?? 0) > 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot delete bill with linked payments" });
+      }
+
+      await db.transaction(async (tx) => {
+        await reversePostedJournals(tx, tenantId, "bill", input.id, "Bill reversal");
+
+        const supplier = await tx.select().from(suppliers)
+          .where(and(eq(suppliers.id, bill[0].supplierId), eq(suppliers.tenantId, tenantId)))
+          .limit(1);
+        if (supplier[0]) {
+          const newBalance = Math.max(0, Number(supplier[0].balanceDue) - Number(bill[0].totalAmount));
+          await tx.update(suppliers).set({ balanceDue: newBalance.toFixed(2) })
+            .where(eq(suppliers.id, bill[0].supplierId));
+        }
+
+        await tx.update(bills).set({
+          status: "cancelled",
+          deletedAt: new Date(),
+          deletedBy: ctx.user!.id,
+        }).where(eq(bills.id, input.id));
+      });
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "bill",
+        entityId: input.id,
+        oldValues: { billNumber: bill[0].billNumber, totalAmount: bill[0].totalAmount },
+      });
+
+      return { success: true };
     }),
 
   // ─── PAYABLE STATS ─────────────────────────────────────────────────────────

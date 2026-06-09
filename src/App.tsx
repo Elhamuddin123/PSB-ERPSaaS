@@ -9,6 +9,7 @@ import CRM from "./pages/CRM";
 import CustomerDetail from "./pages/CustomerDetail";
 import Invoices from "./pages/Invoices";
 import Receivables from "./pages/Receivables";
+import Loans from "./pages/Loans";
 import Deposits from "./pages/Deposits";
 import PaymentActivation from "./pages/PaymentActivation";
 import PaymentLocations from "./pages/PaymentLocations";
@@ -127,6 +128,7 @@ export default function App() {
       <Route path="/crm/customers/:id" element={<ProtectedPage><CustomerDetail /></ProtectedPage>} />
       <Route path="/invoices" element={<ProtectedPage><Invoices /></ProtectedPage>} />
       <Route path="/receivables" element={<ProtectedPage><Receivables /></ProtectedPage>} />
+      <Route path="/loans" element={<ProtectedPage><Loans /></ProtectedPage>} />
       <Route path="/deposits" element={<ProtectedPage><Deposits /></ProtectedPage>} />
       <Route path="/payment-locations" element={<ProtectedPage><PaymentLocations /></ProtectedPage>} />
       <Route path="/suppliers" element={<ProtectedPage><Suppliers /></ProtectedPage>} />

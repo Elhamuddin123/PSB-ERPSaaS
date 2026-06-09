@@ -8,9 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, ArrowUpRight, ArrowDownRight, RefreshCw, Plus, Send, FileText, ShieldAlert, ShieldCheck, Lock, Unlock } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, RefreshCw, Plus, Send, FileText, ShieldAlert, ShieldCheck, Lock, Unlock, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
 
 export default function WalletsPage() {
+  const { user } = useAuth();
+  const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
   const { data: wallets, refetch, isLoading: walletsLoading, error: walletsError } = trpc.wallet.list.useQuery();
   const { data: allTransactions } = trpc.wallet.allTransactions.useQuery();
   const { data: usersData } = trpc.users.directory.useQuery();
@@ -28,6 +32,15 @@ const createWallet = trpc.wallet.create.useMutation({
   },
   onError: (err) => alert(err.message),
 });
+
+  const deleteWallet = trpc.wallet.delete.useMutation({
+    onSuccess: async () => {
+      await utils.wallet.list.invalidate();
+      await utils.wallet.allTransactions.invalidate();
+      refetch();
+    },
+    onError: (err) => alert(err.message),
+  });
 
   const transfer = trpc.wallet.transfer.useMutation({
   onSuccess: async () => {
@@ -227,6 +240,22 @@ const createWallet = trpc.wallet.create.useMutation({
                       <FileText className="h-3 w-3 mr-1" /> Statement
                     </Button>
                     <ReconcileButton walletId={wallet.id} />
+                    {canManage && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 h-8 px-2"
+                        title="Close wallet (must have $0 balance)"
+                        disabled={deleteWallet.isPending || Number(wallet.balance) !== 0 || Number(wallet.reservedBalance) !== 0}
+                        onClick={() => {
+                          if (confirm(`Close wallet "${wallet.name}"? It must have zero balance.`)) {
+                            deleteWallet.mutate({ id: wallet.id });
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -372,10 +401,20 @@ function ReconcileButton({ walletId }: { walletId: number }) {
 
   if (!data) return <span className="text-xs text-slate-400">Checking...</span>;
 
+  const coaOk = data.isCoaBalanced !== false;
+  const allOk = data.isBalanced && coaOk;
+
   return (
-    <span className={`inline-flex items-center text-xs px-2 py-1 rounded ${data.isBalanced ? "text-emerald-600 bg-emerald-50" : "text-red-600 bg-red-50"}`}>
-      {data.isBalanced ? <ShieldCheck className="h-3 w-3 mr-1" /> : <ShieldAlert className="h-3 w-3 mr-1" />}
-      {data.isBalanced ? "Balanced" : `Discrepancy: $${data.discrepancy.toLocaleString()}`}
+    <span
+      className={`inline-flex items-center text-xs px-2 py-1 rounded ${allOk ? "text-emerald-600 bg-emerald-50" : "text-red-600 bg-red-50"}`}
+      title={data.coaBalance != null ? `Ledger COA balance: $${Number(data.coaBalance).toLocaleString()}` : undefined}
+    >
+      {allOk ? <ShieldCheck className="h-3 w-3 mr-1" /> : <ShieldAlert className="h-3 w-3 mr-1" />}
+      {allOk
+        ? "Balanced"
+        : !data.isBalanced
+          ? `Tx gap: $${data.discrepancy.toLocaleString()}`
+          : `COA gap: $${Number(data.coaDiscrepancy ?? 0).toLocaleString()}`}
     </span>
   );
 }
