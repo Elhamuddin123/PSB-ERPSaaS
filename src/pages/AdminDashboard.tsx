@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from "react-router";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboard() {
+  const { t } = useTranslation("common");
   const { data: planUsage, isLoading: planLoading } = trpc.users.planUsage.useQuery();
   const { data: usersList, isLoading: usersLoading } = trpc.users.list.useQuery();
 
@@ -27,10 +29,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Agency Admin</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          Manage your team, agency settings, and day-to-day operations.
-        </p>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{t("agency_admin")}</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">{t("manage_your_team_agency_settings_and_day_to_day_operations")}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -41,7 +41,7 @@ export default function AdminDashboard() {
                 <Shield className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-xs text-slate-500">Current Plan</p>
+                <p className="text-xs text-slate-500">{t("current_plan")}</p>
                 <p className="text-lg font-semibold">{planUsage ? formatPlanLabel(planUsage.plan) : "—"}</p>
               </div>
             </div>
@@ -55,11 +55,11 @@ export default function AdminDashboard() {
                 <Users className="h-5 w-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-xs text-slate-500">Active Users</p>
+                <p className="text-xs text-slate-500">{t("active_users")}</p>
                 <p className="text-lg font-semibold">
-                  {planLoading ? "…" : planUsage ? formatTotalSeatLabel(planUsage) : "—"}
+                  {planLoading ? "…" : planUsage ? formatTotalSeatLabel(planUsage, t) : "—"}
                 </p>
-                <p className="text-[10px] text-slate-500">staff users active</p>
+                <p className="text-[10px] text-slate-500">{t("staff_users_active")}</p>
               </div>
             </div>
           </CardContent>
@@ -72,7 +72,7 @@ export default function AdminDashboard() {
                 <UserPlus className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-slate-500">Staff Members</p>
+                <p className="text-xs text-slate-500">{t("staff_members")}</p>
                 <p className="text-lg font-semibold">{usersLoading ? "…" : activeStaff.length}</p>
               </div>
             </div>
@@ -82,19 +82,15 @@ export default function AdminDashboard() {
 
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-medium">Team Management</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("team_management")}</CardTitle>
           {planUsage?.canAdd ? (
             <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700" asChild>
               <Link to="/settings?tab=users">
-                <UserPlus className="h-4 w-4 mr-1.5" />
-                Add Staff User
-              </Link>
+                <UserPlus className="h-4 w-4 mr-1.5" />{t("add_staff_user")}</Link>
             </Button>
           ) : (
             <Badge variant="secondary" className="text-amber-700 bg-amber-50">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              User limit reached
-            </Badge>
+              <AlertCircle className="h-3 w-3 mr-1" />{t("user_limit_reached")}</Badge>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
@@ -106,7 +102,7 @@ export default function AdminDashboard() {
                   style={{ width: `${usagePercent}%` }}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {BILLABLE_STAFF_ROLES.map((role) => {
                   const slot = planUsage.byRole[role];
                   return (
@@ -120,27 +116,19 @@ export default function AdminDashboard() {
               <p className="text-[11px] text-slate-500">{formatRoleSeatBreakdown(planUsage)}</p>
             </>
           )}
-          <p className="text-xs text-slate-500">
-            Add agents, accountants, and managers to handle tickets, CRM, and daily operations.
-          </p>
+          <p className="text-xs text-slate-500">{t("add_agents_to_handle_tickets_crm_and_daily_operations")}</p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" asChild>
               <Link to="/settings?tab=users">
-                <Users className="h-4 w-4 mr-1.5" />
-                Manage Users
-              </Link>
+                <Users className="h-4 w-4 mr-1.5" />{t("manage_users")}</Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/settings">
-                <Settings className="h-4 w-4 mr-1.5" />
-                Agency Settings
-              </Link>
+                <Settings className="h-4 w-4 mr-1.5" />{t("agency_settings")}</Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/reports">
-                <BarChart3 className="h-4 w-4 mr-1.5" />
-                View Reports
-              </Link>
+                <BarChart3 className="h-4 w-4 mr-1.5" />{t("view_reports")}</Link>
             </Button>
           </div>
         </CardContent>
@@ -148,16 +136,16 @@ export default function AdminDashboard() {
 
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Staff Overview</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("staff_overview")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b">
                 <tr>
-                  <th className="text-left p-3 font-medium text-slate-500 text-xs">Name</th>
-                  <th className="text-left p-3 font-medium text-slate-500 text-xs">Role</th>
-                  <th className="text-left p-3 font-medium text-slate-500 text-xs">Status</th>
+                  <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("name_1")}</th>
+                  <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("role")}</th>
+                  <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("status_1")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,7 +163,7 @@ export default function AdminDashboard() {
                 ))}
                 {!usersLoading && (usersList?.items?.length ?? 0) === 0 && (
                   <tr>
-                    <td colSpan={3} className="p-4 text-center text-sm text-slate-400">No users found.</td>
+                    <td colSpan={3} className="p-4 text-center text-sm text-slate-400">{t("no_users_found")}</td>
                   </tr>
                 )}
               </tbody>

@@ -57,9 +57,9 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: "commission_auto_post", category: "commission", defaultValue: "true", type: "boolean", description: "Auto-post commission journal entries" },
 
   // Approval
-  { key: "ticket_approval_required", category: "approval", defaultValue: "true", type: "boolean", description: "Tickets require manager approval" },
-  { key: "expense_approval_required", category: "approval", defaultValue: "true", type: "boolean", description: "Expenses require manager approval" },
-  { key: "deposit_approval_required", category: "approval", defaultValue: "true", type: "boolean", description: "Deposits require manager approval" },
+  { key: "ticket_approval_required", category: "approval", defaultValue: "true", type: "boolean", description: "Tickets require admin approval" },
+  { key: "expense_approval_required", category: "approval", defaultValue: "true", type: "boolean", description: "Expenses require admin approval" },
+  { key: "deposit_approval_required", category: "approval", defaultValue: "true", type: "boolean", description: "Deposits require admin approval" },
 
   // Numbering
   { key: "invoice_prefix", category: "numbering", defaultValue: "INV", type: "string", description: "Invoice number prefix" },

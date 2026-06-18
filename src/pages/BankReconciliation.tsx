@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { alertServerError } from "@/lib/i18n-ui";
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +33,7 @@ const lineStatusColors: Record<string, string> = {
 };
 
 export default function BankReconciliationPage() {
+  const { t, t: tc } = useTranslation("common");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedStatement, setSelectedStatement] = useState<number | null>(null);
   const [lineInputs, setLineInputs] = useState([{ transactionDate: "", description: "", reference: "", debit: "", credit: "", balance: "" }]);
@@ -47,7 +50,7 @@ export default function BankReconciliationPage() {
       setCreateOpen(false);
       setLineInputs([{ transactionDate: "", description: "", reference: "", debit: "", credit: "", balance: "" }]);
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const autoMatch = trpc.bankReconciliation.autoMatch.useMutation({
@@ -56,7 +59,7 @@ export default function BankReconciliationPage() {
       await utils.bankReconciliation.statements.invalidate();
       await utils.bankReconciliation.stats.invalidate();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const [form, setForm] = useState({
@@ -108,20 +111,20 @@ export default function BankReconciliationPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Bank Reconciliation</h1>
-          <p className="text-slate-500 mt-1 text-sm">Match bank statements with ledger entries</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{t("bank_reconciliation")}</h1>
+          <p className="text-slate-500 mt-1 text-sm">{t("match_bank_statements_with_ledger_entries")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="self-start sm:self-auto"><Plus className="h-4 w-4 mr-1" /> New Statement</Button>
+            <Button size="sm" className="self-start sm:self-auto"><Plus className="h-4 w-4 mr-1" />{t("new_statement")}</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Upload Bank Statement</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("upload_bank_statement")}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
               <div>
-                <Label>Bank Account *</Label>
+                <Label>{t("bank_account")}</Label>
                 <Select value={form.accountId} onValueChange={v => setForm({ ...form, accountId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("select_account")} /></SelectTrigger>
                   <SelectContent>
                     {(accounts || []).map(a => (
                       <SelectItem key={a.id} value={String(a.id)}>{a.name} ({a.code})</SelectItem>
@@ -130,37 +133,37 @@ export default function BankReconciliationPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Start Date *</Label><Input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></div>
-                <div><Label>End Date *</Label><Input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
+                <div><Label>{t("start_date")}</Label><Input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></div>
+                <div><Label>{t("end_date")}</Label><Input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
               </div>
               <div>
-                <Label>Statement Date</Label>
+                <Label>{t("statement_date")}</Label>
                 <Input type="date" value={form.statementDate} onChange={e => setForm({ ...form, statementDate: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Opening Balance</Label><Input type="number" value={form.openingBalance} onChange={e => setForm({ ...form, openingBalance: e.target.value })} /></div>
-                <div><Label>Closing Balance</Label><Input type="number" value={form.closingBalance} onChange={e => setForm({ ...form, closingBalance: e.target.value })} /></div>
+                <div><Label>{t("opening_balance")}</Label><Input type="number" value={form.openingBalance} onChange={e => setForm({ ...form, openingBalance: e.target.value })} /></div>
+                <div><Label>{t("closing_balance")}</Label><Input type="number" value={form.closingBalance} onChange={e => setForm({ ...form, closingBalance: e.target.value })} /></div>
               </div>
-              <div><Label>Notes</Label><Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+              <div><Label>{t("notes")}</Label><Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label>Statement Lines</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addLine}>+ Add Line</Button>
+                  <Label>{t("statement_lines")}</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addLine}>{t("add_line_1")}</Button>
                 </div>
                 {lineInputs.map((line, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end text-xs">
                     <div className="col-span-2"><Input type="date" value={line.transactionDate} onChange={e => updateLine(idx, "transactionDate", e.target.value)} /></div>
-                    <div className="col-span-3"><Input value={line.description} onChange={e => updateLine(idx, "description", e.target.value)} placeholder="Description" /></div>
-                    <div className="col-span-2"><Input value={line.reference} onChange={e => updateLine(idx, "reference", e.target.value)} placeholder="Ref" /></div>
-                    <div className="col-span-1"><Input type="number" value={line.debit} onChange={e => updateLine(idx, "debit", e.target.value)} placeholder="Dr" /></div>
-                    <div className="col-span-1"><Input type="number" value={line.credit} onChange={e => updateLine(idx, "credit", e.target.value)} placeholder="Cr" /></div>
-                    <div className="col-span-1"><Input type="number" value={line.balance} onChange={e => updateLine(idx, "balance", e.target.value)} placeholder="Bal" /></div>
+                    <div className="col-span-3"><Input value={line.description} onChange={e => updateLine(idx, "description", e.target.value)} placeholder={t("description_1_1_1_1_1")} /></div>
+                    <div className="col-span-2"><Input value={line.reference} onChange={e => updateLine(idx, "reference", e.target.value)} placeholder={t("ref")} /></div>
+                    <div className="col-span-1"><Input type="number" value={line.debit} onChange={e => updateLine(idx, "debit", e.target.value)} placeholder={t("dr")} /></div>
+                    <div className="col-span-1"><Input type="number" value={line.credit} onChange={e => updateLine(idx, "credit", e.target.value)} placeholder={t("cr")} /></div>
+                    <div className="col-span-1"><Input type="number" value={line.balance} onChange={e => updateLine(idx, "balance", e.target.value)} placeholder={t("bal")} /></div>
                     <div className="col-span-1"><Button type="button" variant="ghost" size="sm" onClick={() => removeLine(idx)} className="text-red-500">×</Button></div>
                   </div>
                 ))}
               </div>
               <Button onClick={handleCreate} disabled={createStatement.isPending} className="w-full">
-                {createStatement.isPending ? "Creating..." : "Create Statement"}
+                {createStatement.isPending ? tc("actions.creating") : tc("actions.createStatement")}
               </Button>
             </div>
           </DialogContent>
@@ -190,8 +193,8 @@ export default function BankReconciliationPage() {
 
       <Tabs defaultValue="statements">
         <TabsList className="w-full sm:w-auto overflow-x-auto">
-          <TabsTrigger value="statements">Statements</TabsTrigger>
-          <TabsTrigger value="detail" disabled={!selectedStatement}>Detail</TabsTrigger>
+          <TabsTrigger value="statements">{t("statements")}</TabsTrigger>
+          <TabsTrigger value="detail" disabled={!selectedStatement}>{t("detail")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="statements" className="mt-4">
@@ -202,12 +205,12 @@ export default function BankReconciliationPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Opening</TableHead>
-                    <TableHead>Closing</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead>{t("account_1_1")}</TableHead>
+                    <TableHead>{t("period")}</TableHead>
+                    <TableHead>{t("opening")}</TableHead>
+                    <TableHead>{t("closing")}</TableHead>
+                    <TableHead>{t("status_1_1")}</TableHead>
+                    <TableHead className="text-right">{t("action")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -219,7 +222,7 @@ export default function BankReconciliationPage() {
                       <TableCell className="text-xs">${Number(stmt.closingBalance).toLocaleString()}</TableCell>
                       <TableCell><Badge className={`text-[10px] ${statusColors[stmt.status] || ""}`}>{stmt.status}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setSelectedStatement(stmt.id); }}>View</Button>
+                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setSelectedStatement(stmt.id); }}>{t("view")}</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -243,27 +246,27 @@ export default function BankReconciliationPage() {
                       <ArrowRightLeft className="h-4 w-4 mr-1" /> {autoMatch.isPending ? "Matching..." : "Auto Match"}
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => setSelectedStatement(null)}>Back</Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedStatement(null)}>{t("back_1")}</Button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">Opening</p><p className="text-lg font-bold">${Number(detailData.statement.openingBalance).toLocaleString()}</p></CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">Closing</p><p className="text-lg font-bold">${Number(detailData.statement.closingBalance).toLocaleString()}</p></CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">Debits</p><p className="text-lg font-bold">${Number(detailData.statement.totalDebits).toLocaleString()}</p></CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">Credits</p><p className="text-lg font-bold">${Number(detailData.statement.totalCredits).toLocaleString()}</p></CardContent></Card>
+                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("opening_1")}</p><p className="text-lg font-bold">${Number(detailData.statement.openingBalance).toLocaleString()}</p></CardContent></Card>
+                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("closing_1")}</p><p className="text-lg font-bold">${Number(detailData.statement.closingBalance).toLocaleString()}</p></CardContent></Card>
+                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("debits")}</p><p className="text-lg font-bold">${Number(detailData.statement.totalDebits).toLocaleString()}</p></CardContent></Card>
+                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("credits")}</p><p className="text-lg font-bold">${Number(detailData.statement.totalCredits).toLocaleString()}</p></CardContent></Card>
               </div>
 
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Reference</TableHead>
-                      <TableHead>Debit</TableHead>
-                      <TableHead>Credit</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>{t("date_1_1_1")}</TableHead>
+                      <TableHead>{t("description_1_1_1_1_1_1")}</TableHead>
+                      <TableHead>{t("reference")}</TableHead>
+                      <TableHead>{t("debit_1_1")}</TableHead>
+                      <TableHead>{t("credit_1_1")}</TableHead>
+                      <TableHead>{t("status_1_1_1")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

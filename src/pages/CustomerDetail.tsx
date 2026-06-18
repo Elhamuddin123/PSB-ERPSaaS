@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useParams } from "react-router";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +37,7 @@ const txTypeColors: Record<string, string> = {
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const customerId = Number(id);
+  const { t } = useTranslation("customers");
 
   const { data, isLoading, error } = trpc.crm.customerDetail.useQuery(
     { id: customerId },
@@ -57,9 +59,9 @@ export default function CustomerDetailPage() {
   if (error || !data) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500 mb-4">Failed to load customer details</p>
+        <p className="text-red-500 mb-4">{t("failed_to_load_customer_details")}</p>
         <Button variant="outline" asChild>
-          <Link to="/crm"><ArrowLeft className="h-4 w-4 mr-2" /> Back to CRM</Link>
+          <Link to="/crm"><ArrowLeft className="h-4 w-4 mr-2" />{t("back_to_crm")}</Link>
         </Button>
       </div>
     );
@@ -72,7 +74,7 @@ export default function CustomerDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" asChild>
-          <Link to="/crm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link>
+          <Link to="/crm"><ArrowLeft className="h-4 w-4 mr-1" />{t("back_1_1")}</Link>
         </Button>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">
@@ -103,32 +105,28 @@ export default function CustomerDetailPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
-              <Plane className="h-4 w-4" /> Bookings
-            </div>
+              <Plane className="h-4 w-4" />{t("bookings")}</div>
             <p className="text-2xl font-bold">{stats.totalBookings}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
-              <Receipt className="h-4 w-4" /> Total Revenue
-            </div>
+              <Receipt className="h-4 w-4" />{t("total_revenue_1_1")}</div>
             <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
-              <DollarSign className="h-4 w-4" /> Total Paid
-            </div>
+              <DollarSign className="h-4 w-4" />{t("total_paid")}</div>
             <p className="text-2xl font-bold">${stats.totalPaid.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
-              <DollarSign className="h-4 w-4" /> Balance Due
-            </div>
+              <DollarSign className="h-4 w-4" />{t("balance_due")}</div>
             <p className={`text-2xl font-bold ${stats.balanceDue > 0 ? "text-red-600" : "text-emerald-600"}`}>
               ${stats.balanceDue.toLocaleString()}
             </p>
@@ -139,29 +137,29 @@ export default function CustomerDetailPage() {
       {/* Tabs */}
       <Tabs defaultValue="bookings">
         <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto">
-          <TabsTrigger value="bookings"><Plane className="h-4 w-4 mr-1" /> Bookings</TabsTrigger>
-          <TabsTrigger value="invoices"><Receipt className="h-4 w-4 mr-1" /> Invoices</TabsTrigger>
-          <TabsTrigger value="transactions"><DollarSign className="h-4 w-4 mr-1" /> Transactions</TabsTrigger>
-          <TabsTrigger value="interactions"><MessageSquare className="h-4 w-4 mr-1" /> Interactions</TabsTrigger>
+          <TabsTrigger value="bookings"><Plane className="h-4 w-4 mr-1" />{t("bookings_1")}</TabsTrigger>
+          <TabsTrigger value="invoices"><Receipt className="h-4 w-4 mr-1" />{t("invoices")}</TabsTrigger>
+          <TabsTrigger value="transactions"><DollarSign className="h-4 w-4 mr-1" />{t("transactions")}</TabsTrigger>
+          <TabsTrigger value="interactions"><MessageSquare className="h-4 w-4 mr-1" />{t("interactions")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="mt-4">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recent Bookings</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_bookings")}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ticket #</TableHead>
-                    <TableHead>Route</TableHead>
-                    <TableHead>Travel Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t("ticket")}</TableHead>
+                    <TableHead>{t("route")}</TableHead>
+                    <TableHead>{t("travel_date")}</TableHead>
+                    <TableHead>{t("amount_1")}</TableHead>
+                    <TableHead>{t("status_1_1_1_1_1")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentTickets.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-500">No bookings found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-500">{t("no_bookings_found")}</TableCell></TableRow>
                   )}
                   {recentTickets.map((t: any) => (
                     <TableRow key={t.id}>
@@ -180,21 +178,21 @@ export default function CustomerDetailPage() {
 
         <TabsContent value="invoices" className="mt-4">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recent Invoices</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_invoices")}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Invoice #</TableHead>
-                    <TableHead>Issue Date</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Paid</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t("invoice")}</TableHead>
+                    <TableHead>{t("issue_date")}</TableHead>
+                    <TableHead>{t("total_1_1")}</TableHead>
+                    <TableHead>{t("paid")}</TableHead>
+                    <TableHead>{t("status_1_1_1_1_1_1")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentInvoices.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-500">No invoices found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-500">{t("no_invoices_found")}</TableCell></TableRow>
                   )}
                   {recentInvoices.map((inv: any) => (
                     <TableRow key={inv.id}>
@@ -213,20 +211,20 @@ export default function CustomerDetailPage() {
 
         <TabsContent value="transactions" className="mt-4">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Transaction History</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("transaction_history")}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead>{t("date_1_1_1_1")}</TableHead>
+                    <TableHead>{t("type_1")}</TableHead>
+                    <TableHead>{t("amount_1_1")}</TableHead>
+                    <TableHead>{t("description_1_1_1_1_1_1_1")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentTransactions.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="text-center py-8 text-slate-500">No transactions found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center py-8 text-slate-500">{t("no_transactions_found")}</TableCell></TableRow>
                   )}
                   {recentTransactions.map((tx: any) => (
                     <TableRow key={tx.id}>
@@ -244,11 +242,11 @@ export default function CustomerDetailPage() {
 
         <TabsContent value="interactions" className="mt-4">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recent Interactions</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_interactions")}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
                 {recentInteractions.length === 0 && (
-                  <p className="text-center py-8 text-slate-500">No interactions found.</p>
+                  <p className="text-center py-8 text-slate-500">{t("no_interactions_found")}</p>
                 )}
                 {recentInteractions.map((ia: any) => (
                   <div key={ia.id} className="p-4 hover:bg-slate-50">

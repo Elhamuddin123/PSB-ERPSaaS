@@ -2,7 +2,7 @@ export type TenantPlan = "free" | "starter" | "professional" | "enterprise";
 export type PaidPlan = "starter" | "professional" | "enterprise";
 
 /** Staff roles counted against subscription seat limits (admin is always separate). */
-export const BILLABLE_STAFF_ROLES = ["manager", "accountant", "agent"] as const;
+export const BILLABLE_STAFF_ROLES = ["agent"] as const;
 export type BillableStaffRole = (typeof BILLABLE_STAFF_ROLES)[number];
 
 /** Seats allowed per billable role for each plan. `null` = use custom value from subscription. */
@@ -36,13 +36,13 @@ export const PLATFORM_PAYMENT_CONTACT = {
 
 const PLAN_FEATURES: Record<PaidPlan, string[]> = {
   starter: [
-    "1 manager + 1 accountant + 1 agent (+ admin)",
+    "1 agent (+ admin)",
     "Unlimited tickets",
     "Basic CRM",
     "Email support",
   ],
   professional: [
-    "2 managers + 2 accountants + 2 agents (+ admin)",
+    "2 agents (+ admin)",
     "Unlimited tickets",
     "Full CRM & leads",
     "Expense management",

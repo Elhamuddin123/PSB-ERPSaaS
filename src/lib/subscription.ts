@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { AuthUser } from "@/hooks/useAuth";
 
 export type SubscriptionInfo = {
@@ -17,17 +18,17 @@ export function hasActiveSubscription(user: AuthUser | null | undefined): boolea
   return user.subscription?.status === "active";
 }
 
-export function getSubscriptionStatusLabel(status?: string): string {
+export function getSubscriptionStatusLabel(status: string | undefined, t: TFunction): string {
   switch (status) {
     case "active":
-      return "Active";
+      return t("status.active");
     case "pending":
-      return "Pending Payment";
+      return t("status.pendingPayment");
     case "expired":
-      return "Expired";
+      return t("status.expired");
     case "cancelled":
-      return "Cancelled";
+      return t("status.cancelled");
     default:
-      return "Unknown";
+      return t("status.pending");
   }
 }

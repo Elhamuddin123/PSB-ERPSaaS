@@ -1,10 +1,29 @@
-export async function fetchExchangeRates() {
-  const apiKey = process.env.EXCHANGE_API_KEY;
-  const url = process.env.EXCHANGE_API_URL;
+import { TRPCError } from "@trpc/server";
 
-  const response = await fetch(
-    `${url}/${apiKey}/latest/USD`
-  );
+export function isExchangeApiConfigured() {
+  return !!process.env.EXCHANGE_API_KEY?.trim() && !!process.env.EXCHANGE_API_URL?.trim();
+}
+
+export async function fetchExchangeRates() {
+  const apiKey = process.env.EXCHANGE_API_KEY?.trim();
+  const url = process.env.EXCHANGE_API_URL?.trim();
+
+  if (!apiKey || !url) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message:
+        "Exchange API is not configured. Please set EXCHANGE_API_URL and EXCHANGE_API_KEY.",
+    });
+  }
+
+  const response = await fetch(`${url}/${apiKey}/latest/USD`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new TRPCError({
+      code: "BAD_GATEWAY",
+      message: `Exchange API request failed with status ${response.status}: ${body}`,
+    });
+  }
 
   const text = await response.text();
 

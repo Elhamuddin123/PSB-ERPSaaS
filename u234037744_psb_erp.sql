@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Jun 02, 2026 at 10:27 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Host: 127.0.0.1:3306
+-- Generation Time: Jun 09, 2026 at 03:49 PM
+-- Server version: 11.8.6-MariaDB-log
+-- PHP Version: 7.2.34
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `psb_erp`
+-- Database: `u234037744_psb_erp`
 --
 
 -- --------------------------------------------------------
@@ -73,31 +73,69 @@ INSERT INTO `airlines` (`id`, `tenant_id`, `code`, `name`, `logo`, `iata_code`, 
 (8, 1, 'SQ', 'Singapore Airlines', NULL, 'SQ', 'SIA', 'support@singaporeair.com', '+65-6788-6868', 'active', '2026-05-11 10:23:06'),
 (9, 1, 'FG', 'Ariana Afghan Airlines', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
 (10, 1, 'RQ', 'Kam Air', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
+(12, 1, 'QR', 'Qatar Airways', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
+(13, 1, 'TK', 'Turkish Airlines', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
+(14, 1, 'FZ', 'FlyDubai', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
+(49, 1, 'W5', 'Mahan Air', NULL, 'W5', 'IRM', 'info@mahanair.com', '+98-21-12345678', 'active', '2026-06-05 05:00:14'),
+(50, 1, 'JI', 'Meraj Air', NULL, 'JI', 'MRJ', 'info@merajair.com', '+98-21-87654321', 'active', '2026-06-05 05:00:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `airlines_backup`
+--
+
+CREATE TABLE `airlines_backup` (
+  `id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
+  `tenant_id` bigint(20) UNSIGNED NOT NULL,
+  `code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `logo` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `iata_code` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `icao_code` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `contact_email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `contact_phone` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status` enum('active','inactive') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `airlines_backup`
+--
+
+INSERT INTO `airlines_backup` (`id`, `tenant_id`, `code`, `name`, `logo`, `iata_code`, `icao_code`, `contact_email`, `contact_phone`, `status`, `created_at`) VALUES
+(1, 1, 'AA', 'American Airlines', NULL, 'AA', 'AAL', 'support@aa.com', '+1-800-433-7300', 'active', '2026-05-11 10:23:06'),
+(2, 1, 'DL', 'Delta Air Lines', NULL, 'DL', 'DAL', 'support@delta.com', '+1-800-221-1212', 'active', '2026-05-11 10:23:06'),
+(3, 1, 'UA', 'United Airlines', NULL, 'UA', 'UAL', 'support@united.com', '+1-800-864-8331', 'active', '2026-05-11 10:23:06'),
+(4, 1, 'BA', 'British Airways', NULL, 'BA', 'BAW', 'support@ba.com', '+44-344-493-0787', 'active', '2026-05-11 10:23:06'),
+(5, 1, 'EK', 'Emirates', NULL, 'EK', 'UAE', 'support@emirates.com', '+971-4-295-4444', 'active', '2026-05-11 10:23:06'),
+(6, 1, 'LH', 'Lufthansa', NULL, 'LH', 'DLH', 'support@lufthansa.com', '+49-69-867-99400', 'active', '2026-05-11 10:23:06'),
+(7, 1, 'AF', 'Air France', NULL, 'AF', 'AFR', 'support@airfrance.com', '+33-1-57-02-1000', 'active', '2026-05-11 10:23:06'),
+(8, 1, 'SQ', 'Singapore Airlines', NULL, 'SQ', 'SIA', 'support@singaporeair.com', '+65-6788-6868', 'active', '2026-05-11 10:23:06'),
+(9, 1, 'FG', 'Ariana Afghan Airlines', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
+(10, 1, 'RQ', 'Kam Air', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
 (11, 1, 'EK', 'Emirates', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
 (12, 1, 'QR', 'Qatar Airways', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
 (13, 1, 'TK', 'Turkish Airlines', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
 (14, 1, 'FZ', 'FlyDubai', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-11 11:27:12'),
-(20, 41, '', 'Kam Air', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-22 16:40:38'),
-(21, 41, '', 'Ariana Afghan Airlines', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-22 16:40:38'),
 (22, 41, '', 'FlyDubai', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-22 16:40:38'),
 (23, 41, '', 'Emirates', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-22 16:40:38'),
-(24, 41, '', 'Qatar Airways', NULL, NULL, NULL, NULL, NULL, 'active', '2026-05-22 16:40:38'),
-(25, 43, 'AA', 'American Airlines', NULL, 'AA', 'AAL', NULL, NULL, 'active', '2026-05-23 15:23:56'),
-(26, 43, 'DL', 'Delta Air Lines', NULL, 'DL', 'DAL', NULL, NULL, 'active', '2026-05-23 15:23:56'),
-(27, 43, 'UA', 'United Airlines', NULL, 'UA', 'UAL', NULL, NULL, 'active', '2026-05-23 15:23:56'),
 (28, 43, 'BA', 'British Airways', NULL, 'BA', 'BAW', NULL, NULL, 'active', '2026-05-23 15:23:56'),
 (29, 43, 'EK', 'Emirates', NULL, 'EK', 'UAE', NULL, NULL, 'active', '2026-05-23 15:23:56'),
-(30, 43, 'LH', 'Lufthansa', NULL, 'LH', 'DLH', NULL, NULL, 'active', '2026-05-23 15:23:56'),
 (31, 43, 'AF', 'Air France', NULL, 'AF', 'AFR', NULL, NULL, 'active', '2026-05-23 15:23:56'),
 (32, 43, 'SQ', 'Singapore Airlines', NULL, 'SQ', 'SIA', NULL, NULL, 'active', '2026-05-23 15:23:56'),
 (33, 44, 'AA', 'American Airlines', NULL, 'AA', 'AAL', NULL, NULL, 'active', '2026-05-24 07:40:32'),
-(34, 44, 'DL', 'Delta Air Lines', NULL, 'DL', 'DAL', NULL, NULL, 'active', '2026-05-24 07:40:32'),
-(35, 44, 'UA', 'United Airlines', NULL, 'UA', 'UAL', NULL, NULL, 'active', '2026-05-24 07:40:32'),
-(36, 44, 'BA', 'British Airways', NULL, 'BA', 'BAW', NULL, NULL, 'active', '2026-05-24 07:40:32'),
-(37, 44, 'EK', 'Emirates', NULL, 'EK', 'UAE', NULL, NULL, 'active', '2026-05-24 07:40:32'),
 (38, 44, 'LH', 'Lufthansa', NULL, 'LH', 'DLH', NULL, NULL, 'active', '2026-05-24 07:40:32'),
 (39, 44, 'AF', 'Air France', NULL, 'AF', 'AFR', NULL, NULL, 'active', '2026-05-24 07:40:32'),
-(40, 44, 'SQ', 'Singapore Airlines', NULL, 'SQ', 'SIA', NULL, NULL, 'active', '2026-05-24 07:40:32');
+(40, 44, 'SQ', 'Singapore Airlines', NULL, 'SQ', 'SIA', NULL, NULL, 'active', '2026-05-24 07:40:32'),
+(41, 45, 'AA', 'American Airlines', NULL, 'AA', 'AAL', NULL, NULL, 'active', '2026-06-02 15:13:07'),
+(42, 45, 'DL', 'Delta Air Lines', NULL, 'DL', 'DAL', NULL, NULL, 'active', '2026-06-02 15:13:07'),
+(43, 45, 'UA', 'United Airlines', NULL, 'UA', 'UAL', NULL, NULL, 'active', '2026-06-02 15:13:07'),
+(44, 45, 'BA', 'British Airways', NULL, 'BA', 'BAW', NULL, NULL, 'active', '2026-06-02 15:13:07'),
+(45, 45, 'EK', 'Emirates', NULL, 'EK', 'UAE', NULL, NULL, 'active', '2026-06-02 15:13:07'),
+(46, 45, 'LH', 'Lufthansa', NULL, 'LH', 'DLH', NULL, NULL, 'active', '2026-06-02 15:13:07'),
+(47, 45, 'AF', 'Air France', NULL, 'AF', 'AFR', NULL, NULL, 'active', '2026-06-02 15:13:07'),
+(48, 45, 'SQ', 'Singapore Airlines', NULL, 'SQ', 'SIA', NULL, NULL, 'active', '2026-06-02 15:13:07');
 
 -- --------------------------------------------------------
 
@@ -122,9 +160,8 @@ CREATE TABLE `ai_conversations` (
 
 INSERT INTO `ai_conversations` (`id`, `tenant_id`, `user_id`, `title`, `model`, `status`, `created_at`, `updated_at`) VALUES
 (1, 1, 1, 'Revenue Forecast Analysis', 'gpt-4', 'active', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
-(2, 1, 2, 'Expense Anomaly Detection', 'gpt-4', 'active', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
-(3, 1, 3, 'Journal Entry Help', 'gpt-4', 'archived', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
-(4, 1, 22, 'psb', 'gpt-4', 'active', '2026-05-18 15:55:27', '2026-05-18 15:55:27');
+(4, 1, 22, 'psb', 'gpt-4', 'active', '2026-05-18 15:55:27', '2026-05-18 15:55:27'),
+(5, 1, 22, 'hii', 'gpt-4', 'active', '2026-06-02 09:58:54', '2026-06-02 09:58:54');
 
 -- --------------------------------------------------------
 
@@ -150,11 +187,7 @@ INSERT INTO `ai_messages` (`id`, `conversation_id`, `role`, `content`, `tokens_u
 (1, 1, 'user', 'What is our projected revenue for Q3 2026?', 15, NULL, '2026-05-11 10:23:07'),
 (2, 1, 'assistant', 'Based on current booking trends and historical data, your projected Q3 2026 revenue is approximately $185,000. This represents a 23% increase over Q2. Key drivers include increased corporate bookings and premium cabin upgrades.', 56, NULL, '2026-05-11 10:23:07'),
 (3, 1, 'user', 'Show me the breakdown by customer segment', 12, NULL, '2026-05-11 10:23:07'),
-(4, 1, 'assistant', 'VIP Corporate: $95,000 (51%)\nRegular Corporate: $52,000 (28%)\nIndividual Premium: $28,000 (15%)\nStandard Individual: $10,000 (5%)\n\nVIP segment shows strongest growth at 35% YoY.', 89, NULL, '2026-05-11 10:23:07'),
-(5, 2, 'user', 'Are there any unusual expense patterns this month?', 12, NULL, '2026-05-11 10:23:07'),
-(6, 2, 'assistant', 'Equipment expense ($4,500) is 300% above monthly average. Travel expense ($2,800) for IATA conference is 180% above typical. Overall variance is within acceptable range (+12% vs budget).', 78, NULL, '2026-05-11 10:23:07'),
-(7, 3, 'user', 'How do I record a ticket refund in the journal?', 13, NULL, '2026-05-11 10:23:07'),
-(8, 3, 'assistant', '1. Reverse original revenue: Debit Ticket Revenue, Credit AR. 2. Record penalties: Debit Penalty Expense. 3. Update refund reserve wallet.', 92, NULL, '2026-05-11 10:23:07');
+(4, 1, 'assistant', 'VIP Corporate: $95,000 (51%)\nRegular Corporate: $52,000 (28%)\nIndividual Premium: $28,000 (15%)\nStandard Individual: $10,000 (5%)\n\nVIP segment shows strongest growth at 35% YoY.', 89, NULL, '2026-05-11 10:23:07');
 
 -- --------------------------------------------------------
 
@@ -186,8 +219,6 @@ CREATE TABLE `audit_logs` (
 INSERT INTO `audit_logs` (`id`, `tenant_id`, `user_id`, `action`, `entity_type`, `entity_id`, `old_values`, `new_values`, `ip_address`, `user_agent`, `metadata`, `created_at`, `deleted_at`, `deleted_by`) VALUES
 (1, 1, 1, 'login', 'user', '1', NULL, NULL, '192.168.1.1', NULL, NULL, '2026-05-11 10:23:07', NULL, NULL),
 (2, 1, 4, 'ticket_created', 'ticket', '10', NULL, '{\"ticketNumber\":\"TKT-2026-010\",\"amount\":\"4320.00\"}', '192.168.1.45', NULL, NULL, '2026-05-11 10:23:07', NULL, NULL),
-(3, 1, 3, 'journal_posted', 'journal_entry', '5', NULL, '{\"entryNumber\":\"JE-2026-005\",\"amount\":\"1500.00\"}', '192.168.1.23', NULL, NULL, '2026-05-11 10:23:07', NULL, NULL),
-(4, 1, 2, 'wallet_transfer', 'wallet', '2', NULL, '{\"balance\":\"45000.00\"}', '192.168.1.67', NULL, NULL, '2026-05-11 10:23:07', NULL, NULL),
 (5, 1, 1, 'role_updated', 'role', '3', NULL, '{\"permissions\":[\"accounting:*\",\"wallet:*\"]}', '192.168.1.1', NULL, NULL, '2026-05-11 10:23:07', NULL, NULL),
 (6, 7, 12, 'transfer', 'wallet', '17', NULL, '{\"fromWalletId\":17,\"toWalletId\":18,\"amount\":\"100\"}', NULL, NULL, NULL, '2026-05-16 18:27:35', NULL, NULL),
 (44, 1, 1, 'reject', 'ticket', '23', '{\"status\":\"pending\"}', '{\"status\":\"cancelled\"}', NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-05-17 06:03:42', NULL, NULL),
@@ -232,7 +263,32 @@ INSERT INTO `audit_logs` (`id`, `tenant_id`, `user_id`, `action`, `entity_type`,
 (91, 44, 50, 'supplier_created', 'supplier', '2', NULL, '{\"companyName\":\"tomorrow tour\",\"supplierType\":\"airline\",\"taxId\":\"78654\",\"email\":\"test@test.com\",\"phone\":\"123456789\",\"address\":\"herat\",\"city\":\"jebrail\",\"country\":\"afghanistan\",\"creditLimit\":5000,\"paymentTerms\":30,\"currency\":\"USD\"}', NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-05-24 07:48:18', NULL, NULL),
 (92, 44, 50, 'bill_created', 'bill', '2', NULL, '{\"billNumber\":\"BILL-2026-00001\",\"totalAmount\":1005,\"supplierId\":2}', NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-05-24 07:50:01', NULL, NULL),
 (93, 44, 50, 'bank_statement_created', 'bank_statement', '2', NULL, NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-05-24 07:50:56', NULL, NULL),
-(94, 44, 50, 'create', 'expense', '13', NULL, '{\"title\":\"iii\",\"amount\":\"100\",\"status\":\"pending\"}', NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-05-24 11:12:48', NULL, NULL);
+(94, 44, 50, 'create', 'expense', '13', NULL, '{\"title\":\"iii\",\"amount\":\"100\",\"status\":\"pending\"}', NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-05-24 11:12:48', NULL, NULL),
+(95, 1, 22, 'approve_registration', 'tenant', '45', NULL, '{\"status\":\"active\",\"expiresAt\":\"2026-07-02T15:13:07.260Z\"}', '57.129.130.75', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1', NULL, '2026-06-02 15:13:07', NULL, NULL),
+(96, 1, 22, 'create', 'ticket', '63', NULL, '{\"ticketNumber\":\"tkt-120\",\"status\":\"pending\",\"amount\":\"250\"}', '149.54.37.82, 149.54.37.82,2a02:4780:3:1e::5', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-03 05:29:12', NULL, NULL),
+(97, 1, 22, 'approve', 'ticket', '63', '{\"status\":\"pending\"}', '{\"status\":\"confirmed\"}', '149.54.37.82, 149.54.37.82,2a02:4780:3:1e::5', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-03 05:29:25', NULL, NULL),
+(98, 45, 51, 'create', 'ticket', '64', NULL, '{\"ticketNumber\":\"5 3 7 9 5 7 3 1 6 1 4 9 8\",\"status\":\"pending\",\"amount\":\"233\"}', '103.151.88.10', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-06-03 05:57:18', NULL, NULL),
+(99, 45, 51, 'approve', 'ticket', '64', '{\"status\":\"pending\"}', '{\"status\":\"confirmed\"}', '103.151.88.10', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-06-03 05:57:38', NULL, NULL),
+(100, 45, 51, 'create', 'ticket', '65', NULL, '{\"ticketNumber\":\"5379573161497\",\"status\":\"pending\",\"amount\":\"233\"}', '103.151.88.10, 103.151.88.10,2a02:4780:40:15:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-06-03 06:15:38', NULL, NULL),
+(101, 45, 51, 'approve', 'ticket', '65', '{\"status\":\"pending\"}', '{\"status\":\"confirmed\"}', '103.151.88.10, 103.151.88.10,2a02:4780:40:15:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-06-03 06:15:43', NULL, NULL),
+(102, 45, 51, 'create', 'ticket', '66', NULL, '{\"ticketNumber\":\"5379573161496\",\"status\":\"pending\",\"amount\":\"233\"}', '103.151.88.10, 103.151.88.10,2a02:4780:40:15:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-06-03 06:17:34', NULL, NULL),
+(103, 45, 51, 'approve', 'ticket', '66', '{\"status\":\"pending\"}', '{\"status\":\"confirmed\"}', '103.151.88.10, 103.151.88.10,2a02:4780:40:15:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', NULL, '2026-06-03 06:17:47', NULL, NULL),
+(104, 1, 55, 'deactivate_user', 'user', '3', '{\"name\":\"Sarah Williams\",\"status\":\"active\"}', '{\"status\":\"inactive\"}', '180.222.141.193, 180.222.141.193,2a02:4780:3:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-05 13:23:38', NULL, NULL),
+(105, 1, 55, 'activate_user', 'user', '3', '{\"status\":\"inactive\"}', '{\"status\":\"active\"}', '180.222.141.193, 180.222.141.193,2a02:4780:3:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-05 13:23:46', NULL, NULL),
+(106, 1, 55, 'delete_user', 'user', '3', '{\"name\":\"Sarah Williams\",\"role\":\"accountant\",\"status\":\"active\"}', NULL, '180.222.141.193, 180.222.141.193,2a02:4780:3:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-05 14:06:10', NULL, NULL),
+(107, 1, 55, 'delete_user', 'user', '5', '{\"name\":\"Emily Rodriguez\",\"role\":\"agent\",\"status\":\"active\"}', NULL, '180.222.141.193, 180.222.141.193,2a02:4780:3:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-05 14:06:22', NULL, NULL),
+(108, 1, 55, 'update_user', 'user', '2', NULL, '{\"name\":\"Marcus Johnson\",\"email\":\"marcus.j@pioneer-travel.com\",\"role\":\"manager\",\"department\":\"Operations\",\"phone\":\"+1-555-0102\",\"status\":\"inactive\"}', '180.222.141.193, 180.222.141.193,2a02:4780:3:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-05 14:06:29', NULL, NULL),
+(109, 1, 55, 'update_user', 'user', '6', NULL, '{\"name\":\"James Taylor\",\"email\":\"james.t@pioneer-travel.com\",\"role\":\"viewer\",\"department\":\"Support\",\"phone\":\"+1-555-0106\",\"status\":\"suspended\"}', '180.222.141.193, 180.222.141.193,2a02:4780:3:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-05 14:06:36', NULL, NULL),
+(110, 1, 55, 'create', 'deposit', '4', NULL, '{\"depositCode\":\"MZR-2026-000005\",\"amount\":\"1000\",\"paymentMethod\":\"bank_transfer\",\"status\":\"pending\"}', '180.222.141.62, 180.222.141.62,2a02:4780:3:1e', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-05 14:11:22', NULL, NULL),
+(111, 45, 51, 'create', 'ticket', '67', NULL, '{\"ticketNumber\":\"DS\",\"status\":\"pending\",\"amount\":\"233\"}', '103.151.88.10, 103.151.88.10,2a02:4780:40:11:', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-07 06:00:37', NULL, NULL),
+(112, 45, 51, 'create', 'ticket', '68', NULL, '{\"ticketNumber\":\"TCK-2026-00001\",\"status\":\"pending\",\"amount\":\"150\"}', '103.151.88.10, 103.151.88.10,2a02:4780:40:1::', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', NULL, '2026-06-09 07:27:04', NULL, NULL),
+(113, 1, 55, 'delete_user', 'user', '2', '{\"name\":\"Marcus Johnson\",\"role\":\"manager\",\"status\":\"inactive\"}', NULL, '203.171.100.171, 203.171.100.171,2a02:4780:5d', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-09 15:13:08', NULL, NULL),
+(114, 1, 55, 'delete', 'ticket', '23', '{\"status\":\"cancelled\",\"ticketNumber\":\"tt1\"}', NULL, '203.171.100.171, 203.171.100.171,2a02:4780:5d', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-09 15:14:08', NULL, NULL),
+(115, 1, 55, 'create', 'loan', '0', NULL, '{\"loanNumber\":\"LOAN-2026-00001\",\"customerId\":28,\"amount\":\"1000\"}', '203.171.100.171, 203.171.100.171,2a02:4780:5d', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-09 15:15:45', NULL, NULL),
+(116, 1, 55, 'approve', 'deposit', '4', '{\"status\":\"pending\"}', '{\"status\":\"approved\"}', '203.171.100.171, 203.171.100.171,2a02:4780:5d', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-09 15:16:02', NULL, NULL),
+(117, 1, 55, 'delete', 'payment_location', '3', '{\"name\":\"jdksa\"}', NULL, '203.171.100.171, 203.171.100.171,2a02:4780:5d', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-09 15:16:48', NULL, NULL),
+(118, 1, 55, 'supplier_payment_created', 'supplier_payment', '1', NULL, '{\"paymentNumber\":\"SP-2026-00001\",\"amount\":120000,\"supplierId\":1,\"billId\":1}', '203.171.100.171, 203.171.100.171,2a02:4780:5d', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-09 15:17:15', NULL, NULL),
+(119, 1, 55, 'delete_user', 'user', '6', '{\"name\":\"James Taylor\",\"role\":\"viewer\",\"status\":\"suspended\"}', NULL, '203.171.100.171, 203.171.100.171,2a02:4780:5d', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', NULL, '2026-06-09 15:18:52', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -326,7 +382,7 @@ CREATE TABLE `bills` (
 --
 
 INSERT INTO `bills` (`id`, `tenant_id`, `supplier_id`, `bill_number`, `reference_number`, `issue_date`, `due_date`, `subtotal`, `tax_amount`, `discount_amount`, `total_amount`, `amount_paid`, `balance_due`, `currency`, `description`, `status`, `category`, `journal_entry_id`, `created_by`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`) VALUES
-(1, 1, 1, 'BILL-2026-00001', '2020', '2026-05-17', '2026-06-02', 120000.00, 0.00, 0.00, 120000.00, 0.00, 120000.00, 'USD', 'test', 'open', 'hotel', 56, NULL, '2026-05-17 07:33:14', '2026-05-17 03:03:14', NULL, NULL),
+(1, 1, 1, 'BILL-2026-00001', '2020', '2026-05-17', '2026-06-02', 120000.00, 0.00, 0.00, 120000.00, 120000.00, 0.00, 'USD', 'test', 'paid', 'hotel', 56, NULL, '2026-05-17 07:33:14', '2026-06-09 15:17:15', NULL, NULL),
 (2, 44, 2, 'BILL-2026-00001', 'ttp-123', '2026-05-24', '2026-05-20', 1000.00, 10.00, 5.00, 1005.00, 0.00, 1005.00, 'USD', 'tickets', 'open', 'flight', 71, NULL, '2026-05-24 07:50:01', '2026-05-24 03:20:01', NULL, NULL);
 
 -- --------------------------------------------------------
@@ -384,15 +440,15 @@ CREATE TABLE `chart_of_accounts` (
 --
 
 INSERT INTO `chart_of_accounts` (`id`, `tenant_id`, `code`, `name`, `type`, `subtype`, `parent_id`, `description`, `is_bank_account`, `bank_name`, `account_number`, `currency`, `current_balance`, `status`, `created_at`) VALUES
-(1, 1, '1000', 'Cash on Hand', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 15450.00, 'active', '2026-05-11 10:23:07'),
+(1, 1, '1000', 'Cash on Hand', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', -105300.00, 'active', '2026-05-11 10:23:07'),
 (2, 1, '1100', 'Bank Account - Main', 'asset', 'current_asset', NULL, NULL, 1, 'Chase Bank', '****4567', 'USD', 125000.00, 'active', '2026-05-11 10:23:07'),
 (3, 1, '1200', 'Accounts Receivable', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 45080.00, 'active', '2026-05-11 10:23:07'),
 (4, 1, '1300', 'Commission Receivable', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 2800.00, 'active', '2026-05-11 10:23:07'),
-(5, 1, '2000', 'Accounts Payable', 'liability', 'current_liability', NULL, NULL, 0, NULL, NULL, 'USD', -120000.00, 'active', '2026-05-11 10:23:07'),
-(6, 1, '2100', 'Customer Deposits', 'liability', 'current_liability', NULL, NULL, 0, NULL, NULL, 'USD', 77000.00, 'active', '2026-05-11 10:23:07'),
+(5, 1, '2000', 'Accounts Payable', 'liability', 'current_liability', NULL, NULL, 0, NULL, NULL, 'USD', -240000.00, 'active', '2026-05-11 10:23:07'),
+(6, 1, '2100', 'Customer Deposits', 'liability', 'current_liability', NULL, NULL, 0, NULL, NULL, 'USD', 78000.00, 'active', '2026-05-11 10:23:07'),
 (7, 1, '3000', 'Owner Equity', 'equity', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 65000.00, 'active', '2026-05-11 10:23:07'),
 (8, 1, '3100', 'Retained Earnings', 'equity', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 123800.00, 'active', '2026-05-11 10:23:07'),
-(9, 1, '4000', 'Ticket Revenue', 'revenue', NULL, NULL, NULL, 0, NULL, NULL, 'USD', -4450.00, 'active', '2026-05-11 10:23:07'),
+(9, 1, '4000', 'Ticket Revenue', 'revenue', NULL, NULL, NULL, 0, NULL, NULL, 'USD', -4700.00, 'active', '2026-05-11 10:23:07'),
 (10, 1, '4100', 'Commission Revenue', 'revenue', NULL, NULL, NULL, 0, NULL, NULL, 'USD', -9.00, 'active', '2026-05-11 10:23:07'),
 (11, 1, '5000', 'Office Expenses', 'expense', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 9.00, 'active', '2026-05-11 10:23:07'),
 (12, 1, '5100', 'Travel Expenses', 'expense', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-05-11 10:23:07'),
@@ -446,7 +502,56 @@ INSERT INTO `chart_of_accounts` (`id`, `tenant_id`, `code`, `name`, `type`, `sub
 (200, 44, '0101', 'elham', 'expense', '', NULL, 'hi', 0, NULL, NULL, 'USD', 0.00, 'active', '2026-05-24 07:53:57'),
 (201, 44, '0102', 'test', 'revenue', '', NULL, 'test2026', 0, NULL, NULL, 'USD', 0.00, 'active', '2026-05-24 08:30:15'),
 (202, 44, '10', 'ddd', 'asset', '', NULL, 'elham', 0, NULL, NULL, 'USD', 0.00, 'active', '2026-05-24 08:32:19'),
-(203, 44, '0303', 'TEST', 'asset', '', NULL, 'test by test', 0, NULL, NULL, 'USD', 0.00, 'active', '2026-05-24 09:26:17');
+(203, 44, '0303', 'TEST', 'asset', '', NULL, 'test by test', 0, NULL, NULL, 'USD', 0.00, 'active', '2026-05-24 09:26:17'),
+(204, 45, '1000', 'Cash on Hand', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 893.00, 'active', '2026-06-02 15:13:07'),
+(205, 45, '1100', 'Bank Account - Main', 'asset', 'current_asset', NULL, NULL, 1, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(206, 45, '1200', 'Accounts Receivable', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', -194.00, 'active', '2026-06-02 15:13:07'),
+(207, 45, '1300', 'Commission Receivable', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(208, 45, '2000', 'Accounts Payable', 'liability', 'current_liability', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(209, 45, '2100', 'Customer Deposits', 'liability', 'current_liability', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(210, 45, '3000', 'Owner Equity', 'equity', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(211, 45, '3100', 'Retained Earnings', 'equity', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(212, 45, '4000', 'Ticket Revenue', 'revenue', NULL, NULL, NULL, 0, NULL, NULL, 'USD', -699.00, 'active', '2026-06-02 15:13:07'),
+(213, 45, '4100', 'Commission Revenue', 'revenue', NULL, NULL, NULL, 0, NULL, NULL, 'USD', -60.00, 'active', '2026-06-02 15:13:07'),
+(214, 45, '4200', 'Penalty Revenue', 'revenue', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(215, 45, '5000', 'Office Expenses', 'expense', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 60.00, 'active', '2026-06-02 15:13:07'),
+(216, 45, '5100', 'Travel Expenses', 'expense', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(217, 45, '5200', 'Software Expenses', 'expense', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(218, 45, '5300', 'Marketing Expenses', 'expense', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(219, 45, '5400', 'Professional Services', 'expense', NULL, NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-02 15:13:07'),
+(220, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(221, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(222, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(223, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(224, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(225, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(226, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(227, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(228, 1, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(229, 1, '10W9', 'Wallet: Elham1', 'asset', 'current_asset', 220, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(230, 1, '10W8', 'Wallet: Elham', 'asset', 'current_asset', 220, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(231, 1, '10W7', 'Wallet: dd', 'asset', 'current_asset', 220, NULL, 0, NULL, NULL, 'EUR', 0.00, 'active', '2026-06-09 15:10:18'),
+(232, 1, '10W71', 'Wallet: test', 'asset', 'current_asset', 220, NULL, 0, NULL, NULL, 'GBP', 1000.00, 'active', '2026-06-09 15:10:18'),
+(233, 1, '10W68', 'Wallet: mahan', 'asset', 'current_asset', 221, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(234, 1, '10W49', 'Wallet: test', 'asset', 'current_asset', 222, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(235, 1, '10W11', 'Wallet: Ariana ', 'asset', 'current_asset', 223, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(236, 1, '10W6', 'Wallet: Elham', 'asset', 'current_asset', 220, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(237, 1, '10W10', 'Wallet: Kam Air', 'asset', 'current_asset', 224, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(238, 1, '10W2', 'Wallet: Sales Commission Pool', 'asset', 'current_asset', 225, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(239, 1, '10W3', 'Wallet: Petty Cash', 'asset', 'current_asset', 226, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(240, 1, '10W4', 'Wallet: Client Deposits', 'asset', 'current_asset', 227, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(241, 1, '10W5', 'Wallet: Refund Reserve', 'asset', 'current_asset', 228, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(242, 1, '10W1', 'Wallet: Main Operating Account', 'asset', 'current_asset', 220, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:10:18'),
+(243, 1, '1250', 'Customer Loans Receivable', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 1000.00, 'active', '2026-06-09 15:15:45'),
+(244, 45, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(245, 45, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(246, 45, '1050', 'Operational Wallets', 'asset', 'current_asset', NULL, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(247, 45, '10W82', 'Wallet: Main Operating Account', 'asset', 'current_asset', 244, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(248, 45, '10W87', 'Wallet: skytravel account', 'asset', 'current_asset', 244, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(249, 45, '10W86', 'Wallet: kam air', 'asset', 'current_asset', 245, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(250, 45, '10W85', 'Wallet: yasinbooking account', 'asset', 'current_asset', 246, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(251, 45, '10W83', 'Wallet: Petty Cash', 'asset', 'current_asset', 244, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21'),
+(252, 45, '10W84', 'Wallet: Client Deposits', 'asset', 'current_asset', 244, NULL, 0, NULL, NULL, 'USD', 0.00, 'active', '2026-06-09 15:20:21');
 
 -- --------------------------------------------------------
 
@@ -490,17 +595,86 @@ CREATE TABLE `customers` (
 INSERT INTO `customers` (`id`, `tenant_id`, `customer_code`, `first_name`, `last_name`, `email`, `phone`, `alternate_phone`, `company`, `job_title`, `address`, `city`, `country`, `postal_code`, `customer_type`, `status`, `source`, `notes`, `total_bookings`, `total_revenue`, `last_booking_date`, `assigned_to`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`) VALUES
 (1, 1, 'CUST-001', 'John', 'Smith', 'john.smith@techcorp.com', '+1-555-1001', NULL, 'TechCorp Inc.', 'CTO', NULL, NULL, NULL, NULL, 'corporate', 'vip', NULL, NULL, 24, 48500.00, '2026-04-14 19:30:00', 4, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
 (2, 1, 'CUST-002', 'Maria', 'Garcia', 'maria.g@globalmedia.com', '+1-555-1002', NULL, 'Global Media', 'Director', NULL, NULL, NULL, NULL, 'corporate', 'active', NULL, NULL, 15, 32000.00, '2026-04-19 19:30:00', 4, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
-(3, 1, 'CUST-003', 'Robert', 'Anderson', 'robert.a@gmail.com', '+1-555-1003', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 8, 12500.00, '2026-03-27 19:30:00', 5, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
+(3, 1, 'CUST-003', 'Robert', 'Anderson', 'robert.a@gmail.com', '+1-555-1003', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 8, 12500.00, '2026-06-05 14:06:22', NULL, '2026-05-11 10:23:06', '2026-06-05 14:06:22', NULL, NULL),
 (4, 1, 'CUST-004', 'Lisa', 'Wang', 'lisa.wang@pharma.co', '+1-555-1004', NULL, 'Pharma Solutions', 'VP Sales', NULL, NULL, NULL, NULL, 'corporate', 'vip', NULL, NULL, 32, 67800.00, '2026-04-30 19:30:00', 4, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
-(5, 1, 'CUST-005', 'Michael', 'Brown', 'm.brown@consulting.com', '+1-555-1005', NULL, 'Brown Consulting', 'Principal', NULL, NULL, NULL, NULL, 'corporate', 'active', NULL, NULL, 12, 28900.00, '2026-04-09 19:30:00', 5, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
+(5, 1, 'CUST-005', 'Michael', 'Brown', 'm.brown@consulting.com', '+1-555-1005', NULL, 'Brown Consulting', 'Principal', NULL, NULL, NULL, NULL, 'corporate', 'active', NULL, NULL, 12, 28900.00, '2026-06-05 14:06:22', NULL, '2026-05-11 10:23:06', '2026-06-05 14:06:22', NULL, NULL),
 (6, 1, 'CUST-006', 'Jennifer', 'Lee', 'jlee@fashionbrand.com', '+1-555-1006', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 5, 8900.00, '2026-02-14 19:30:00', 4, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
-(7, 1, 'CUST-007', 'William', 'Davis', 'w.davis@finance.com', '+1-555-1007', NULL, 'Finance Group', 'CFO', NULL, NULL, NULL, NULL, 'corporate', 'active', NULL, NULL, 18, 41200.00, '2026-04-21 19:30:00', 5, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
+(7, 1, 'CUST-007', 'William', 'Davis', 'w.davis@finance.com', '+1-555-1007', NULL, 'Finance Group', 'CFO', NULL, NULL, NULL, NULL, 'corporate', 'active', NULL, NULL, 18, 41200.00, '2026-06-05 14:06:22', NULL, '2026-05-11 10:23:06', '2026-06-05 14:06:22', NULL, NULL),
 (8, 1, 'CUST-008', 'Amanda', 'Wilson', 'amanda.w@retailchain.com', '+1-555-1008', NULL, 'Retail Chain Co', 'Operations Manager', NULL, NULL, NULL, NULL, 'corporate', 'active', NULL, NULL, 9, 15600.00, '2026-03-29 19:30:00', 4, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL),
 (9, 1, 'CUST-MP2G6EAA', 'Elham', 'Mukhtari', 'elhammukhtari12345@gmail.com', '07818398969', NULL, 'Elhamuddin Mukhtari', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, '', 1, 0.00, '2026-05-18 10:13:43', NULL, '2026-05-12 09:47:53', '2026-05-18 05:43:43', NULL, NULL),
 (28, 1, 'CUST-MP95YCH9', 'test', 'test1', 'test@PSB-ERP.com', '782636327', NULL, 'PSB', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, 'TEST', 1, 500.00, '2026-05-17 02:00:45', NULL, '2026-05-17 02:36:04', '2026-05-17 02:00:45', NULL, NULL),
 (39, 41, 'CUST-MPGZY86K', 'hhh', 'kkj', 'elhammukhtari12345@gmail.com', '0782636327', NULL, '', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, '', 0, 0.00, '2026-05-22 14:10:10', NULL, '2026-05-22 14:10:10', '2026-05-22 14:10:10', NULL, NULL),
 (40, 43, 'CUST-MPIII9QN', 'john', 'doe', 'test@test.com', '0789123456', NULL, 'Elhamuddin Mukhtari', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, '', 1, 800.00, '2026-05-23 11:09:27', NULL, '2026-05-23 15:37:25', '2026-05-23 11:09:27', NULL, NULL),
-(41, 44, 'CUST-MPJH15E7', 'elham', 'mukhtari', 'elhammukhtari123456@gmail.com', '0782636327', NULL, 'mukhtari tour', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, '', 0, 0.00, '2026-05-24 07:43:52', NULL, '2026-05-24 07:43:52', '2026-05-24 07:43:52', NULL, NULL);
+(41, 44, 'CUST-MPJH15E7', 'elham', 'mukhtari', 'elhammukhtari123456@gmail.com', '0782636327', NULL, 'mukhtari tour', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, '', 0, 0.00, '2026-05-24 07:43:52', NULL, '2026-05-24 07:43:52', '2026-05-24 07:43:52', NULL, NULL),
+(42, 45, 'CUST-MPXMC60S', 'LALA HAJI', 'AQAIE', 'Pouyanshahrbalkh.travel@gmail.com', '0711340970', NULL, 'KAM AIR', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, '1200', 0, 0.00, '2026-06-03 05:21:11', NULL, '2026-06-03 05:21:11', '2026-06-03 05:21:11', NULL, NULL),
+(43, 1, 'CUST-MPXMK5CI', 'ali', 'juma', 'ali.juma@psb-erp.com', '07818398969', NULL, 'jahan tour', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, 'customer due', 1, 250.00, '2026-06-03 05:29:25', NULL, '2026-06-03 05:27:23', '2026-06-03 05:29:25', NULL, NULL),
+(44, 45, 'CUST-MPXNHVQ5', 'OMID ', 'RAHIMI', 'Pouyanshahrbalkh.travel@gmail.com', '797570066', NULL, 'TRAVEL AGENCY', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, 'FARSHID ', 3, 699.00, '2026-06-03 06:17:47', NULL, '2026-06-03 05:53:37', '2026-06-03 06:17:47', NULL, NULL),
+(45, 45, 'CUST-MQ6ARB80', 'MAQSOUD ', 'HAMNAWA', 'KHALIDAREZO@GMAIL.COM', '+93782506040', NULL, 'KHALID AREZO WEDDING HALL', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:06:58', NULL, '2026-06-09 07:06:58', '2026-06-09 07:06:58', NULL, NULL),
+(46, 45, 'CUST-MQ6ARU96', 'FARSHAD', 'OMAR', NULL, '0799506040', NULL, 'KHALID AREZO', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:07:22', NULL, '2026-06-09 07:07:22', '2026-06-09 07:07:22', NULL, NULL),
+(47, 45, 'CUST-MQ6AUNU9', 'NAWAB', 'RAHIMI', NULL, '0744870487', NULL, 'SADAQAT VISA', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:09:34', NULL, '2026-06-09 07:09:34', '2026-06-09 07:09:34', NULL, NULL),
+(48, 45, 'CUST-MQ6AVCEN', 'ZABI', 'MUBARIZ', 'MASIHULLAH.MOHAMMADI@GMAIL.COM', '+93786542472', NULL, 'MASIHULLAH MOHAMMADI TRAVEL AGENCY', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, 'شرکت سیاحتی مسیع الله محمدی', 0, 0.00, '2026-06-09 07:10:06', NULL, '2026-06-09 07:10:06', '2026-06-09 07:10:06', NULL, NULL),
+(49, 45, 'CUST-MQ6B0JZM', 'MOHAMMAD EDRIS', 'MAJIDI', NULL, '788849146', NULL, 'INTERNET', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:14:09', NULL, '2026-06-09 07:14:09', '2026-06-09 07:14:09', NULL, NULL),
+(50, 45, 'CUST-MQ6B5SPU', 'HASSIBULLAH', 'NOORI', 'HASSIBULLAH.NOORI@YAHOO.COM', '+93793173031', NULL, 'NOORI', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:18:14', NULL, '2026-06-09 07:18:14', '2026-06-09 07:18:14', NULL, NULL),
+(51, 45, 'CUST-MQ6B7HCZ', 'ATIQULLAH', 'AMINI', 'ATIQULLAH.AMINI@GMAIL.COM', '+93787884829', NULL, 'MAHAN AIR', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:19:32', NULL, '2026-06-09 07:19:32', '2026-06-09 07:19:32', NULL, NULL),
+(52, 45, 'CUST-MQ6BHFQL', 'FARHAD', 'HAZEM', NULL, '+9809399969827', NULL, 'KAM AIR', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:27:17', NULL, '2026-06-09 07:27:17', '2026-06-09 07:27:17', NULL, NULL),
+(53, 45, 'CUST-MQ6BP7E8', 'ZABI', 'BABAIE', NULL, '0794207766', NULL, 'GOLSHAHR TRAVEL AGENCY', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:33:19', NULL, '2026-06-09 07:33:19', '2026-06-09 07:33:19', NULL, NULL),
+(54, 45, 'CUST-MQ6BTR2N', 'MILAD', 'AHRRAR', 'MILADAHRRAR7@GMAIL.COM', '0731727342', NULL, 'MILAD BALKH', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:36:51', NULL, '2026-06-09 07:36:51', '2026-06-09 07:36:51', NULL, NULL),
+(55, 45, 'CUST-MQ6C5YY6', 'BARAKAT', 'FARYABI', NULL, '0786449744', NULL, 'BROTHERAN MOTALEH', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:46:21', NULL, '2026-06-09 07:46:21', '2026-06-09 07:46:21', NULL, NULL),
+(56, 45, 'CUST-MQ6CAW8R', 'ARIF', 'MOHIB', NULL, '0706150814', NULL, 'ARIF MOHIB', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:50:11', NULL, '2026-06-09 07:50:11', '2026-06-09 07:50:11', NULL, NULL),
+(57, 45, 'CUST-MQ6CG3F1', 'QEYAMUDDIN', 'QEYAM', NULL, '0700606763', NULL, 'BALKH LABANYAT', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:54:14', NULL, '2026-06-09 07:54:14', '2026-06-09 07:54:14', NULL, NULL),
+(58, 45, 'CUST-MQ6CJR2W', 'SAID AHMAD', 'ZAKI', NULL, '0789330292', NULL, 'AFGHAN ASIA', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:57:04', NULL, '2026-06-09 07:57:04', '2026-06-09 07:57:04', NULL, NULL),
+(59, 45, 'CUST-MQ6CLSQ4', 'YASIN', 'SHARIFI', NULL, '0729621758', NULL, 'YASIN SHARIFI', NULL, NULL, NULL, NULL, NULL, 'individual', 'active', NULL, NULL, 0, 0.00, '2026-06-09 07:58:40', NULL, '2026-06-09 07:58:40', '2026-06-09 07:58:40', NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `customer_loans`
+--
+
+CREATE TABLE `customer_loans` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `tenant_id` bigint(20) UNSIGNED NOT NULL,
+  `customer_id` bigint(20) UNSIGNED NOT NULL,
+  `loan_number` varchar(50) NOT NULL,
+  `principal_amount` decimal(15,2) NOT NULL,
+  `repaid_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `balance_amount` decimal(15,2) NOT NULL,
+  `status` enum('active','repaid','written_off') NOT NULL DEFAULT 'active',
+  `loan_date` date NOT NULL,
+  `due_date` date DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` datetime DEFAULT NULL,
+  `deleted_by` bigint(20) UNSIGNED DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `customer_loans`
+--
+
+INSERT INTO `customer_loans` (`id`, `tenant_id`, `customer_id`, `loan_number`, `principal_amount`, `repaid_amount`, `balance_amount`, `status`, `loan_date`, `due_date`, `description`, `notes`, `created_by`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`) VALUES
+(1, 1, 28, 'LOAN-2026-00001', 1000.00, 0.00, 1000.00, 'active', '2026-06-09', '2026-06-30', NULL, NULL, 55, '2026-06-09 15:15:45', '2026-06-09 15:15:45', NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `customer_loan_repayments`
+--
+
+CREATE TABLE `customer_loan_repayments` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `tenant_id` bigint(20) UNSIGNED NOT NULL,
+  `loan_id` bigint(20) UNSIGNED NOT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `payment_method` varchar(50) NOT NULL DEFAULT 'cash',
+  `reference_number` varchar(100) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -535,7 +709,14 @@ INSERT INTO `customer_transactions` (`id`, `tenant_id`, `customer_id`, `ticket_i
 (47, 1, 9, 54, 36, 'receivable', 380.00, -620.00, 'Ticket sale: no2233', NULL, 22, '2026-05-18 10:13:04'),
 (48, 1, 9, 54, NULL, 'refund', 300.00, 300.00, 'Ticket refund: no2233', NULL, 22, '2026-05-18 10:13:43'),
 (49, 43, 40, 61, 37, 'receivable', 800.00, 800.00, 'Ticket sale: kjk', NULL, 49, '2026-05-23 15:39:27'),
-(50, 44, 41, NULL, NULL, 'deposit', 500.00, 500.00, 'Deposit MZR-2026-000001', 'MZR-2026-000001', 50, '2026-05-24 07:45:22');
+(50, 44, 41, NULL, NULL, 'deposit', 500.00, 500.00, 'Deposit MZR-2026-000001', 'MZR-2026-000001', 50, '2026-05-24 07:45:22'),
+(51, 1, 43, 63, 38, 'receivable', 250.00, 250.00, 'Ticket sale: tkt-120', NULL, 22, '2026-06-03 05:29:25'),
+(52, 45, 44, 64, 39, 'receivable', 233.00, 233.00, 'Ticket sale: 5 3 7 9 5 7 3 1 6 1 4 9 8', NULL, 51, '2026-06-03 05:57:38'),
+(53, 45, 44, 65, 40, 'receivable', 233.00, 466.00, 'Ticket sale: 5379573161497', NULL, 51, '2026-06-03 06:15:43'),
+(54, 45, 44, 66, 41, 'receivable', 233.00, 699.00, 'Ticket sale: 5379573161496', NULL, 51, '2026-06-03 06:17:47'),
+(55, 45, 44, NULL, NULL, 'payment', 660.00, 39.00, 'Payment received (cash)', NULL, 51, '2026-06-09 07:22:51'),
+(56, 45, 44, NULL, NULL, 'payment', 233.00, 0.00, 'Payment received (cash)', NULL, 51, '2026-06-09 07:59:50'),
+(57, 1, 43, 63, 38, 'payment', 250.00, 0.00, 'Invoice payment INV-2026-00004 (cash)', NULL, 55, '2026-06-09 15:15:05');
 
 -- --------------------------------------------------------
 
@@ -573,7 +754,8 @@ CREATE TABLE `deposits` (
 INSERT INTO `deposits` (`id`, `tenant_id`, `customer_id`, `wallet_id`, `deposit_code`, `amount`, `payment_method`, `reference_number`, `location_id`, `proof_image_url`, `status`, `approved_by`, `approved_at`, `expires_at`, `notes`, `created_by`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`) VALUES
 (1, 1, 9, 11, 'MZR-2026-000004', 1000.00, 'cash', NULL, 1, NULL, 'approved', 1, '2026-05-17 03:01:36', NULL, NULL, 1, '2026-05-17 07:31:32', '2026-05-17 03:01:36', NULL, NULL),
 (2, 41, 39, 72, 'MZR-2026-000001', 50000.00, 'cash', NULL, NULL, NULL, 'pending', NULL, '2026-05-22 14:10:59', NULL, 'sdsd', 47, '2026-05-22 14:10:59', '2026-05-22 14:10:59', NULL, NULL),
-(3, 44, 41, 81, 'MZR-2026-000001', 500.00, 'cash', 'pr123456789', NULL, NULL, 'approved', 50, '2026-05-24 03:15:22', NULL, NULL, 50, '2026-05-24 07:45:20', '2026-05-24 03:15:22', NULL, NULL);
+(3, 44, 41, 81, 'MZR-2026-000001', 500.00, 'cash', 'pr123456789', NULL, NULL, 'approved', 50, '2026-05-24 03:15:22', NULL, NULL, 50, '2026-05-24 07:45:20', '2026-05-24 03:15:22', NULL, NULL),
+(4, 1, NULL, 71, 'MZR-2026-000005', 1000.00, 'bank_transfer', NULL, 1, NULL, 'approved', 55, '2026-06-09 15:16:02', NULL, NULL, 55, '2026-06-05 14:11:22', '2026-06-09 15:16:02', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -625,8 +807,8 @@ CREATE TABLE `document_sequences` (
 
 INSERT INTO `document_sequences` (`id`, `tenant_id`, `prefix`, `year`, `last_number`, `created_at`, `updated_at`) VALUES
 (1, 25, 'INV', 2026, 1, '2026-05-17 05:49:40', '2026-05-17 05:49:40'),
-(5, 1, 'INV', 2026, 3, '2026-05-17 06:30:45', '2026-05-18 05:43:04'),
-(6, 1, 'MZR', 2026, 4, '2026-05-17 06:33:20', '2026-05-17 03:01:32'),
+(5, 1, 'INV', 2026, 4, '2026-05-17 06:30:45', '2026-06-03 05:29:25'),
+(6, 1, 'MZR', 2026, 5, '2026-05-17 06:33:20', '2026-06-05 14:11:22'),
 (7, 1, 'SUP', 2026, 1, '2026-05-17 06:40:33', '2026-05-17 06:40:33'),
 (9, 1, 'BILL', 2026, 1, '2026-05-17 07:33:14', '2026-05-17 07:33:14'),
 (11, 33, 'REG', 2026, 1, '2026-05-17 08:22:07', '2026-05-17 08:22:07'),
@@ -644,7 +826,12 @@ INSERT INTO `document_sequences` (`id`, `tenant_id`, `prefix`, `year`, `last_num
 (23, 44, 'REG', 2026, 1, '2026-05-24 07:40:09', '2026-05-24 07:40:09'),
 (24, 44, 'MZR', 2026, 1, '2026-05-24 07:45:20', '2026-05-24 07:45:20'),
 (25, 44, 'SUP', 2026, 1, '2026-05-24 07:48:18', '2026-05-24 07:48:18'),
-(26, 44, 'BILL', 2026, 1, '2026-05-24 07:50:01', '2026-05-24 07:50:01');
+(26, 44, 'BILL', 2026, 1, '2026-05-24 07:50:01', '2026-05-24 07:50:01'),
+(27, 45, 'REG', 2026, 1, '2026-06-02 15:10:44', '2026-06-02 15:10:44'),
+(28, 45, 'INV', 2026, 3, '2026-06-03 05:57:38', '2026-06-03 06:17:47'),
+(29, 45, 'TCK', 2026, 1, '2026-06-09 07:27:04', '2026-06-09 07:27:04'),
+(30, 1, 'LOAN', 2026, 1, '2026-06-09 15:15:45', '2026-06-09 15:15:45'),
+(31, 1, 'SP', 2026, 1, '2026-06-09 15:17:15', '2026-06-09 15:17:15');
 
 -- --------------------------------------------------------
 
@@ -669,7 +856,9 @@ CREATE TABLE `exchange_rates` (
 --
 
 INSERT INTO `exchange_rates` (`id`, `tenant_id`, `from_currency`, `to_currency`, `rate`, `effective_date`, `source`, `created_by`, `created_at`) VALUES
-(1, 1, 'USD', 'EUR', 76.000000, '2026-05-17', 'manual', NULL, '2026-05-17 06:42:58');
+(1, 1, 'USD', 'EUR', 76.000000, '2026-05-17', 'manual', NULL, '2026-05-17 06:42:58'),
+(2, 1, 'USD', 'EUR', 0.900000, '2026-06-09', 'manual', NULL, '2026-06-09 15:17:38'),
+(3, 45, 'USD', 'EUR', 0.900000, '2026-06-09', 'manual', NULL, '2026-06-09 15:22:25');
 
 -- --------------------------------------------------------
 
@@ -706,14 +895,14 @@ CREATE TABLE `expenses` (
 --
 
 INSERT INTO `expenses` (`id`, `tenant_id`, `category_id`, `title`, `description`, `amount`, `currency`, `expense_date`, `payment_method`, `vendor`, `receipt_number`, `receipt_image`, `status`, `approved_by`, `submitted_by`, `notes`, `metadata`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`) VALUES
-(1, 1, 1, 'Stationery bulk order', 'Q2 office supplies', 450.00, 'USD', '2026-04-01', 'card', 'Office Depot', 'REC-001', NULL, 'approved', 1, 3, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
-(2, 1, 2, 'IATA conference travel', 'Annual conference attendance', 2800.00, 'USD', '2026-04-05', 'bank_transfer', 'Marriott Hotels', 'REC-002', NULL, 'approved', 1, 2, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
-(3, 1, 3, 'CRM Software License', 'Annual CRM subscription', 3600.00, 'USD', '2026-04-10', 'card', 'Salesforce', 'REC-003', NULL, 'approved', 1, 3, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
-(4, 1, 4, 'Google Ads Campaign', 'Spring campaign', 1500.00, 'USD', '2026-04-12', 'card', 'Google', 'REC-004', NULL, 'approved', 2, 4, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
-(5, 1, 5, 'Office Internet', 'Monthly fiber connection', 250.00, 'USD', '2026-04-15', 'bank_transfer', 'AT&T', 'REC-005', NULL, 'approved', 1, 3, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
-(6, 1, 6, 'Legal consultation', 'Contract review services', 1200.00, 'USD', '2026-04-18', 'cheque', 'Lawson & Partners', 'REC-006', NULL, 'pending', NULL, 2, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
-(7, 1, 7, 'New laptops', '3x MacBook Pro for agents', 4500.00, 'USD', '2026-04-20', 'card', 'Apple Store', 'REC-007', NULL, 'approved', 1, 3, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
-(8, 1, 8, 'IATA certification course', 'Training for 2 agents', 1800.00, 'USD', '2026-04-22', 'bank_transfer', 'IATA Training', 'REC-008', NULL, 'pending', NULL, 2, NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07', NULL, NULL),
+(1, 1, 1, 'Stationery bulk order', 'Q2 office supplies', 450.00, 'USD', '2026-04-01', 'card', 'Office Depot', 'REC-001', NULL, 'approved', 1, NULL, NULL, NULL, '2026-05-11 10:23:07', '2026-06-05 14:06:10', NULL, NULL),
+(2, 1, 2, 'IATA conference travel', 'Annual conference attendance', 2800.00, 'USD', '2026-04-05', 'bank_transfer', 'Marriott Hotels', 'REC-002', NULL, 'approved', 1, NULL, NULL, NULL, '2026-05-11 10:23:07', '2026-06-09 15:13:08', NULL, NULL),
+(3, 1, 3, 'CRM Software License', 'Annual CRM subscription', 3600.00, 'USD', '2026-04-10', 'card', 'Salesforce', 'REC-003', NULL, 'approved', 1, NULL, NULL, NULL, '2026-05-11 10:23:07', '2026-06-05 14:06:10', NULL, NULL),
+(4, 1, 4, 'Google Ads Campaign', 'Spring campaign', 1500.00, 'USD', '2026-04-12', 'card', 'Google', 'REC-004', NULL, 'approved', NULL, 4, NULL, NULL, '2026-05-11 10:23:07', '2026-06-09 15:13:08', NULL, NULL),
+(5, 1, 5, 'Office Internet', 'Monthly fiber connection', 250.00, 'USD', '2026-04-15', 'bank_transfer', 'AT&T', 'REC-005', NULL, 'approved', 1, NULL, NULL, NULL, '2026-05-11 10:23:07', '2026-06-05 14:06:10', NULL, NULL),
+(6, 1, 6, 'Legal consultation', 'Contract review services', 1200.00, 'USD', '2026-04-18', 'cheque', 'Lawson & Partners', 'REC-006', NULL, 'pending', NULL, NULL, NULL, NULL, '2026-05-11 10:23:07', '2026-06-09 15:13:08', NULL, NULL),
+(7, 1, 7, 'New laptops', '3x MacBook Pro for agents', 4500.00, 'USD', '2026-04-20', 'card', 'Apple Store', 'REC-007', NULL, 'approved', 1, NULL, NULL, NULL, '2026-05-11 10:23:07', '2026-06-05 14:06:10', NULL, NULL),
+(8, 1, 8, 'IATA certification course', 'Training for 2 agents', 1800.00, 'USD', '2026-04-22', 'bank_transfer', 'IATA Training', 'REC-008', NULL, 'pending', NULL, NULL, NULL, NULL, '2026-05-11 10:23:07', '2026-06-09 15:13:08', NULL, NULL),
 (9, 1, 1, 'food', '', 500.00, 'USD', '2026-05-12', 'card', '', '', NULL, 'pending', NULL, 1, '', NULL, '2026-05-12 09:50:42', '2026-05-12 09:50:42', NULL, NULL),
 (10, 1, 1, 'laptop', '', 25000.00, 'USD', '2026-05-13', 'cash', 'Elham', '', NULL, 'pending', NULL, 1, '', NULL, '2026-05-13 11:00:16', '2026-05-13 11:00:16', NULL, NULL),
 (11, 1, 1, 'Debug Minimal Insert', NULL, 100.50, 'USD', '2026-05-24', 'card', NULL, NULL, NULL, 'pending', NULL, 1, NULL, NULL, '2026-05-24 10:04:09', '2026-05-24 10:04:09', NULL, NULL),
@@ -766,7 +955,15 @@ INSERT INTO `expense_categories` (`id`, `tenant_id`, `name`, `description`, `col
 (21, 44, 'Utilities', 'Electricity, internet, phone', '#8b5cf6', 'zap', NULL, 0, '2026-05-24 07:40:32'),
 (22, 44, 'Professional Services', 'Legal, accounting, consulting', '#ec4899', 'briefcase', NULL, 0, '2026-05-24 07:40:32'),
 (23, 44, 'Equipment', 'Hardware and equipment', '#06b6d4', 'cpu', NULL, 0, '2026-05-24 07:40:32'),
-(24, 44, 'Training & Development', 'Staff education and courses', '#84cc16', 'graduation-cap', NULL, 0, '2026-05-24 07:40:32');
+(24, 44, 'Training & Development', 'Staff education and courses', '#84cc16', 'graduation-cap', NULL, 0, '2026-05-24 07:40:32'),
+(25, 45, 'Office Supplies', 'General office materials', '#3b82f6', 'package', NULL, 0, '2026-06-02 15:13:07'),
+(26, 45, 'Travel & Accommodation', 'Staff travel and hotels', '#f59e0b', 'plane', NULL, 0, '2026-06-02 15:13:07'),
+(27, 45, 'Software & Subscriptions', 'SaaS and software licenses', '#10b981', 'monitor', NULL, 0, '2026-06-02 15:13:07'),
+(28, 45, 'Marketing & Advertising', 'Promotional activities', '#ef4444', 'megaphone', NULL, 0, '2026-06-02 15:13:07'),
+(29, 45, 'Utilities', 'Electricity, internet, phone', '#8b5cf6', 'zap', NULL, 0, '2026-06-02 15:13:07'),
+(30, 45, 'Professional Services', 'Legal, accounting, consulting', '#ec4899', 'briefcase', NULL, 0, '2026-06-02 15:13:07'),
+(31, 45, 'Equipment', 'Hardware and equipment', '#06b6d4', 'cpu', NULL, 0, '2026-06-02 15:13:07'),
+(32, 45, 'Training & Development', 'Staff education and courses', '#84cc16', 'graduation-cap', NULL, 0, '2026-06-02 15:13:07');
 
 -- --------------------------------------------------------
 
@@ -795,8 +992,8 @@ CREATE TABLE `interactions` (
 INSERT INTO `interactions` (`id`, `tenant_id`, `customer_id`, `lead_id`, `type`, `subject`, `description`, `follow_up_date`, `status`, `created_by`, `created_at`) VALUES
 (1, 1, 1, NULL, 'call', 'Follow-up on business trip', 'Discussed upcoming Q3 travel plans', '2026-05-11 10:23:07', 'completed', 4, '2026-05-11 10:23:07'),
 (2, 1, NULL, 1, 'email', 'Proposal for corporate rates', 'Sent customized rate sheet', '2026-05-14 19:30:00', 'pending', 4, '2026-05-11 10:23:07'),
-(3, 1, 3, NULL, 'meeting', 'Annual travel review', 'Reviewed travel patterns and preferences', '2026-05-11 10:23:07', 'completed', 5, '2026-05-11 10:23:07'),
-(4, 1, NULL, 2, 'call', 'Luxury package discussion', 'Presented premium offerings', '2026-05-19 19:30:00', 'pending', 5, '2026-05-11 10:23:07'),
+(3, 1, 3, NULL, 'meeting', 'Annual travel review', 'Reviewed travel patterns and preferences', '2026-06-05 14:06:22', 'completed', NULL, '2026-05-11 10:23:07'),
+(4, 1, NULL, 2, 'call', 'Luxury package discussion', 'Presented premium offerings', '2026-06-05 14:06:22', 'pending', NULL, '2026-05-11 10:23:07'),
 (5, 1, 4, NULL, 'note', 'VIP preferences updated', 'Updated meal and seat preferences', '2026-05-11 10:23:07', 'completed', 4, '2026-05-11 10:23:07');
 
 -- --------------------------------------------------------
@@ -834,7 +1031,11 @@ INSERT INTO `invoices` (`id`, `tenant_id`, `customer_id`, `invoice_number`, `tic
 (28, 1, 28, 'INV-2026-00001', 48, '2026-05-17', '2026-05-31', 500.00, 0.00, 500.00, 0.00, 'sent', 'Generated from ticket 12', 1, '2026-05-17 06:30:45', '2026-05-17 06:30:45', NULL, NULL),
 (33, 1, 9, 'INV-2026-00002', 50, '2026-05-17', '2026-05-31', 0.00, 0.00, 0.00, 0.00, 'sent', 'Generated from ticket 2020', 1, '2026-05-17 07:30:20', '2026-05-17 07:30:20', NULL, NULL),
 (36, 1, 9, 'INV-2026-00003', 54, '2026-05-18', '2026-06-01', 380.00, 0.00, 380.00, 0.00, 'cancelled', 'Generated from ticket no2233', 22, '2026-05-18 10:13:04', '2026-05-18 05:43:43', NULL, NULL),
-(37, 43, 40, 'INV-2026-00001', 61, '2026-05-23', '2026-06-06', 800.00, 0.00, 800.00, 0.00, 'sent', 'Generated from ticket kjk', 49, '2026-05-23 15:39:27', '2026-05-23 15:39:27', NULL, NULL);
+(37, 43, 40, 'INV-2026-00001', 61, '2026-05-23', '2026-06-06', 800.00, 0.00, 800.00, 0.00, 'sent', 'Generated from ticket kjk', 49, '2026-05-23 15:39:27', '2026-05-23 15:39:27', NULL, NULL),
+(38, 1, 43, 'INV-2026-00004', 63, '2026-06-03', '2026-06-17', 250.00, 0.00, 250.00, 250.00, 'paid', 'Generated from ticket tkt-120', 22, '2026-06-03 05:29:25', '2026-06-09 15:15:05', NULL, NULL),
+(39, 45, 44, 'INV-2026-00001', 64, '2026-06-03', '2026-06-17', 233.00, 10.00, 233.00, 0.00, 'sent', 'Generated from ticket 5 3 7 9 5 7 3 1 6 1 4 9 8', 51, '2026-06-03 05:57:38', '2026-06-03 05:57:38', NULL, NULL),
+(40, 45, 44, 'INV-2026-00002', 65, '2026-06-03', '2026-06-17', 233.00, 13.00, 233.00, 0.00, 'sent', 'Generated from ticket 5379573161497', 51, '2026-06-03 06:15:43', '2026-06-03 06:15:43', NULL, NULL),
+(41, 45, 44, 'INV-2026-00003', 66, '2026-06-03', '2026-06-17', 233.00, 13.00, 233.00, 0.00, 'sent', 'Generated from ticket 5379573161496', 51, '2026-06-03 06:17:47', '2026-06-03 06:17:47', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -860,7 +1061,11 @@ INSERT INTO `invoice_items` (`id`, `invoice_id`, `description`, `quantity`, `uni
 (5, 28, 'Flight: JFK → LHR | Ariana Afghan Airlines | test test1', 1, 500.00, 500.00, '2026-05-17 06:30:45'),
 (7, 33, 'Flight: JFK → LHR | Ariana Afghan Airlines | test test1', 1, 0.00, 0.00, '2026-05-17 07:30:20'),
 (9, 36, 'Flight: JFK → LHR | American Airlines | test test123', 1, 380.00, 380.00, '2026-05-18 10:13:04'),
-(10, 37, 'Flight: TEST → TEST | Air France | tt yy', 1, 800.00, 800.00, '2026-05-23 15:39:27');
+(10, 37, 'Flight: TEST → TEST | Air France | tt yy', 1, 800.00, 800.00, '2026-05-23 15:39:27'),
+(11, 38, 'Flight: JFK → LHR | Kam Air | ali  husain', 1, 250.00, 250.00, '2026-06-03 05:29:25'),
+(12, 39, 'Flight: MZR → IKA | United Airlines | ABDUL QAHAR RASOLI', 1, 233.00, 233.00, '2026-06-03 05:57:38'),
+(13, 40, 'Flight: MZR → IKA | American Airlines | BAZ MOHAMMAD HABIBI', 1, 233.00, 233.00, '2026-06-03 06:15:43'),
+(14, 41, 'Flight: MZR → IKA | Emirates | MOHAMMAD YASIN MOHAMMADI', 1, 233.00, 233.00, '2026-06-03 06:17:47');
 
 -- --------------------------------------------------------
 
@@ -894,8 +1099,8 @@ CREATE TABLE `journal_entries` (
 INSERT INTO `journal_entries` (`id`, `tenant_id`, `entry_number`, `date`, `reference_type`, `reference_id`, `description`, `total_debit`, `total_credit`, `status`, `posted_by`, `posted_at`, `notes`, `metadata`, `created_at`, `updated_at`) VALUES
 (1, 1, 'JE-2026-001', '2026-04-01', NULL, NULL, 'Initial capital contribution', 50000.00, 50000.00, 'posted', 1, '2026-05-11 10:23:07', NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
 (2, 1, 'JE-2026-002', '2026-04-05', 'ticket', 1, 'Ticket sale - John Smith', 3250.00, 3250.00, 'posted', 1, '2026-05-11 10:23:07', NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
-(3, 1, 'JE-2026-003', '2026-04-10', 'expense', 1, 'Office supplies purchase', 450.00, 450.00, 'posted', 3, '2026-05-11 10:23:07', NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
-(4, 1, 'JE-2026-004', '2026-04-12', NULL, NULL, 'Commission earned - Delta', 103.00, 103.00, 'posted', 3, '2026-05-11 10:23:07', NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
+(3, 1, 'JE-2026-003', '2026-04-10', 'expense', 1, 'Office supplies purchase', 450.00, 450.00, 'posted', NULL, '2026-06-05 14:06:10', NULL, NULL, '2026-05-11 10:23:07', '2026-06-05 14:06:10'),
+(4, 1, 'JE-2026-004', '2026-04-12', NULL, NULL, 'Commission earned - Delta', 103.00, 103.00, 'posted', NULL, '2026-06-05 14:06:10', NULL, NULL, '2026-05-11 10:23:07', '2026-06-05 14:06:10'),
 (5, 1, 'JE-2026-005', '2026-04-15', 'expense', 4, 'Google Ads payment', 1500.00, 1500.00, 'posted', 1, '2026-05-11 10:23:07', NULL, NULL, '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
 (6, 1, 'JE-1778591605072', '2026-05-12', 'ticket', 16, 'Ticket Sale test3', 20000.00, 20000.00, 'posted', NULL, '2026-05-12 13:13:25', NULL, NULL, '2026-05-12 13:13:25', '2026-05-12 13:13:25'),
 (7, 1, 'JE-1778661315686', '2026-05-13', 'ticket', 19, 'Ticket Sale 2525', 2000.00, 2000.00, 'posted', NULL, '2026-05-13 08:35:15', NULL, NULL, '2026-05-13 08:35:15', '2026-05-13 08:35:15'),
@@ -926,7 +1131,17 @@ INSERT INTO `journal_entries` (`id`, `tenant_id`, `entry_number`, `date`, `refer
 (74, 44, '0102', '2026-05-24', NULL, NULL, 'test', 300.00, 300.00, 'posted', 50, '2026-05-24 04:55:43', NULL, NULL, '2026-05-24 08:31:25', '2026-05-24 04:55:43'),
 (75, 44, '10', '2026-05-24', NULL, NULL, 'elham', 200.00, 200.00, 'posted', 50, '2026-05-24 04:55:42', NULL, NULL, '2026-05-24 08:33:21', '2026-05-24 04:55:42'),
 (76, 44, '50', '2026-05-24', NULL, NULL, 'jj', 30.00, 30.00, 'posted', 50, '2026-05-24 04:55:47', NULL, NULL, '2026-05-24 08:34:36', '2026-05-24 04:55:47'),
-(77, 44, '0303', '2026-05-24', NULL, NULL, 'Test by test', 700.00, 700.00, 'posted', 50, '2026-05-24 04:57:23', NULL, NULL, '2026-05-24 09:27:11', '2026-05-24 04:57:23');
+(77, 44, '0303', '2026-05-24', NULL, NULL, 'Test by test', 700.00, 700.00, 'posted', 50, '2026-05-24 04:57:23', NULL, NULL, '2026-05-24 09:27:11', '2026-05-24 04:57:23'),
+(78, 1, 'JE-1780464565153', '2026-06-03', 'ticket', 63, 'Ticket Sale tkt-120', 250.00, 250.00, 'posted', NULL, '2026-06-03 05:29:25', NULL, NULL, '2026-06-03 05:29:25', '2026-06-03 05:29:25'),
+(79, 45, 'JE-1780466258800', '2026-06-03', 'ticket', 64, 'Ticket Sale 5 3 7 9 5 7 3 1 6 1 4 9 8', 253.00, 253.00, 'posted', NULL, '2026-06-03 05:57:38', NULL, NULL, '2026-06-03 05:57:38', '2026-06-03 05:57:38'),
+(80, 45, 'JE-1780467342998', '2026-06-03', 'ticket', 65, 'Ticket Sale 5379573161497', 253.00, 253.00, 'posted', NULL, '2026-06-03 06:15:43', NULL, NULL, '2026-06-03 06:15:42', '2026-06-03 06:15:43'),
+(81, 45, 'JE-1780467467259', '2026-06-03', 'ticket', 66, 'Ticket Sale 5379573161496', 253.00, 253.00, 'posted', NULL, '2026-06-03 06:17:47', NULL, NULL, '2026-06-03 06:17:47', '2026-06-03 06:17:47'),
+(82, 45, 'JE-1780989771286', '2026-06-09', 'payment', NULL, 'Customer payment: OMID  RAHIMI', 660.00, 660.00, 'posted', NULL, '2026-06-09 07:22:51', NULL, NULL, '2026-06-09 07:22:51', '2026-06-09 07:22:51'),
+(83, 45, 'JE-1780991990182', '2026-06-09', 'payment', NULL, 'Customer payment: OMID  RAHIMI', 233.00, 233.00, 'posted', NULL, '2026-06-09 07:59:50', NULL, NULL, '2026-06-09 07:59:50', '2026-06-09 07:59:50'),
+(84, 1, 'JE-PAY-1781018105971', '2026-06-09', 'invoice_payment', 38, 'Invoice payment INV-2026-00004 (cash)', 250.00, 250.00, 'posted', NULL, '2026-06-09 15:15:05', NULL, NULL, '2026-06-09 15:15:05', '2026-06-09 15:15:05'),
+(85, 1, 'JE-1781018145149', '2026-06-09', 'loan', 1, 'Cash loan to test test1 (LOAN-2026-00001)', 1000.00, 1000.00, 'posted', NULL, '2026-06-09 15:15:45', NULL, NULL, '2026-06-09 15:15:45', '2026-06-09 15:15:45'),
+(86, 1, 'JE-1781018162074', '2026-06-09', 'deposit', 4, 'Deposit received: MZR-2026-000005', 1000.00, 1000.00, 'posted', NULL, '2026-06-09 15:16:02', NULL, NULL, '2026-06-09 15:16:02', '2026-06-09 15:16:02'),
+(87, 1, 'JE-1781018235225', '2026-06-09', 'supplier_payment', NULL, 'Payment SP-2026-00001 to test', 120000.00, 120000.00, 'posted', NULL, '2026-06-09 15:17:15', NULL, NULL, '2026-06-09 15:17:15', '2026-06-09 15:17:15');
 
 -- --------------------------------------------------------
 
@@ -1021,7 +1236,33 @@ INSERT INTO `journal_entry_lines` (`id`, `journal_entry_id`, `account_id`, `desc
 (194, 76, 199, 'j', 10.00, 10.00, '2026-05-24 08:34:36'),
 (195, 76, 199, 'j', 20.00, 20.00, '2026-05-24 08:34:36'),
 (196, 77, 203, 'test', 100.00, 100.00, '2026-05-24 09:27:11'),
-(197, 77, 203, 'test', 600.00, 600.00, '2026-05-24 09:27:11');
+(197, 77, 203, 'test', 600.00, 600.00, '2026-05-24 09:27:11'),
+(198, 78, 3, 'Accounts Receivable - Ticket Sale', 250.00, 0.00, '2026-06-03 05:29:25'),
+(199, 78, 9, 'Ticket sales revenue', 0.00, 250.00, '2026-06-03 05:29:25'),
+(200, 79, 206, 'Accounts Receivable - Ticket Sale', 233.00, 0.00, '2026-06-03 05:57:38'),
+(201, 79, 212, 'Ticket sales revenue', 0.00, 233.00, '2026-06-03 05:57:38'),
+(202, 79, 215, 'Commission expense', 20.00, 0.00, '2026-06-03 05:57:38'),
+(203, 79, 213, 'Commission revenue', 0.00, 20.00, '2026-06-03 05:57:38'),
+(204, 80, 206, 'Accounts Receivable - Ticket Sale', 233.00, 0.00, '2026-06-03 06:15:42'),
+(205, 80, 212, 'Ticket sales revenue', 0.00, 233.00, '2026-06-03 06:15:42'),
+(206, 80, 215, 'Commission expense', 20.00, 0.00, '2026-06-03 06:15:43'),
+(207, 80, 213, 'Commission revenue', 0.00, 20.00, '2026-06-03 06:15:43'),
+(208, 81, 206, 'Accounts Receivable - Ticket Sale', 233.00, 0.00, '2026-06-03 06:17:47'),
+(209, 81, 212, 'Ticket sales revenue', 0.00, 233.00, '2026-06-03 06:17:47'),
+(210, 81, 215, 'Commission expense', 20.00, 0.00, '2026-06-03 06:17:47'),
+(211, 81, 213, 'Commission revenue', 0.00, 20.00, '2026-06-03 06:17:47'),
+(212, 82, 204, 'Cash received', 660.00, 0.00, '2026-06-09 07:22:51'),
+(213, 82, 206, 'AR reduction', 0.00, 660.00, '2026-06-09 07:22:51'),
+(214, 83, 204, 'Cash received', 233.00, 0.00, '2026-06-09 07:59:50'),
+(215, 83, 206, 'AR reduction', 0.00, 233.00, '2026-06-09 07:59:50'),
+(216, 84, 1, 'Cash received', 250.00, 0.00, '2026-06-09 15:15:05'),
+(217, 84, 3, 'AR reduction', 0.00, 250.00, '2026-06-09 15:15:05'),
+(218, 85, 243, 'Customer loan receivable', 1000.00, 0.00, '2026-06-09 15:15:45'),
+(219, 85, 1, 'Cash disbursed', 0.00, 1000.00, '2026-06-09 15:15:45'),
+(220, 86, 232, 'Wallet funded: test', 1000.00, 0.00, '2026-06-09 15:16:02'),
+(221, 86, 6, 'Customer deposit liability', 0.00, 1000.00, '2026-06-09 15:16:02'),
+(222, 87, 5, 'AP payment SP-2026-00001', 120000.00, 0.00, '2026-06-09 15:17:15'),
+(223, 87, 1, 'Cash payment SP-2026-00001', 0.00, 120000.00, '2026-06-09 15:17:15');
 
 -- --------------------------------------------------------
 
@@ -1054,13 +1295,14 @@ CREATE TABLE `leads` (
 
 INSERT INTO `leads` (`id`, `tenant_id`, `first_name`, `last_name`, `email`, `phone`, `company`, `source`, `status`, `priority`, `estimated_value`, `notes`, `assigned_to`, `expected_close_date`, `created_at`, `updated_at`) VALUES
 (1, 1, 'Patrick', 'O\'Connor', 'patrick.oc@enterprise.com', '+1-555-2001', 'Enterprise Solutions', 'Website', 'qualified', 'high', 15000.00, NULL, 4, '2026-06-30', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
-(2, 1, 'Sophie', 'Martin', 'sophie.m@luxury.com', '+1-555-2002', 'Luxury Brands Co', 'Referral', 'proposal', 'medium', 8500.00, NULL, 5, '2026-07-15', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
+(2, 1, 'Sophie', 'Martin', 'sophie.m@luxury.com', '+1-555-2002', 'Luxury Brands Co', 'Referral', 'proposal', 'medium', 8500.00, NULL, NULL, '2026-07-15', '2026-05-11 10:23:07', '2026-06-05 14:06:22'),
 (3, 1, 'James', 'Wilson', 'j.wilson@startup.io', '+1-555-2003', 'Tech Startup Inc', 'Social Media', 'contacted', 'medium', 5000.00, NULL, 4, '2026-07-30', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
-(4, 1, 'Emma', 'Thompson', 'emma.t@healthcare.org', '+1-555-2004', 'Healthcare Group', 'Email Campaign', 'new', 'high', 22000.00, NULL, 5, '2026-08-15', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
+(4, 1, 'Emma', 'Thompson', 'emma.t@healthcare.org', '+1-555-2004', 'Healthcare Group', 'Email Campaign', 'new', 'high', 22000.00, NULL, NULL, '2026-08-15', '2026-05-11 10:23:07', '2026-06-05 14:06:22'),
 (5, 1, 'Daniel', 'Lee', 'daniel.lee@education.edu', '+1-555-2005', 'Education Foundation', 'Event', 'negotiation', 'low', 3000.00, NULL, 4, '2026-06-20', '2026-05-11 10:23:07', '2026-05-11 10:23:07'),
 (6, 1, 'Elham', 'Mukhtari', 'elhammukhtari12345@gmail.com', '', 'PSB', 'PSB', 'qualified', 'medium', 10000.00, '', NULL, NULL, '2026-05-12 09:49:55', '2026-05-12 05:33:36'),
 (7, 43, 'Elham', 'Mukhtari', 'elhammukhtari12345@gmail.com', '', 'Elhamuddin Mukhtari', '', 'new', 'medium', 1000.00, '', NULL, NULL, '2026-05-23 15:38:13', '2026-05-23 11:08:24'),
-(8, 44, 'elham', 'Mukhtari', 'elhammukhtari123456@gmail.com', '', 'mukhtari tour', '', 'new', 'medium', 10000.00, '', NULL, NULL, '2026-05-24 07:44:25', '2026-05-24 07:44:25');
+(8, 44, 'elham', 'Mukhtari', 'elhammukhtari123456@gmail.com', '', 'mukhtari tour', '', 'new', 'medium', 10000.00, '', NULL, NULL, '2026-05-24 07:44:25', '2026-05-24 07:44:25'),
+(9, 1, 'ali ', 'juma', 'ali.juma@psb-erp.com', '', 'jahan tour', '', 'won', 'medium', 50.00, '', NULL, NULL, '2026-06-03 05:38:06', '2026-06-03 05:38:50');
 
 -- --------------------------------------------------------
 
@@ -1148,7 +1390,33 @@ INSERT INTO `ledger_entries` (`id`, `tenant_id`, `journal_entry_id`, `account_id
 (181, 44, 76, 199, '2026-05-24', 'j', 10.00, 10.00, 0.00, 'transaction', NULL, NULL, '2026-05-24 09:25:47'),
 (182, 44, 76, 199, '2026-05-24', 'j', 20.00, 20.00, 0.00, 'transaction', NULL, NULL, '2026-05-24 09:25:47'),
 (183, 44, 77, 203, '2026-05-24', 'test', 100.00, 100.00, 0.00, 'transaction', NULL, NULL, '2026-05-24 09:27:23'),
-(184, 44, 77, 203, '2026-05-24', 'test', 600.00, 600.00, 0.00, 'transaction', NULL, NULL, '2026-05-24 09:27:23');
+(184, 44, 77, 203, '2026-05-24', 'test', 600.00, 600.00, 0.00, 'transaction', NULL, NULL, '2026-05-24 09:27:23'),
+(185, 1, 78, 3, '2026-06-03', 'Accounts Receivable - Ticket Sale', 250.00, 0.00, 45330.00, 'transaction', NULL, NULL, '2026-06-03 05:29:25'),
+(186, 1, 78, 9, '2026-06-03', 'Ticket sales revenue', 0.00, 250.00, -4700.00, 'transaction', NULL, NULL, '2026-06-03 05:29:25'),
+(187, 45, 79, 206, '2026-06-03', 'Accounts Receivable - Ticket Sale', 233.00, 0.00, 233.00, 'transaction', NULL, NULL, '2026-06-03 05:57:38'),
+(188, 45, 79, 212, '2026-06-03', 'Ticket sales revenue', 0.00, 233.00, -233.00, 'transaction', NULL, NULL, '2026-06-03 05:57:38'),
+(189, 45, 79, 215, '2026-06-03', 'Commission expense', 20.00, 0.00, 20.00, 'transaction', NULL, NULL, '2026-06-03 05:57:38'),
+(190, 45, 79, 213, '2026-06-03', 'Commission revenue', 0.00, 20.00, -20.00, 'transaction', NULL, NULL, '2026-06-03 05:57:38'),
+(191, 45, 80, 206, '2026-06-03', 'Accounts Receivable - Ticket Sale', 233.00, 0.00, 466.00, 'transaction', NULL, NULL, '2026-06-03 06:15:42'),
+(192, 45, 80, 212, '2026-06-03', 'Ticket sales revenue', 0.00, 233.00, -466.00, 'transaction', NULL, NULL, '2026-06-03 06:15:43'),
+(193, 45, 80, 215, '2026-06-03', 'Commission expense', 20.00, 0.00, 40.00, 'transaction', NULL, NULL, '2026-06-03 06:15:43'),
+(194, 45, 80, 213, '2026-06-03', 'Commission revenue', 0.00, 20.00, -40.00, 'transaction', NULL, NULL, '2026-06-03 06:15:43'),
+(195, 45, 81, 206, '2026-06-03', 'Accounts Receivable - Ticket Sale', 233.00, 0.00, 699.00, 'transaction', NULL, NULL, '2026-06-03 06:17:47'),
+(196, 45, 81, 212, '2026-06-03', 'Ticket sales revenue', 0.00, 233.00, -699.00, 'transaction', NULL, NULL, '2026-06-03 06:17:47'),
+(197, 45, 81, 215, '2026-06-03', 'Commission expense', 20.00, 0.00, 60.00, 'transaction', NULL, NULL, '2026-06-03 06:17:47'),
+(198, 45, 81, 213, '2026-06-03', 'Commission revenue', 0.00, 20.00, -60.00, 'transaction', NULL, NULL, '2026-06-03 06:17:47'),
+(199, 45, 82, 204, '2026-06-09', 'Cash received', 660.00, 0.00, 660.00, 'transaction', NULL, NULL, '2026-06-09 07:22:51'),
+(200, 45, 82, 206, '2026-06-09', 'AR reduction', 0.00, 660.00, 39.00, 'transaction', NULL, NULL, '2026-06-09 07:22:51'),
+(201, 45, 83, 204, '2026-06-09', 'Cash received', 233.00, 0.00, 893.00, 'transaction', NULL, NULL, '2026-06-09 07:59:50'),
+(202, 45, 83, 206, '2026-06-09', 'AR reduction', 0.00, 233.00, -194.00, 'transaction', NULL, NULL, '2026-06-09 07:59:50'),
+(203, 1, 84, 1, '2026-06-09', 'Cash received', 250.00, 0.00, 15700.00, 'transaction', 'invoice_payment', 38, '2026-06-09 15:15:05'),
+(204, 1, 84, 3, '2026-06-09', 'AR reduction', 0.00, 250.00, 45080.00, 'transaction', 'invoice_payment', 38, '2026-06-09 15:15:05'),
+(205, 1, 85, 243, '2026-06-09', 'Customer loan receivable', 1000.00, 0.00, 1000.00, 'transaction', 'loan', 1, '2026-06-09 15:15:45'),
+(206, 1, 85, 1, '2026-06-09', 'Cash disbursed', 0.00, 1000.00, 14700.00, 'transaction', 'loan', 1, '2026-06-09 15:15:45'),
+(207, 1, 86, 232, '2026-06-09', 'Wallet funded: test', 1000.00, 0.00, 1000.00, 'transaction', 'deposit', 4, '2026-06-09 15:16:02'),
+(208, 1, 86, 6, '2026-06-09', 'Customer deposit liability', 0.00, 1000.00, 78000.00, 'transaction', 'deposit', 4, '2026-06-09 15:16:02'),
+(209, 1, 87, 5, '2026-06-09', 'AP payment SP-2026-00001', 120000.00, 0.00, -240000.00, 'transaction', 'supplier_payment', NULL, '2026-06-09 15:17:15'),
+(210, 1, 87, 1, '2026-06-09', 'Cash payment SP-2026-00001', 0.00, 120000.00, -105300.00, 'transaction', 'supplier_payment', NULL, '2026-06-09 15:17:15');
 
 -- --------------------------------------------------------
 
@@ -1179,47 +1447,36 @@ CREATE TABLE `notifications` (
 INSERT INTO `notifications` (`id`, `tenant_id`, `user_id`, `title`, `message`, `type`, `category`, `reference_type`, `reference_id`, `is_read`, `read_at`, `action_url`, `created_at`) VALUES
 (1, 1, 1, 'New ticket booked', 'TKT-2026-010 has been confirmed for Lisa Wang', 'success', 'ticket', 'ticket', 10, 1, '2026-05-12 05:26:18', NULL, '2026-05-11 10:23:07'),
 (2, 1, 1, 'Expense approval needed', 'Legal consultation expense pending approval', 'warning', 'expense', 'expense', 6, 1, '2026-05-12 05:26:19', NULL, '2026-05-11 10:23:07'),
-(3, 1, 2, 'Low wallet balance alert', 'Petty Cash wallet is running low', 'warning', 'wallet', 'wallet', 3, 1, '2026-05-12 05:26:19', NULL, '2026-05-11 10:23:07'),
-(4, 1, 3, 'Journal entry posted', 'JE-2026-005 has been posted successfully', 'success', 'accounting', 'journal', 5, 1, '2026-05-12 05:26:19', NULL, '2026-05-11 10:23:07'),
 (5, 1, 4, 'New lead assigned', 'Patrick O\'Connor has been assigned to you', 'info', 'crm', 'lead', 1, 1, '2026-05-12 05:26:19', NULL, '2026-05-11 10:23:07'),
 (6, 1, 1, 'System update', 'PSB-ERP v2.1.0 update scheduled for tonight', 'info', 'system', NULL, NULL, 1, '2026-05-12 05:26:20', NULL, '2026-05-11 10:23:07'),
-(7, 1, 2, 'High-value ticket', 'First class booking worth $9,700 confirmed', 'success', 'ticket', 'ticket', 4, 1, '2026-05-12 05:26:20', NULL, '2026-05-11 10:23:07'),
-(8, 1, 3, 'Monthly reconciliation due', 'April month-end closing in 3 days', 'warning', 'accounting', NULL, NULL, 1, '2026-05-12 05:26:21', NULL, '2026-05-11 10:23:07'),
 (9, 6, 11, 'Wallet Transfer', '$100 transferred between wallets.', 'info', 'wallet', 'wallet', 15, 0, '2026-05-16 18:10:27', NULL, '2026-05-16 18:10:27'),
 (10, 7, 12, 'Wallet Transfer', '$100 transferred between wallets.', 'info', 'wallet', 'wallet', 17, 0, '2026-05-16 18:27:35', NULL, '2026-05-16 18:27:35'),
 (65, 1, 1, 'Ticket Rejected', 'Ticket tt1 has been rejected. ', 'warning', 'ticket', 'ticket', 23, 0, '2026-05-17 06:03:42', NULL, '2026-05-17 06:03:42'),
 (69, 1, 1, 'New Ticket Pending Approval', 'Ticket 12 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 48, 0, '2026-05-17 06:30:40', NULL, '2026-05-17 06:30:40'),
 (70, 1, 1, 'New Ticket Pending Approval', 'Ticket 12 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 48, 0, '2026-05-17 06:30:40', NULL, '2026-05-17 06:30:40'),
-(71, 1, 3, 'New Ticket Pending Approval', 'Ticket 12 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 48, 0, '2026-05-17 06:30:40', NULL, '2026-05-17 06:30:40'),
 (72, 1, 1, 'Ticket Approved', 'Ticket 12 has been approved and processed.', 'success', 'ticket', 'ticket', 48, 0, '2026-05-17 06:30:45', NULL, '2026-05-17 06:30:45'),
 (73, 1, 1, 'Payment Received', '$500 received from test test1.', 'success', 'accounting', NULL, NULL, 0, '2026-05-17 06:32:06', NULL, '2026-05-17 06:32:06'),
 (81, 1, 1, 'New Ticket Pending Approval', 'Ticket 2020 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 50, 0, '2026-05-17 07:29:35', NULL, '2026-05-17 07:29:35'),
 (82, 1, 1, 'New Ticket Pending Approval', 'Ticket 2020 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 50, 0, '2026-05-17 07:29:35', NULL, '2026-05-17 07:29:35'),
-(83, 1, 3, 'New Ticket Pending Approval', 'Ticket 2020 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 50, 0, '2026-05-17 07:29:35', NULL, '2026-05-17 07:29:35'),
 (84, 1, 1, 'Ticket Approved', 'Ticket 2020 has been approved and processed.', 'success', 'ticket', 'ticket', 50, 0, '2026-05-17 07:30:20', NULL, '2026-05-17 07:30:20'),
 (85, 1, 1, 'New Deposit Request', 'Deposit MZR-2026-000004 for $1,000 is awaiting approval.', 'info', 'wallet', 'deposit', 1, 0, '2026-05-17 07:31:32', NULL, '2026-05-17 07:31:32'),
 (86, 1, 1, 'Deposit Approved', 'Deposit MZR-2026-000004 has been approved.', 'success', 'wallet', 'deposit', 1, 0, '2026-05-17 07:31:36', NULL, '2026-05-17 07:31:36'),
 (87, 1, 1, 'Deposit Approved', 'Deposit MZR-2026-000004 has been approved.', 'success', 'wallet', 'deposit', 1, 0, '2026-05-17 07:31:36', NULL, '2026-05-17 07:31:36'),
-(88, 1, 3, 'Deposit Approved', 'Deposit MZR-2026-000004 has been approved.', 'success', 'wallet', 'deposit', 1, 0, '2026-05-17 07:31:36', NULL, '2026-05-17 07:31:36'),
 (89, 1, 1, 'New Ticket Pending Approval', 'Ticket 333 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 51, 0, '2026-05-17 07:37:56', NULL, '2026-05-17 07:37:56'),
 (90, 1, 1, 'New Ticket Pending Approval', 'Ticket 333 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 51, 0, '2026-05-17 07:37:56', NULL, '2026-05-17 07:37:56'),
-(91, 1, 3, 'New Ticket Pending Approval', 'Ticket 333 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 51, 0, '2026-05-17 07:37:56', NULL, '2026-05-17 07:37:56'),
 (92, 1, 1, 'Ticket Approved', 'Ticket 333 has been approved and processed.', 'success', 'ticket', 'ticket', 51, 0, '2026-05-17 07:38:00', NULL, '2026-05-17 07:38:00'),
 (96, 1, 1, 'New Ticket Pending Approval', 'Ticket tt-tt has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 53, 0, '2026-05-17 08:04:59', NULL, '2026-05-17 08:04:59'),
 (97, 1, 1, 'New Ticket Pending Approval', 'Ticket tt-tt has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 53, 0, '2026-05-17 08:04:59', NULL, '2026-05-17 08:04:59'),
-(98, 1, 3, 'New Ticket Pending Approval', 'Ticket tt-tt has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 53, 0, '2026-05-17 08:04:59', NULL, '2026-05-17 08:04:59'),
 (99, 1, 1, 'Ticket Approved', 'Ticket tt-tt has been approved and processed.', 'success', 'ticket', 'ticket', 53, 0, '2026-05-17 08:05:13', NULL, '2026-05-17 08:05:13'),
 (100, 1, 1, 'Ticket Approved', 'Ticket 2525 has been approved and processed.', 'success', 'ticket', 'ticket', 19, 0, '2026-05-17 08:16:08', NULL, '2026-05-17 08:16:08'),
 (101, 1, 22, 'New Ticket Pending Approval', 'Ticket no2233 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 54, 0, '2026-05-18 10:12:59', NULL, '2026-05-18 10:12:59'),
 (102, 1, 1, 'New Ticket Pending Approval', 'Ticket no2233 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 54, 0, '2026-05-18 10:12:59', NULL, '2026-05-18 10:12:59'),
-(103, 1, 3, 'New Ticket Pending Approval', 'Ticket no2233 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 54, 0, '2026-05-18 10:12:59', NULL, '2026-05-18 10:12:59'),
 (104, 1, 22, 'New Ticket Pending Approval', 'Ticket no2233 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 54, 0, '2026-05-18 10:12:59', NULL, '2026-05-18 10:12:59'),
 (105, 1, 22, 'Ticket Approved', 'Ticket no2233 has been approved and processed.', 'success', 'ticket', 'ticket', 54, 0, '2026-05-18 10:13:04', NULL, '2026-05-18 10:13:04'),
 (106, 1, 22, 'Ticket Refunded', 'Ticket no2233 has been refunded.$300 returned (penalty: $80).', 'warning', 'ticket', 'ticket', 54, 0, '2026-05-18 10:13:43', NULL, '2026-05-18 10:13:43'),
 (107, 1, 22, 'New Ticket Pending Approval', 'Ticket tkt-2026-test has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 55, 0, '2026-05-22 13:34:33', NULL, '2026-05-22 13:34:33'),
 (108, 1, 1, 'New Ticket Pending Approval', 'Ticket tkt-2026-test has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 55, 0, '2026-05-22 13:34:33', NULL, '2026-05-22 13:34:33'),
-(109, 1, 3, 'New Ticket Pending Approval', 'Ticket tkt-2026-test has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 55, 0, '2026-05-22 13:34:33', NULL, '2026-05-22 13:34:33'),
-(110, 1, 22, 'New Ticket Pending Approval', 'Ticket tkt-2026-test has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 55, 0, '2026-05-22 13:34:33', NULL, '2026-05-22 13:34:33'),
+(110, 1, 22, 'New Ticket Pending Approval', 'Ticket tkt-2026-test has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 55, 1, '2026-06-02 09:27:10', NULL, '2026-05-22 13:34:33'),
 (111, 41, 47, 'New Deposit Request', 'Deposit MZR-2026-000001 for $50,000 is awaiting approval.', 'info', 'wallet', 'deposit', 2, 1, '2026-05-22 12:54:41', NULL, '2026-05-22 14:10:59'),
 (112, 41, 47, 'New Ticket Pending Approval', 'Ticket tkt-123 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 56, 1, '2026-05-22 12:54:36', NULL, '2026-05-22 16:43:06'),
 (113, 41, 47, 'New Ticket Pending Approval', 'Ticket tkt-123 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 56, 1, '2026-05-22 12:54:40', NULL, '2026-05-22 16:43:06'),
@@ -1228,7 +1485,6 @@ INSERT INTO `notifications` (`id`, `tenant_id`, `user_id`, `title`, `message`, `
 (116, 1, 22, 'Ticket Approved', 'Ticket tkt-2026-test has been approved and processed.', 'success', 'ticket', 'ticket', 55, 0, '2026-05-23 15:24:06', NULL, '2026-05-23 15:24:06'),
 (117, 1, 22, 'New Ticket Pending Approval', 'Ticket jj-123 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 58, 0, '2026-05-23 15:25:19', NULL, '2026-05-23 15:25:19'),
 (118, 1, 1, 'New Ticket Pending Approval', 'Ticket jj-123 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 58, 0, '2026-05-23 15:25:19', NULL, '2026-05-23 15:25:19'),
-(119, 1, 3, 'New Ticket Pending Approval', 'Ticket jj-123 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 58, 0, '2026-05-23 15:25:19', NULL, '2026-05-23 15:25:19'),
 (120, 1, 22, 'New Ticket Pending Approval', 'Ticket jj-123 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 58, 0, '2026-05-23 15:25:19', NULL, '2026-05-23 15:25:19'),
 (121, 1, 22, 'Ticket Approved', 'Ticket jj-123 has been approved and processed.', 'success', 'ticket', 'ticket', 58, 0, '2026-05-23 15:25:22', NULL, '2026-05-23 15:25:22'),
 (122, 43, 49, 'New Ticket Pending Approval', 'Ticket 8989 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 59, 0, '2026-05-23 15:29:26', NULL, '2026-05-23 15:29:26'),
@@ -1245,7 +1501,32 @@ INSERT INTO `notifications` (`id`, `tenant_id`, `user_id`, `title`, `message`, `
 (133, 44, 50, 'New Deposit Request', 'Deposit MZR-2026-000001 for $500 is awaiting approval.', 'info', 'wallet', 'deposit', 3, 1, '2026-05-24 06:45:02', NULL, '2026-05-24 07:45:21'),
 (134, 44, 50, 'Deposit Approved', 'Deposit MZR-2026-000001 has been approved.', 'success', 'wallet', 'deposit', 3, 1, '2026-05-24 06:44:59', NULL, '2026-05-24 07:45:23'),
 (135, 44, 50, 'Deposit Approved', 'Deposit MZR-2026-000001 has been approved.', 'success', 'wallet', 'deposit', 3, 1, '2026-05-24 06:45:01', NULL, '2026-05-24 07:45:23'),
-(136, 44, 50, 'New Expense Submitted', 'Expense \"iii\" ($100) is awaiting approval.', 'info', 'expense', 'expense', 13, 1, '2026-05-24 06:45:00', NULL, '2026-05-24 11:12:48');
+(136, 44, 50, 'New Expense Submitted', 'Expense \"iii\" ($100) is awaiting approval.', 'info', 'expense', 'expense', 13, 1, '2026-05-24 06:45:00', NULL, '2026-05-24 11:12:48'),
+(137, 1, 22, 'New Ticket Pending Approval', 'Ticket tkt-120 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 63, 0, '2026-06-03 05:29:12', NULL, '2026-06-03 05:29:12'),
+(138, 1, 1, 'New Ticket Pending Approval', 'Ticket tkt-120 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 63, 0, '2026-06-03 05:29:12', NULL, '2026-06-03 05:29:12'),
+(140, 1, 22, 'New Ticket Pending Approval', 'Ticket tkt-120 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 63, 0, '2026-06-03 05:29:12', NULL, '2026-06-03 05:29:12'),
+(141, 1, 55, 'New Ticket Pending Approval', 'Ticket tkt-120 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 63, 1, '2026-06-05 13:10:22', NULL, '2026-06-03 05:29:12'),
+(142, 1, 22, 'Ticket Approved', 'Ticket tkt-120 has been approved and processed.', 'success', 'ticket', 'ticket', 63, 0, '2026-06-03 05:29:25', NULL, '2026-06-03 05:29:25'),
+(143, 45, 51, 'New Ticket Pending Approval', 'Ticket 5 3 7 9 5 7 3 1 6 1 4 9 8 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 64, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 05:57:18'),
+(144, 45, 51, 'New Ticket Pending Approval', 'Ticket 5 3 7 9 5 7 3 1 6 1 4 9 8 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 64, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 05:57:18'),
+(145, 45, 51, 'Ticket Approved', 'Ticket 5 3 7 9 5 7 3 1 6 1 4 9 8 has been approved and processed.', 'success', 'ticket', 'ticket', 64, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 05:57:38'),
+(146, 45, 51, 'New Ticket Pending Approval', 'Ticket 5379573161497 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 65, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 06:15:38'),
+(147, 45, 51, 'New Ticket Pending Approval', 'Ticket 5379573161497 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 65, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 06:15:38'),
+(148, 45, 51, 'Ticket Approved', 'Ticket 5379573161497 has been approved and processed.', 'success', 'ticket', 'ticket', 65, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 06:15:43'),
+(149, 45, 51, 'New Ticket Pending Approval', 'Ticket 5379573161496 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 66, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 06:17:34'),
+(150, 45, 51, 'New Ticket Pending Approval', 'Ticket 5379573161496 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 66, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 06:17:34'),
+(151, 45, 51, 'Ticket Approved', 'Ticket 5379573161496 has been approved and processed.', 'success', 'ticket', 'ticket', 66, 1, '2026-06-09 13:18:00', NULL, '2026-06-03 06:17:47'),
+(152, 1, 55, 'New Deposit Request', 'Deposit MZR-2026-000005 for $1,000 is awaiting approval.', 'info', 'wallet', 'deposit', 4, 1, '2026-06-06 11:21:07', NULL, '2026-06-05 14:11:22'),
+(153, 45, 51, 'New Ticket Pending Approval', 'Ticket DS has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 67, 1, '2026-06-09 07:27:29', NULL, '2026-06-07 06:00:37'),
+(154, 45, 51, 'New Ticket Pending Approval', 'Ticket DS has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 67, 1, '2026-06-09 13:18:00', NULL, '2026-06-07 06:00:37'),
+(155, 45, 51, 'Payment Received', '$660 received from OMID  RAHIMI.', 'success', 'accounting', NULL, NULL, 1, '2026-06-09 13:18:00', NULL, '2026-06-09 07:22:51'),
+(156, 45, 51, 'New Ticket Pending Approval', 'Ticket TCK-2026-00001 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 68, 1, '2026-06-09 13:18:00', NULL, '2026-06-09 07:27:04'),
+(157, 45, 51, 'New Ticket Pending Approval', 'Ticket TCK-2026-00001 has been created and is awaiting approval.', 'info', 'ticket', 'ticket', 68, 1, '2026-06-09 13:18:00', NULL, '2026-06-09 07:27:04'),
+(158, 45, 51, 'Payment Received', '$233 received from OMID  RAHIMI.', 'success', 'accounting', NULL, NULL, 1, '2026-06-09 13:18:00', NULL, '2026-06-09 07:59:50'),
+(159, 1, 55, 'Payment Received', '$250 received from ali juma.', 'success', 'accounting', NULL, NULL, 0, '2026-06-09 15:15:05', NULL, '2026-06-09 15:15:05'),
+(160, 1, 55, 'Deposit Approved', 'Deposit MZR-2026-000005 has been approved.', 'success', 'wallet', 'deposit', 4, 0, '2026-06-09 15:16:02', NULL, '2026-06-09 15:16:02'),
+(161, 1, 1, 'Deposit Approved', 'Deposit MZR-2026-000005 has been approved.', 'success', 'wallet', 'deposit', 4, 0, '2026-06-09 15:16:02', NULL, '2026-06-09 15:16:02'),
+(162, 1, 55, 'Deposit Approved', 'Deposit MZR-2026-000005 has been approved.', 'success', 'wallet', 'deposit', 4, 0, '2026-06-09 15:16:02', NULL, '2026-06-09 15:16:02');
 
 -- --------------------------------------------------------
 
@@ -1329,6 +1610,7 @@ CREATE TABLE `subscriptions` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `tenant_id` bigint(20) UNSIGNED NOT NULL,
   `plan` varchar(100) NOT NULL,
+  `custom_seats_per_role` int(11) DEFAULT NULL,
   `duration_months` int(11) DEFAULT 1,
   `status` enum('pending','active','expired','suspended') DEFAULT 'pending',
   `starts_at` datetime DEFAULT NULL,
@@ -1343,18 +1625,19 @@ CREATE TABLE `subscriptions` (
 -- Dumping data for table `subscriptions`
 --
 
-INSERT INTO `subscriptions` (`id`, `tenant_id`, `plan`, `duration_months`, `status`, `starts_at`, `expires_at`, `approved_by`, `approved_at`, `created_at`, `updated_at`) VALUES
-(1, 2, 'Professional', 1, 'active', '2026-05-16 22:40:06', '2027-05-16 22:40:06', NULL, NULL, '2026-05-16 18:10:06', '2026-05-16 18:10:06'),
-(2, 1, 'Professional', 1, 'active', '2026-05-16 22:40:06', '2027-05-16 22:40:06', NULL, NULL, '2026-05-16 18:10:06', '2026-05-16 18:10:06'),
-(3, 35, 'starter', 1, 'pending', NULL, NULL, NULL, NULL, '2026-05-18 08:06:50', '2026-05-18 08:06:50'),
-(4, 36, 'starter', 12, 'pending', NULL, NULL, NULL, NULL, '2026-05-18 09:47:51', '2026-05-18 09:47:51'),
-(5, 37, 'starter', 3, 'pending', NULL, NULL, NULL, NULL, '2026-05-18 15:16:53', '2026-05-18 15:16:53'),
-(6, 38, 'starter', 1, 'pending', NULL, NULL, NULL, NULL, '2026-05-19 09:43:02', '2026-05-19 09:43:02'),
-(7, 40, 'starter', 1, 'active', '2026-05-19 10:26:06', '2026-06-19 10:26:06', 22, '2026-05-19 10:26:06', '2026-05-19 10:19:35', '2026-05-19 05:56:06'),
-(8, 41, 'starter', 1, 'active', '2026-05-19 11:41:53', '2026-06-19 11:41:53', 22, '2026-05-19 11:41:53', '2026-05-19 11:41:13', '2026-05-19 07:11:53'),
-(9, 42, 'starter', 1, 'active', '2026-05-22 17:27:46', '2026-06-22 17:27:46', 1, '2026-05-22 17:27:46', '2026-05-22 17:26:35', '2026-05-22 12:57:46'),
-(10, 43, 'starter', 1, 'active', '2026-05-23 15:23:56', '2026-06-23 15:23:56', 22, '2026-05-23 15:23:56', '2026-05-23 15:22:09', '2026-05-23 10:53:56'),
-(11, 44, 'starter', 1, 'active', '2026-05-24 07:40:32', '2026-06-24 07:40:32', 1, '2026-05-24 07:40:32', '2026-05-24 07:40:09', '2026-05-24 03:10:32');
+INSERT INTO `subscriptions` (`id`, `tenant_id`, `plan`, `custom_seats_per_role`, `duration_months`, `status`, `starts_at`, `expires_at`, `approved_by`, `approved_at`, `created_at`, `updated_at`) VALUES
+(1, 2, 'Professional', 2, 1, 'active', '2026-05-16 22:40:06', '2027-05-16 22:40:06', NULL, NULL, '2026-05-16 18:10:06', '2026-06-05 12:57:34'),
+(2, 1, 'Professional', 2, 1, 'active', '2026-05-16 22:40:06', '2027-05-16 22:40:06', NULL, NULL, '2026-05-16 18:10:06', '2026-06-05 12:58:03'),
+(3, 35, 'starter', 1, 1, 'pending', NULL, NULL, NULL, NULL, '2026-05-18 08:06:50', '2026-06-05 12:57:39'),
+(4, 36, 'starter', 1, 12, 'pending', NULL, NULL, NULL, NULL, '2026-05-18 09:47:51', '2026-06-05 12:57:41'),
+(5, 37, 'starter', 1, 3, 'pending', NULL, NULL, NULL, NULL, '2026-05-18 15:16:53', '2026-06-05 12:57:43'),
+(6, 38, 'starter', 1, 1, 'pending', NULL, NULL, NULL, NULL, '2026-05-19 09:43:02', '2026-06-05 12:57:46'),
+(7, 40, 'starter', 1, 1, 'active', '2026-05-19 10:26:06', '2026-06-19 10:26:06', 22, '2026-05-19 10:26:06', '2026-05-19 10:19:35', '2026-06-05 12:57:49'),
+(8, 41, 'starter', 1, 1, 'active', '2026-05-19 11:41:53', '2026-06-19 11:41:53', 22, '2026-05-19 11:41:53', '2026-05-19 11:41:13', '2026-06-05 12:57:51'),
+(9, 42, 'starter', 1, 1, 'active', '2026-05-22 17:27:46', '2026-06-22 17:27:46', 1, '2026-05-22 17:27:46', '2026-05-22 17:26:35', '2026-06-05 12:57:53'),
+(10, 43, 'starter', 1, 1, 'active', '2026-05-23 15:23:56', '2026-06-23 15:23:56', 22, '2026-05-23 15:23:56', '2026-05-23 15:22:09', '2026-06-05 12:57:55'),
+(11, 44, 'starter', 1, 1, 'active', '2026-05-24 07:40:32', '2026-06-24 07:40:32', 1, '2026-05-24 07:40:32', '2026-05-24 07:40:09', '2026-06-05 12:57:58'),
+(12, 45, 'starter', 1, 1, 'active', '2026-06-02 15:13:07', '2026-07-02 15:13:07', 22, '2026-06-02 15:13:07', '2026-06-02 15:10:44', '2026-06-05 12:58:00');
 
 -- --------------------------------------------------------
 
@@ -1392,7 +1675,7 @@ CREATE TABLE `suppliers` (
 --
 
 INSERT INTO `suppliers` (`id`, `tenant_id`, `supplier_code`, `company_name`, `trade_name`, `supplier_type`, `tax_id`, `email`, `phone`, `address`, `city`, `country`, `website`, `credit_limit`, `balance_due`, `payment_terms`, `currency`, `status`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 1, 'SUP-2026-0001', 'test', 'test1', 'airline', '1234', 'test@test.com', '0789101112', 'test@test.com', 'mazar i sharif', 'Afghanistan', 'www.psb-erp.com', 20000.00, 120000.00, 30, 'USD', 'active', NULL, NULL, '2026-05-17 06:40:33', '2026-05-17 03:03:14'),
+(1, 1, 'SUP-2026-0001', 'test', 'test1', 'airline', '1234', 'test@test.com', '0789101112', 'test@test.com', 'mazar i sharif', 'Afghanistan', 'www.psb-erp.com', 20000.00, 0.00, 30, 'USD', 'active', NULL, NULL, '2026-05-17 06:40:33', '2026-06-09 15:17:15'),
 (2, 44, 'SUP-2026-0001', 'tomorrow tour', NULL, 'airline', '78654', 'test@test.com', '123456789', 'herat', 'jebrail', 'afghanistan', NULL, 5000.00, 1005.00, 30, 'USD', 'active', NULL, NULL, '2026-05-24 07:48:18', '2026-05-24 03:20:01');
 
 -- --------------------------------------------------------
@@ -1437,6 +1720,13 @@ CREATE TABLE `supplier_payments` (
   `deleted_at` datetime DEFAULT NULL,
   `deleted_by` bigint(20) UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `supplier_payments`
+--
+
+INSERT INTO `supplier_payments` (`id`, `tenant_id`, `supplier_id`, `bill_id`, `payment_number`, `amount`, `payment_method`, `payment_date`, `reference_number`, `bank_account_id`, `notes`, `journal_entry_id`, `created_by`, `created_at`, `deleted_at`, `deleted_by`) VALUES
+(1, 1, 1, 1, 'SP-2026-00001', 120000.00, 'bank_transfer', '2026-06-09', NULL, NULL, NULL, 87, NULL, '2026-06-09 15:17:15', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1512,7 +1802,33 @@ INSERT INTO `system_settings` (`id`, `tenant_id`, `key`, `value`, `category`, `d
 (49, 44, 'email_notifications_enabled', 'false', 'notifications', 'Enable email notifications', 1, '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
 (50, 44, 'notify_on_ticket_booking', 'true', 'notifications', 'Notify admins on new ticket', 1, '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
 (51, 44, 'notify_on_deposit', 'true', 'notifications', 'Notify admins on deposit request', 1, '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
-(52, 44, 'notify_on_expense', 'true', 'notifications', 'Notify admins on expense submission', 1, '2026-05-24 07:40:32', '2026-05-24 07:40:32');
+(52, 44, 'notify_on_expense', 'true', 'notifications', 'Notify admins on expense submission', 1, '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
+(53, 45, 'company_name', '', 'general', 'Company legal name', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(54, 45, 'company_address', '', 'general', 'Company address', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(55, 45, 'company_phone', '', 'general', 'Company phone', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(56, 45, 'company_email', '', 'general', 'Company email', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(57, 45, 'default_currency', 'USD', 'currency', 'Default currency code', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(58, 45, 'supported_currencies', '[\"USD\",\"AFN\",\"EUR\",\"AED\"]', 'currency', 'Supported currency codes', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(59, 45, 'default_tax_rate', '0', 'tax', 'Default tax rate percentage', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(60, 45, 'tax_inclusive_pricing', 'false', 'tax', 'Prices include tax by default', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(61, 45, 'default_commission_rate', '0', 'commission', 'Default commission rate percentage', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(62, 45, 'commission_auto_post', 'true', 'commission', 'Auto-post commission journal entries', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(63, 45, 'ticket_approval_required', 'true', 'approval', 'Tickets require manager approval', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(64, 45, 'expense_approval_required', 'true', 'approval', 'Expenses require manager approval', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(65, 45, 'deposit_approval_required', 'true', 'approval', 'Deposits require manager approval', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(66, 45, 'invoice_prefix', 'INV', 'numbering', 'Invoice number prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(67, 45, 'deposit_prefix', 'MZR', 'numbering', 'Deposit code prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(68, 45, 'ticket_prefix', 'TCK', 'numbering', 'Ticket number prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(69, 45, 'bill_prefix', 'BILL', 'numbering', 'Bill number prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(70, 45, 'payment_prefix', 'SP', 'numbering', 'Supplier payment prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(71, 45, 'supplier_prefix', 'SUP', 'numbering', 'Supplier code prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(72, 45, 'expense_prefix', 'EXP', 'numbering', 'Expense reference prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(73, 45, 'journal_prefix', 'JE', 'numbering', 'Journal entry prefix', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(74, 45, 'numbering_year_reset', 'true', 'numbering', 'Reset sequence numbers yearly', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(75, 45, 'email_notifications_enabled', 'false', 'notifications', 'Enable email notifications', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(76, 45, 'notify_on_ticket_booking', 'true', 'notifications', 'Notify admins on new ticket', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(77, 45, 'notify_on_deposit', 'true', 'notifications', 'Notify admins on deposit request', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07'),
+(78, 45, 'notify_on_expense', 'true', 'notifications', 'Notify admins on expense submission', 22, '2026-06-02 15:13:07', '2026-06-02 15:13:07');
 
 -- --------------------------------------------------------
 
@@ -1545,7 +1861,7 @@ CREATE TABLE `tenants` (
 --
 
 INSERT INTO `tenants` (`id`, `name`, `slug`, `domain`, `logo`, `settings`, `status`, `plan`, `registration_token`, `owner_name`, `owner_email`, `owner_phone`, `address`, `city`, `trial_ends_at`, `created_at`, `updated_at`) VALUES
-(1, 'Pioneer Travel Agency', 'pioneer-travel', 'pioneer.psb-erp.com', NULL, '{\"currency\":\"USD\",\"timezone\":\"America/New_York\",\"language\":\"en\"}', 'active', 'enterprise', NULL, NULL, NULL, NULL, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
+(1, 'Pioneer Travel Agency', 'pioneer-travel', 'pioneer.psb-erp.com', NULL, '{\"currency\":\"USD\",\"timezone\":\"America/New_York\",\"language\":\"en\"}', 'active', 'professional', NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-05 12:56:34', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
 (2, 'Global Wings Travel', 'global-wings', 'globalwings.psb-erp.com', NULL, '{\"currency\":\"EUR\",\"timezone\":\"Europe/London\",\"language\":\"en\"}', 'active', 'professional', NULL, NULL, NULL, NULL, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
 (6, 'Smoke Test Tenant', 'smoke-test-1778955027007', NULL, NULL, NULL, 'active', 'enterprise', NULL, NULL, NULL, NULL, NULL, NULL, '2026-05-16 18:10:27', '2026-05-16 18:10:27', '2026-05-16 18:10:27'),
 (7, 'Smoke Test Tenant', 'smoke-test-1778956055108', NULL, NULL, NULL, 'active', 'enterprise', NULL, NULL, NULL, NULL, NULL, NULL, '2026-05-16 18:27:35', '2026-05-16 18:27:35', '2026-05-16 18:27:35'),
@@ -1561,7 +1877,8 @@ INSERT INTO `tenants` (`id`, `name`, `slug`, `domain`, `logo`, `settings`, `stat
 (41, 'behrooz', 'behrooz', NULL, NULL, NULL, 'active', 'starter', 'REG-2026-000001', 'behrooz 1', 'behrooz.haidari@psb-erp.com', '0782121202', 'kabul', 'qarqha', '2026-05-19 11:41:53', '2026-05-19 11:41:13', '2026-05-19 07:11:53'),
 (42, 'test20', 'test20', NULL, NULL, NULL, 'active', 'starter', 'REG-2026-000001', 'test20', 'test20@psb-erp.com', '07818398969', '72 mayswood garden, Dagenham', 'Degenham', '2026-05-22 17:27:46', '2026-05-22 17:26:35', '2026-05-22 12:57:46'),
 (43, 'Elham-air', 'elham-air', NULL, NULL, NULL, 'active', 'starter', 'REG-2026-000001', 'Elhamuddin', 'elham.mukhtari@psb-erp.com', '0792119298', 'kabul', 'shahrak aria', '2026-05-23 15:23:56', '2026-05-23 15:22:09', '2026-05-23 10:53:56'),
-(44, 'final test', 'final-test', NULL, NULL, NULL, 'active', 'starter', 'REG-2026-000001', 'Elhamuddin', 'elhammukhtari123456@gmail.com', '0782636327', 'kabul, shahr new ', 'kabul', '2026-05-24 07:40:32', '2026-05-24 07:40:09', '2026-05-24 03:10:32');
+(44, 'final test', 'final-test', NULL, NULL, NULL, 'active', 'starter', 'REG-2026-000001', 'Elhamuddin', 'elhammukhtari123456@gmail.com', '0782636327', 'kabul, shahr new ', 'kabul', '2026-05-24 07:40:32', '2026-05-24 07:40:09', '2026-05-24 03:10:32'),
+(45, 'Pouyan Shahr Balkh ', 'pouyan-shahr-balkh', NULL, NULL, NULL, 'active', 'starter', 'REG-2026-000001', 'Noor Mohammad', 'roheen_2010@yahoo.com', '700208708', 'Mazar e sharif Aziz abad street', 'Mazar e sharif', '2026-06-02 15:13:07', '2026-06-02 15:10:44', '2026-06-02 15:13:07');
 
 -- --------------------------------------------------------
 
@@ -1587,6 +1904,7 @@ CREATE TABLE `tickets` (
   `tax_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
   `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
   `commission_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `discount_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
   `net_payable` decimal(12,2) NOT NULL DEFAULT 0.00,
   `payment_status` enum('pending','partial','paid','refunded','cancelled') NOT NULL DEFAULT 'pending',
   `status` enum('confirmed','pending','cancelled','refunded','completed') NOT NULL DEFAULT 'pending',
@@ -1606,7 +1924,94 @@ CREATE TABLE `tickets` (
 -- Dumping data for table `tickets`
 --
 
-INSERT INTO `tickets` (`id`, `tenant_id`, `ticket_number`, `pnr_code`, `airline_id`, `customer_id`, `booking_date`, `travel_date`, `return_date`, `route_from`, `route_to`, `trip_type`, `class`, `base_fare`, `tax_amount`, `total_amount`, `commission_amount`, `net_payable`, `payment_status`, `status`, `issued_by`, `notes`, `metadata`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`, `paid_amount`, `supplier_cost`, `expense`) VALUES
+INSERT INTO `tickets` (`id`, `tenant_id`, `ticket_number`, `pnr_code`, `airline_id`, `customer_id`, `booking_date`, `travel_date`, `return_date`, `route_from`, `route_to`, `trip_type`, `class`, `base_fare`, `tax_amount`, `total_amount`, `commission_amount`, `discount_amount`, `net_payable`, `payment_status`, `status`, `issued_by`, `notes`, `metadata`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`, `paid_amount`, `supplier_cost`, `expense`) VALUES
+(1, 1, 'TKT-2026-001', 'ABC123', 1, 1, '2026-05-11 10:23:06', '2026-06-15', '2026-06-22', 'JFK', 'LHR', 'round_trip', 'business', 2800.00, 450.00, 3250.00, 325.00, 0.00, 2925.00, 'paid', 'confirmed', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
+(2, 1, 'TKT-2026-002', 'DEF456', 2, 2, '2026-05-11 10:23:06', '2026-06-20', '2026-06-25', 'LAX', 'CDG', 'round_trip', 'economy', 850.00, 180.00, 1030.00, 103.00, 0.00, 927.00, 'paid', 'confirmed', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
+(3, 1, 'TKT-2026-003', 'GHI789', 3, 3, '2026-05-11 10:23:06', '2026-07-01', NULL, 'ORD', 'NRT', 'one_way', 'premium_economy', 1200.00, 220.00, 1420.00, 142.00, 0.00, 1278.00, 'partial', 'pending', NULL, NULL, NULL, '2026-05-11 10:23:06', '2026-06-05 14:06:22', NULL, NULL, 0.00, 0.00, 0.00),
+(4, 1, 'TKT-2026-004', 'JKL012', 4, 4, '2026-05-11 10:23:06', '2026-05-25', '2026-06-05', 'MIA', 'DXB', 'round_trip', 'first', 8500.00, 1200.00, 9700.00, 970.00, 0.00, 8730.00, 'paid', 'confirmed', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
+(5, 1, 'TKT-2026-005', 'MNO345', 5, 5, '2026-05-11 10:23:06', '2026-06-10', '2026-06-18', 'SFO', 'SIN', 'round_trip', 'business', 5200.00, 680.00, 5880.00, 588.00, 0.00, 5292.00, 'paid', 'confirmed', NULL, NULL, NULL, '2026-05-11 10:23:06', '2026-06-05 14:06:22', NULL, NULL, 0.00, 0.00, 0.00),
+(6, 1, 'TKT-2026-006', 'PQR678', 6, 1, '2026-05-11 10:23:06', '2026-07-15', NULL, 'BOS', 'FRA', 'one_way', 'economy', 750.00, 150.00, 900.00, 90.00, 0.00, 810.00, 'pending', 'pending', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
+(7, 1, 'TKT-2026-007', 'STU901', 7, 6, '2026-05-11 10:23:06', '2026-05-30', '2026-06-07', 'SEA', 'CDG', 'round_trip', 'economy', 920.00, 195.00, 1115.00, 111.50, 0.00, 1003.50, 'paid', 'completed', NULL, NULL, NULL, '2026-05-11 10:23:06', '2026-06-05 14:06:22', NULL, NULL, 0.00, 0.00, 0.00),
+(8, 1, 'TKT-2026-008', 'VWX234', 8, 7, '2026-05-11 10:23:06', '2026-06-25', NULL, 'DFW', 'SIN', 'one_way', 'business', 4200.00, 550.00, 4750.00, 475.00, 0.00, 4275.00, 'partial', 'pending', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
+(9, 1, 'TKT-2026-009', 'YZA567', 1, 8, '2026-05-11 10:23:06', '2026-04-15', '2026-04-20', 'ATL', 'LHR', 'round_trip', 'economy', 680.00, 140.00, 820.00, 82.00, 0.00, 738.00, 'refunded', 'refunded', NULL, NULL, NULL, '2026-05-11 10:23:06', '2026-06-05 14:06:22', NULL, NULL, 0.00, 0.00, 0.00),
+(10, 1, 'TKT-2026-010', 'BCD890', 3, 4, '2026-05-11 10:23:06', '2026-08-01', '2026-08-10', 'DEN', 'HND', 'round_trip', 'business', 3800.00, 520.00, 4320.00, 432.00, 0.00, 3888.00, 'paid', 'confirmed', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
+(11, 1, 'rr', 'eee3', 1, NULL, '2026-05-12 09:46:02', '2026-12-09', NULL, 'JFK', 'LHR', 'one_way', 'business', 12.00, 12.00, 24.00, 5.00, 0.00, 19.00, 'pending', 'pending', 1, '', NULL, '2026-05-12 09:46:02', '2026-05-12 09:46:02', NULL, NULL, 0.00, 0.00, 0.00),
+(12, 1, 'eee', 'eee123', 10, NULL, '2026-05-12 10:02:00', '2026-05-12', NULL, 'KBL', 'TEHR', 'one_way', 'economy', 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, 'hi', NULL, '2026-05-12 10:02:00', '2026-05-12 10:02:00', NULL, NULL, 0.00, 0.00, 0.00),
+(13, 1, 'test1', 't123', 10, NULL, '2026-05-12 12:04:16', '2026-05-12', NULL, 'JFK', 'LHR', 'one_way', 'business', 2.00, 2.00, 4.00, 6.00, 0.00, 4.00, 'pending', 'pending', 1, 'test1', NULL, '2026-05-12 12:04:16', '2026-05-12 12:04:16', NULL, NULL, 0.00, 0.00, 0.00),
+(14, 1, 'test1', 't123', 10, NULL, '2026-05-12 12:33:55', '2026-05-12', NULL, 'JFK', 'LHR', 'one_way', 'business', 5.00, 5.00, 10.00, 15.00, 0.00, 10.00, 'pending', 'pending', 1, 'test', NULL, '2026-05-12 12:33:55', '2026-05-12 12:33:55', NULL, NULL, 0.00, 0.00, 0.00),
+(15, 1, 'test2', 't222', 9, NULL, '2026-05-12 12:36:33', '2026-05-12', NULL, 'JFK', 'KBL', 'one_way', 'first', 0.00, 0.00, 10000.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, 'test2', NULL, '2026-05-12 12:36:33', '2026-05-12 12:36:33', NULL, NULL, 0.00, 0.00, 0.00),
+(16, 1, 'test3', 't33', 4, NULL, '2026-05-12 13:13:25', '2026-05-12', '2026-05-20', 'JFK', 'LHR', 'one_way', 'economy', 0.00, 0.00, 20000.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, 'test3', NULL, '2026-05-12 13:13:25', '2026-05-12 13:13:25', NULL, NULL, 0.00, 0.00, 0.00),
+(17, 1, 'test4', 'ts4', 9, NULL, '2026-05-13 07:01:24', '2026-05-13', NULL, 'KBL', 'LHR', 'one_way', 'economy', 0.00, 0.00, 9990.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, 'test4', NULL, '2026-05-13 07:01:24', '2026-05-13 07:01:24', NULL, NULL, 0.00, 0.00, 0.00),
+(18, 1, 'tkt-5', 't-5', 4, NULL, '2026-05-13 07:49:08', '2026-05-13', NULL, 'JFK', 'LHR', 'one_way', 'economy', 0.00, 0.00, 11000.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, '', NULL, '2026-05-13 07:49:08', '2026-05-13 07:49:08', NULL, NULL, 0.00, 0.00, 0.00),
+(19, 1, '2525', 't1', 14, NULL, '2026-05-13 08:35:15', '2026-05-13', NULL, 'JFK', 'LHR', 'one_way', 'economy', 0.00, 0.00, 2000.00, 0.00, 0.00, 0.00, 'paid', 'confirmed', 1, '', NULL, '2026-05-13 08:35:15', '2026-05-17 03:46:08', NULL, NULL, 0.00, 0.00, 0.00),
+(20, 1, 'rr', '123', 2, NULL, '2026-05-13 08:38:18', '2026-05-13', NULL, 'JFK', 'LHR', 'one_way', 'premium_economy', 0.00, 0.00, 10000.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, '', NULL, '2026-05-13 08:38:18', '2026-05-13 08:38:18', NULL, NULL, 0.00, 0.00, 0.00),
+(21, 1, 'tkt-121', 't12', 2, NULL, '2026-05-13 08:56:59', '2026-05-13', NULL, 'JFK', 'IND', 'one_way', 'economy', 0.00, 0.00, 15000.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, '', NULL, '2026-05-13 08:56:59', '2026-05-13 08:56:59', NULL, NULL, 0.00, 0.00, 0.00),
+(22, 1, 'ww', '12', 5, NULL, '2026-05-13 09:07:38', '2026-05-13', NULL, 'JKF', 'LHR', 'one_way', 'business', 0.00, 0.00, 10000.00, 0.00, 0.00, 0.00, 'pending', 'pending', 1, '', NULL, '2026-05-13 09:07:38', '2026-05-13 09:07:38', NULL, NULL, 0.00, 0.00, 0.00),
+(23, 1, 'tt1', 'tt2', 5, NULL, '2026-05-13 10:49:08', '2026-05-13', NULL, 'TEH', 'KBL', 'one_way', 'business', 4990.00, 10.00, 5000.00, 10.00, 0.00, 4990.00, 'cancelled', 'cancelled', 1, 'test', NULL, '2026-05-13 10:49:08', '2026-06-09 15:14:08', '2026-06-09 15:14:08', 55, 0.00, 0.00, 0.00),
+(48, 1, '12', 'test12', 9, 28, '2026-05-17 06:30:40', '2026-05-17', NULL, 'JFK', 'LHR', 'one_way', 'economy', 500.00, 0.00, 500.00, 0.00, 0.00, 500.00, 'paid', 'confirmed', 1, '', '{\"walletId\":9}', '2026-05-17 06:30:40', '2026-05-17 02:00:45', NULL, NULL, 0.00, 0.00, 0.00),
+(50, 1, '2020', 'pnr123', 9, 9, '2026-05-17 07:29:34', '2026-05-17', '2026-05-30', 'JFK', 'LHR', 'round_trip', 'business', 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'paid', 'confirmed', 1, '', '{\"walletId\":11}', '2026-05-17 07:29:34', '2026-05-17 03:00:20', NULL, NULL, 1000.00, 0.00, 0.00),
+(51, 1, '333', '222', 1, NULL, '2026-05-17 07:37:56', '2026-05-17', '2026-05-24', 'KBL', 'LHR', 'round_trip', 'economy', 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'paid', 'confirmed', 1, '', '{\"walletId\":11}', '2026-05-17 07:37:56', '2026-05-17 03:08:00', NULL, NULL, 20000.00, 0.00, 0.00),
+(53, 1, 'tt-tt', 'abc123', 2, NULL, '2026-05-17 08:04:59', '2026-05-17', NULL, 'TEH', 'KBL', 'one_way', 'economy', 248.00, 2.00, 250.00, 9.00, 0.00, 241.00, 'paid', 'confirmed', 1, 'test', '{\"walletId\":68}', '2026-05-17 08:04:59', '2026-05-17 03:35:13', NULL, NULL, 250.00, 0.00, 0.00),
+(54, 1, 'no2233', 'nnu7878', 1, 9, '2026-05-18 10:12:59', '2026-05-18', NULL, 'JFK', 'LHR', 'one_way', 'economy', 380.00, 0.00, 380.00, 0.00, 0.00, 380.00, 'refunded', 'refunded', 22, '', '{\"walletId\":11}', '2026-05-18 10:12:59', '2026-05-18 05:43:43', NULL, NULL, 380.00, 0.00, 0.00),
+(55, 1, 'tkt-2026-test', 'test123', 4, NULL, '2026-05-22 13:34:33', '2026-05-22', NULL, 'JFK', 'LHR', 'one_way', 'economy', 800.00, 0.00, 800.00, 0.00, 0.00, 800.00, 'paid', 'confirmed', 22, '', '{\"walletId\":71}', '2026-05-22 13:34:33', '2026-05-23 10:54:06', NULL, NULL, 750.00, 0.00, 0.00),
+(56, 41, 'tkt-123', 'abc123', 14, 39, '2026-05-22 16:43:06', '2026-05-22', NULL, 'JFK', 'LHR', 'one_way', 'economy', 400.00, 0.00, 400.00, 0.00, 0.00, 400.00, 'paid', 'pending', 47, '', '{\"walletId\":72}', '2026-05-22 16:43:06', '2026-05-22 16:43:06', NULL, NULL, 400.00, 0.00, 0.00),
+(57, 41, 'hhh', 'aaaaa', 14, 39, '2026-05-22 17:23:57', '2026-05-22', NULL, 'JFK', 'LHR', 'one_way', 'economy', 7000.00, 0.00, 7000.00, 0.00, 0.00, 7000.00, 'paid', 'pending', 47, '', '{\"walletId\":72}', '2026-05-22 17:23:57', '2026-05-22 17:23:57', NULL, NULL, 7000.00, 0.00, 0.00),
+(58, 1, 'jj-123', 'jj-1234', 1, NULL, '2026-05-23 15:25:19', '2026-05-23', '2026-05-24', 'JFK', 'LHR', 'one_way', 'economy', 900.00, 0.00, 900.00, 0.00, 0.00, 900.00, 'paid', 'confirmed', 22, '', '{\"walletId\":10}', '2026-05-23 15:25:19', '2026-05-23 10:55:22', NULL, NULL, 900.00, 0.00, 0.00),
+(59, 43, '8989', '8787', 5, NULL, '2026-05-23 15:29:26', '2026-05-23', NULL, 'KBL', 'TEH', 'one_way', 'economy', 900.00, 0.00, 900.00, 0.00, 0.00, 900.00, 'paid', 'pending', 49, '', '{\"walletId\":75}', '2026-05-23 15:29:26', '2026-05-23 15:29:26', NULL, NULL, 900.00, 0.00, 0.00),
+(60, 43, 'tt', 'abc', 4, NULL, '2026-05-23 15:36:47', '2026-05-23', NULL, 'JFK', 'LHR', 'one_way', 'economy', 100.00, 0.00, 100.00, 0.00, 0.00, 100.00, 'paid', 'confirmed', 49, '', '{\"walletId\":77}', '2026-05-23 15:36:47', '2026-05-23 11:06:49', NULL, NULL, 100.00, 0.00, 0.00),
+(61, 43, 'kjk', 'kjkj', 7, 40, '2026-05-23 15:39:25', '2026-05-23', NULL, 'TEST', 'TEST', 'one_way', 'economy', 800.00, 0.00, 800.00, 0.00, 0.00, 800.00, 'paid', 'confirmed', 49, '', '{\"walletId\":77}', '2026-05-23 15:39:25', '2026-05-23 11:09:27', NULL, NULL, 800.00, 0.00, 0.00),
+(62, 44, 'jfk-123', 'lhr-123', 1, NULL, '2026-05-24 07:43:16', '2026-05-24', '2026-05-25', 'JFK', 'LHR', 'round_trip', 'economy', 1500.00, 0.00, 1500.00, 0.00, 0.00, 1500.00, 'paid', 'confirmed', 50, '', '{\"walletId\":81}', '2026-05-24 07:43:16', '2026-05-24 03:13:19', NULL, NULL, 1500.00, 0.00, 0.00),
+(63, 1, 'tkt-120', 'abc120', 10, 43, '2026-06-03 05:29:12', '2026-06-03', NULL, 'JFK', 'LHR', 'one_way', 'economy', 250.00, 0.00, 250.00, 0.00, 0.00, 250.00, 'paid', 'confirmed', 22, '', '{\"walletId\":68}', '2026-06-03 05:29:12', '2026-06-09 15:15:05', NULL, NULL, 450.00, 0.00, 0.00),
+(64, 45, '5 3 7 9 5 7 3 1 6 1 4 9 8', '', 3, 44, '2026-06-03 05:57:18', '2026-06-08', NULL, 'MZR', 'IKA', 'one_way', 'economy', 223.00, 10.00, 233.00, 20.00, 0.00, 213.00, 'paid', 'confirmed', 51, '3 TICKETS ', '{\"walletId\":85}', '2026-06-03 05:57:18', '2026-06-03 05:57:38', NULL, NULL, 0.00, 0.00, 0.00),
+(65, 45, '5379573161497', '', 1, 44, '2026-06-03 06:15:38', '2026-06-08', NULL, 'MZR', 'IKA', 'one_way', 'economy', 220.00, 13.00, 233.00, 20.00, 0.00, 213.00, 'paid', 'confirmed', 51, '', '{\"walletId\":85}', '2026-06-03 06:15:38', '2026-06-03 06:15:43', NULL, NULL, 0.00, 0.00, 0.00),
+(66, 45, '5379573161496', '', 5, 44, '2026-06-03 06:17:34', '2026-06-08', NULL, 'MZR', 'IKA', 'one_way', 'economy', 220.00, 13.00, 233.00, 20.00, 0.00, 213.00, 'paid', 'confirmed', 51, '', '{\"walletId\":85}', '2026-06-03 06:17:34', '2026-06-03 06:17:47', NULL, NULL, 0.00, 0.00, 0.00),
+(67, 45, 'DS', NULL, NULL, NULL, '2026-06-07 06:00:37', '2026-06-08', NULL, 'MZR', 'IKA', 'one_way', 'economy', 223.00, 10.00, 233.00, 20.00, 0.00, 213.00, 'partial', 'pending', 51, 'KAM AIR', '{\"walletId\":85}', '2026-06-07 06:00:37', '2026-06-07 06:00:37', NULL, NULL, 200.00, 0.00, 0.00),
+(68, 45, 'TCK-2026-00001', NULL, NULL, 51, '2026-06-09 07:27:04', '2026-01-01', NULL, 'MZR', 'KBL', 'one_way', 'economy', 150.00, 0.00, 150.00, 0.00, 0.00, 150.00, 'pending', 'pending', 51, NULL, '{\"walletId\":82}', '2026-06-09 07:27:04', '2026-06-09 07:27:04', NULL, NULL, 0.00, 0.00, 0.00);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tickets_backup`
+--
+
+CREATE TABLE `tickets_backup` (
+  `id` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
+  `tenant_id` bigint(20) UNSIGNED NOT NULL,
+  `ticket_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `pnr_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `airline_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `customer_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `booking_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `travel_date` date DEFAULT NULL,
+  `return_date` date DEFAULT NULL,
+  `route_from` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `route_to` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `trip_type` enum('one_way','round_trip','multi_city') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'one_way',
+  `class` enum('economy','premium_economy','business','first') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'economy',
+  `base_fare` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `tax_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `commission_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `net_payable` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `payment_status` enum('pending','partial','paid','refunded','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending',
+  `status` enum('confirmed','pending','cancelled','refunded','completed') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending',
+  `issued_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` datetime DEFAULT NULL,
+  `deleted_by` int(11) DEFAULT NULL,
+  `paid_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `supplier_cost` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `expense` decimal(12,2) NOT NULL DEFAULT 0.00
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `tickets_backup`
+--
+
+INSERT INTO `tickets_backup` (`id`, `tenant_id`, `ticket_number`, `pnr_code`, `airline_id`, `customer_id`, `booking_date`, `travel_date`, `return_date`, `route_from`, `route_to`, `trip_type`, `class`, `base_fare`, `tax_amount`, `total_amount`, `commission_amount`, `net_payable`, `payment_status`, `status`, `issued_by`, `notes`, `metadata`, `created_at`, `updated_at`, `deleted_at`, `deleted_by`, `paid_amount`, `supplier_cost`, `expense`) VALUES
 (1, 1, 'TKT-2026-001', 'ABC123', 1, 1, '2026-05-11 10:23:06', '2026-06-15', '2026-06-22', 'JFK', 'LHR', 'round_trip', 'business', 2800.00, 450.00, 3250.00, 325.00, 2925.00, 'paid', 'confirmed', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
 (2, 1, 'TKT-2026-002', 'DEF456', 2, 2, '2026-05-11 10:23:06', '2026-06-20', '2026-06-25', 'LAX', 'CDG', 'round_trip', 'economy', 850.00, 180.00, 1030.00, 103.00, 927.00, 'paid', 'confirmed', 4, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
 (3, 1, 'TKT-2026-003', 'GHI789', 3, 3, '2026-05-11 10:23:06', '2026-07-01', NULL, 'ORD', 'NRT', 'one_way', 'premium_economy', 1200.00, 220.00, 1420.00, 142.00, 1278.00, 'partial', 'pending', 5, NULL, NULL, '2026-05-11 10:23:06', '2026-05-11 10:23:06', NULL, NULL, 0.00, 0.00, 0.00),
@@ -1642,7 +2047,11 @@ INSERT INTO `tickets` (`id`, `tenant_id`, `ticket_number`, `pnr_code`, `airline_
 (59, 43, '8989', '8787', 29, NULL, '2026-05-23 15:29:26', '2026-05-23', NULL, 'KBL', 'TEH', 'one_way', 'economy', 900.00, 0.00, 900.00, 0.00, 900.00, 'paid', 'pending', 49, '', '{\"walletId\":75}', '2026-05-23 15:29:26', '2026-05-23 15:29:26', NULL, NULL, 900.00, 0.00, 0.00),
 (60, 43, 'tt', 'abc', 28, NULL, '2026-05-23 15:36:47', '2026-05-23', NULL, 'JFK', 'LHR', 'one_way', 'economy', 100.00, 0.00, 100.00, 0.00, 100.00, 'paid', 'confirmed', 49, '', '{\"walletId\":77}', '2026-05-23 15:36:47', '2026-05-23 11:06:49', NULL, NULL, 100.00, 0.00, 0.00),
 (61, 43, 'kjk', 'kjkj', 31, 40, '2026-05-23 15:39:25', '2026-05-23', NULL, 'TEST', 'TEST', 'one_way', 'economy', 800.00, 0.00, 800.00, 0.00, 800.00, 'paid', 'confirmed', 49, '', '{\"walletId\":77}', '2026-05-23 15:39:25', '2026-05-23 11:09:27', NULL, NULL, 800.00, 0.00, 0.00),
-(62, 44, 'jfk-123', 'lhr-123', 33, NULL, '2026-05-24 07:43:16', '2026-05-24', '2026-05-25', 'JFK', 'LHR', 'round_trip', 'economy', 1500.00, 0.00, 1500.00, 0.00, 1500.00, 'paid', 'confirmed', 50, '', '{\"walletId\":81}', '2026-05-24 07:43:16', '2026-05-24 03:13:19', NULL, NULL, 1500.00, 0.00, 0.00);
+(62, 44, 'jfk-123', 'lhr-123', 33, NULL, '2026-05-24 07:43:16', '2026-05-24', '2026-05-25', 'JFK', 'LHR', 'round_trip', 'economy', 1500.00, 0.00, 1500.00, 0.00, 1500.00, 'paid', 'confirmed', 50, '', '{\"walletId\":81}', '2026-05-24 07:43:16', '2026-05-24 03:13:19', NULL, NULL, 1500.00, 0.00, 0.00),
+(63, 1, 'tkt-120', 'abc120', 10, 43, '2026-06-03 05:29:12', '2026-06-03', NULL, 'JFK', 'LHR', 'one_way', 'economy', 250.00, 0.00, 250.00, 0.00, 250.00, 'paid', 'confirmed', 22, '', '{\"walletId\":68}', '2026-06-03 05:29:12', '2026-06-03 05:29:25', NULL, NULL, 200.00, 0.00, 0.00),
+(64, 45, '5 3 7 9 5 7 3 1 6 1 4 9 8', '', 43, 44, '2026-06-03 05:57:18', '2026-06-08', NULL, 'MZR', 'IKA', 'one_way', 'economy', 223.00, 10.00, 233.00, 20.00, 213.00, 'paid', 'confirmed', 51, '3 TICKETS ', '{\"walletId\":85}', '2026-06-03 05:57:18', '2026-06-03 05:57:38', NULL, NULL, 0.00, 0.00, 0.00),
+(65, 45, '5379573161497', '', 41, 44, '2026-06-03 06:15:38', '2026-06-08', NULL, 'MZR', 'IKA', 'one_way', 'economy', 220.00, 13.00, 233.00, 20.00, 213.00, 'paid', 'confirmed', 51, '', '{\"walletId\":85}', '2026-06-03 06:15:38', '2026-06-03 06:15:43', NULL, NULL, 0.00, 0.00, 0.00),
+(66, 45, '5379573161496', '', 45, 44, '2026-06-03 06:17:34', '2026-06-08', NULL, 'MZR', 'IKA', 'one_way', 'economy', 220.00, 13.00, 233.00, 20.00, 213.00, 'paid', 'confirmed', 51, '', '{\"walletId\":85}', '2026-06-03 06:17:34', '2026-06-03 06:17:47', NULL, NULL, 0.00, 0.00, 0.00);
 
 -- --------------------------------------------------------
 
@@ -1692,7 +2101,13 @@ INSERT INTO `ticket_passengers` (`id`, `ticket_id`, `first_name`, `last_name`, `
 (21, 59, 'lklk', 'lklkll', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-05-23 15:29:26'),
 (22, 60, 'john doe', 'doe', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-05-23 15:36:47'),
 (23, 61, 'tt', 'yy', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-05-23 15:39:25'),
-(24, 62, 'elham', 'mukhtari', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-05-24 07:43:16');
+(24, 62, 'elham', 'mukhtari', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-05-24 07:43:16'),
+(25, 63, 'ali ', 'husain', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-06-03 05:29:12'),
+(26, 64, 'ABDUL QAHAR', 'RASOLI', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-06-03 05:57:18'),
+(27, 65, 'BAZ MOHAMMAD', 'HABIBI', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-06-03 06:15:38'),
+(28, 66, 'MOHAMMAD YASIN', 'MOHAMMADI', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-06-03 06:17:34'),
+(29, 67, 'AHMAD', 'AHMADI', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-06-07 06:00:37'),
+(30, 68, 'ATIQULLAH', 'AMINI', 'adult', NULL, NULL, NULL, NULL, NULL, '2026-06-09 07:27:04');
 
 -- --------------------------------------------------------
 
@@ -1723,15 +2138,11 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `unionId`, `password_hash`, `tenant_id`, `name`, `email`, `avatar`, `role`, `status`, `department`, `phone`, `last_sign_in_at`, `created_at`, `updated_at`) VALUES
 (1, 'admin-001', NULL, 1, 'Alexandra Chen', 'alex.chen@pioneer-travel.com', NULL, 'admin', 'active', 'Management', '+1-555-0101', '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(2, 'manager-001', NULL, 1, 'Marcus Johnson', 'marcus.j@pioneer-travel.com', NULL, 'manager', 'active', 'Operations', '+1-555-0102', '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(3, 'accountant-001', NULL, 1, 'Sarah Williams', 'sarah.w@pioneer-travel.com', NULL, 'accountant', 'active', 'Finance', '+1-555-0103', '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
 (4, 'agent-001', NULL, 1, 'David Kim', 'david.kim@pioneer-travel.com', NULL, 'agent', 'active', 'Sales', '+1-555-0104', '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(5, 'agent-002', NULL, 1, 'Emily Rodriguez', 'emily.r@pioneer-travel.com', NULL, 'agent', 'active', 'Sales', '+1-555-0105', '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(6, 'viewer-001', NULL, 1, 'James Taylor', 'james.t@pioneer-travel.com', NULL, 'viewer', 'active', 'Support', '+1-555-0106', '2026-05-11 10:23:06', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
 (8, 'admin-002', NULL, NULL, 'Local Admin', 'admin@local.dev', NULL, 'admin', 'active', NULL, NULL, '2026-05-12 09:42:12', '2026-05-12 09:42:12', '2026-05-12 09:42:12'),
 (11, 'smoke-user-1778955027148', 'd9a3d8bae7708acb75e5ff247a0072280937000026ffe0705f53b23f318b363c:a03f388e8fd99644edad1a99eda4434dc168006b2e57a477657d4cfd35b7fbec5862af4c750ae5e458c2770d5dbbd10ac32486c1bd98a2d044e1f8bfaf0b700b', 6, 'Smoke Tester', 'smoke@test.com', NULL, 'admin', 'active', NULL, NULL, '2026-05-16 18:10:27', '2026-05-16 18:10:27', '2026-05-16 18:10:27'),
 (12, 'smoke-user-1778956055207', '51fd6505984992b8f7ac40d05e9cb5a2ee8963e517f250faf12e82f35fddf00f:fe13368df901fb1a6355039638f63448a886a7e501369a6430d625baea97293d10fd252f0b6c9fbe9d6eb15106e57303741a65a5aa43f2cdb340ad208d1b101b', 7, 'Smoke Tester', 'smoke@test.com', NULL, 'admin', 'active', NULL, NULL, '2026-05-16 18:27:35', '2026-05-16 18:27:35', '2026-05-16 18:27:35'),
-(22, 'super-admin-001', 'a2071af474bd20a0e223df9b70581efacd9845b2706bc875b5abbb7ff65f6c58:bd069cced63c7129f4ae95b657bb3a25a05ed5d2a2d5aaf43532f0c381031a03895e566b750d6750ecfee85c769c44e95a200bc51cc56ef964f3a1d79b13e5ae', 1, 'PSB Super Admin', 'superadmin@psb.local', NULL, 'super_admin', 'active', NULL, NULL, '2026-05-18 09:39:20', '2026-05-16 22:38:25', '2026-05-16 22:38:25'),
+(22, 'super-admin-001', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 1, 'PSB Super Admin', 'superadmin@psb-erp.com', NULL, 'super_admin', 'active', NULL, NULL, '2026-06-09 15:21:43', '2026-05-16 22:38:25', '2026-05-16 22:38:25'),
 (40, 'local-1779006127610-z9ghgn', '882299d7d2735a64b29f6923054e31f2969c8bc9a083f59aab1ad256cbda1541:e1c692df2514f98dba05a3f8f38cf60735894949d5e4baaabe43649a038d81547c91f72c96621da05f75d7ab42b74b8060b43e7a71440b62521e2b9a0cc87d83', 33, 'Roheen', 'pouyanshahrbalkh.travel@gmail.com', NULL, 'admin', 'active', NULL, '0711340970', '2026-05-17 08:22:07', '2026-05-17 08:22:07', '2026-05-17 08:22:07'),
 (41, 'local-1779090390969-o1eua2', 'a8a73a2ad3427e12ba186dfbdc64b82292ce4064f4530e2e3aab37caabae239e:05201fc844ae55102551816c38de6df19708fc0c5b911ba5036560eacb63a9034ab61ba0e7b3203a128d520a1dd694bbb4a25cbdcc361163218db7a4b22dcf10', 34, 'test1', 'test@test.com', NULL, 'admin', 'active', NULL, '0789123456', '2026-05-18 07:46:30', '2026-05-18 07:46:30', '2026-05-18 07:46:30'),
 (42, 'local-1779091610377-4fg3fn', '56a65aef3378f191fbf99c15b94f3ce83de79585e71f73256023df5bbb79f814:ca5393843192fa26c6d3c622a38eeae76ddbf1a9668990326ae5702e1d7d7ce6c8b5ecff5278dd25c79afdf075f0d94e09c1db3b1244b176c228db0d68bbd522', 35, 'test1', 'gbbb@bjjnjn.com', NULL, 'admin', 'active', NULL, 'lkkkjjb', '2026-05-18 08:06:50', '2026-05-18 08:06:50', '2026-05-18 08:06:50'),
@@ -1742,7 +2153,11 @@ INSERT INTO `users` (`id`, `unionId`, `password_hash`, `tenant_id`, `name`, `ema
 (47, 'local-1779190873074-4ku9dh', '7cf52ba2fa4efb267d0ba7021efd9e4d384666fb35f06008067174daad4236e6:55b9559cad8a280d3f1c17e0c07a45e2df2a183a696db1ff3c0bc948b6625e9cd783ecaad2f0774f6893644042d1486080e08f8f58186b55a2f94a4ecf2b4af9', 41, 'behrooz 1', 'behrooz.haidari@psb-erp.com', NULL, 'admin', 'active', NULL, '0782121202', '2026-05-19 11:41:13', '2026-05-19 11:41:13', '2026-05-19 11:41:13'),
 (48, 'local-1779470795945-b39hz9', '093a3a88c49a5f7c25ec17828a6d2eb90ee245c53804a524d5923a416801470d:8a3379f1243ffd09f69740ff9c81a0562390b96ba1fdf5166feba16f39f9f5069cf8867af331a4d1a1ec469f8b4b2c8a1c042d1137c237da0e73355ea448f3af', 42, 'test20', 'test20@psb-erp.com', NULL, 'admin', 'active', NULL, '07818398969', '2026-05-22 17:26:35', '2026-05-22 17:26:35', '2026-05-22 17:26:35'),
 (49, 'local-1779549729142-f5da5y', '56b2e1f88276b46bb3c2f50f53b55fcb8a883b67376c953d28fc23e27ed24f7e:37e6fcfc6e1312092b1f1e6bdeef88510bb95d2cab2aa12f1da2dfc3997d49eba5432828bf64a43150af41358ecd48e4f4e0cc9a42ddf4c2cb75115800946814', 43, 'Elhamuddin', 'elham.mukhtari@psb-erp.com', NULL, 'admin', 'active', NULL, '0792119298', '2026-05-23 15:22:09', '2026-05-23 15:22:09', '2026-05-23 15:22:09'),
-(50, 'local-1779608409221-7mguim', 'efaf17f85361a14aced07d6baa858e04e298ae0563b0c2d6545c46e4e56cc2c8:8e07c5f8d5baace7fe72a9bb7aa373c9dd7f8d43fc22248b60f65b35a5d99c9d5c291e0cf3cc2cc17e61ee0cc048cf7e4f6ce088645d7ec8e1e264d3fe3e7d67', 44, 'Elhamuddin', 'elhammukhtari123456@gmail.com', NULL, 'admin', 'active', NULL, '0782636327', '2026-05-24 07:40:09', '2026-05-24 07:40:09', '2026-05-24 07:40:09');
+(50, 'local-1779608409221-7mguim', 'efaf17f85361a14aced07d6baa858e04e298ae0563b0c2d6545c46e4e56cc2c8:8e07c5f8d5baace7fe72a9bb7aa373c9dd7f8d43fc22248b60f65b35a5d99c9d5c291e0cf3cc2cc17e61ee0cc048cf7e4f6ce088645d7ec8e1e264d3fe3e7d67', 44, 'Elhamuddin', 'elhammukhtari123456@gmail.com', NULL, 'admin', 'active', NULL, '0782636327', '2026-05-24 07:40:09', '2026-05-24 07:40:09', '2026-05-24 07:40:09'),
+(51, 'local-1780413044217-677vlr', '5bb80302a4cdb83902903b29164d0dbedc11a2292f37b0305830f69fd745d87e:51bd139bb1f92388bcf3b103bdc7b054feba0b767170b97c058e4acf024ce045398296e41c9207603d305f6598d2139baf4647a4449d9dde347627c616618481', 45, 'Noor Mohammad', 'roheen_2010@yahoo.com', NULL, 'admin', 'active', NULL, '700208708', '2026-06-02 15:10:44', '2026-06-02 15:10:44', '2026-06-02 15:10:44'),
+(55, 'admin-003', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 1, 'PSB Adminn', 'admin@psb-erp.com', NULL, 'admin', 'active', 'Management', '+1-555-0201', '2026-06-05 12:44:23', '2026-06-02 15:48:10', '2026-06-05 12:44:23'),
+(56, 'manager-003', '016fea8e6f940d893bac768be404e71e9bdde6ea2b3e0fd1dfc198b4abec14ec:56a357c10a8711cbf0820abd06e1aeb971041db8fcc01c8fd634588f7882a435f2717472efe6bebadde30bf8bb0b71bf1a951166eb45f9670ab5b01dfd893790', 1, 'PSB Manager', 'manager@psb-erp.com', NULL, 'manager', 'active', 'Operations', '+1-555-0202', '2026-06-02 15:48:10', '2026-06-02 15:48:10', '2026-06-02 15:48:10'),
+(57, 'agent-003', '0fee4e7fe9373c767c60764f98bfa54709bc8fe35feed86dd3f30ce500179166:7f23633db0741c840b8fa4d4731f4870c29a074b654b2653438cef31185e8253cf340c43e6711197cc55eaed5d9aad8a50808aa2fe39071ee892a4781a6b649f', 1, 'PSB Agent', 'agent@psb-erp.com', NULL, 'agent', 'active', 'Sales', '+1-555-0203', '2026-06-02 15:48:10', '2026-06-02 15:48:10', '2026-06-02 15:48:10');
 
 -- --------------------------------------------------------
 
@@ -1761,6 +2176,7 @@ CREATE TABLE `wallets` (
   `reserved_balance` decimal(15,2) NOT NULL DEFAULT 0.00,
   `credit_limit` decimal(15,2) NOT NULL DEFAULT 0.00,
   `due_balance` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `account_id` bigint(20) UNSIGNED DEFAULT NULL,
   `status` enum('active','frozen','closed') NOT NULL DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -1770,31 +2186,37 @@ CREATE TABLE `wallets` (
 -- Dumping data for table `wallets`
 --
 
-INSERT INTO `wallets` (`id`, `tenant_id`, `user_id`, `customer_id`, `name`, `currency`, `balance`, `reserved_balance`, `credit_limit`, `due_balance`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, NULL, NULL, 'Main Operating Account', 'USD', 125000.00, 5000.00, 0.00, 0.00, 'active', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(2, 1, NULL, NULL, 'Sales Commission Pool', 'USD', 45000.00, 2000.00, 0.00, 0.00, 'active', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(3, 1, NULL, NULL, 'Petty Cash', 'USD', 5000.00, 0.00, 0.00, 0.00, 'active', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(4, 1, NULL, NULL, 'Client Deposits', 'USD', 78000.00, 15000.00, 0.00, 0.00, 'active', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(5, 1, NULL, NULL, 'Refund Reserve', 'USD', 25000.00, 25000.00, 0.00, 0.00, 'active', '2026-05-11 10:23:06', '2026-05-11 10:23:06'),
-(6, 1, NULL, NULL, 'Elham', 'USD', 0.00, 0.00, 0.00, 0.00, 'active', '2026-05-11 12:39:43', '2026-05-11 12:39:43'),
-(7, 1, 1, NULL, 'dd', 'EUR', 4996.00, 0.00, 0.00, 0.00, 'active', '2026-05-12 09:43:58', '2026-05-12 07:34:16'),
-(8, 1, 1, NULL, 'Elham', 'USD', 1000.00, 0.00, 0.00, 0.00, 'active', '2026-05-12 09:48:35', '2026-05-13 03:19:08'),
-(9, 1, 1, NULL, 'Elham1', 'USD', 500.00, 0.00, 0.00, 0.00, 'active', '2026-05-12 10:42:44', '2026-05-17 02:00:45'),
-(10, 1, NULL, NULL, 'Kam Air', 'USD', 54100.00, 0.00, 0.00, 0.00, 'active', '2026-05-12 11:53:34', '2026-05-23 10:55:22'),
-(11, 1, NULL, NULL, 'Ariana ', 'USD', 65920.00, 0.00, 0.00, 0.00, 'active', '2026-05-12 11:54:26', '2026-05-18 05:43:42'),
-(49, 1, 4, NULL, 'test', 'USD', 5000.00, 0.00, 0.00, 0.00, 'active', '2026-05-17 02:33:55', '2026-05-17 02:33:55'),
-(68, 1, NULL, NULL, 'mahan', 'USD', 750.00, 0.00, 0.00, 0.00, 'active', '2026-05-17 07:34:45', '2026-05-17 03:46:08'),
-(71, 1, 22, NULL, 'test', 'GBP', 9200.00, 0.00, 0.00, 0.00, 'active', '2026-05-22 13:32:57', '2026-05-23 10:54:06'),
-(72, 41, 47, NULL, 'Company wallet', 'USD', 10000.00, 0.00, 0.00, 0.00, 'active', '2026-05-22 13:35:39', '2026-05-22 13:35:39'),
-(73, 42, 48, NULL, 'test20', 'USD', 1000.00, 0.00, 0.00, 0.00, 'active', '2026-05-22 17:28:50', '2026-05-22 17:28:50'),
-(74, 43, NULL, NULL, 'Main Operating Account', 'USD', 0.00, 0.00, 0.00, 0.00, 'active', '2026-05-23 15:23:56', '2026-05-23 15:23:56'),
-(75, 43, NULL, NULL, 'Petty Cash', 'USD', 0.00, 0.00, 0.00, 0.00, 'active', '2026-05-23 15:23:56', '2026-05-23 15:23:56'),
-(76, 43, NULL, NULL, 'Client Deposits', 'USD', 0.00, 0.00, 0.00, 0.00, 'active', '2026-05-23 15:23:56', '2026-05-23 15:23:56'),
-(77, 43, NULL, NULL, 'petty cash', 'USD', 100.00, 0.00, 0.00, 0.00, 'active', '2026-05-23 15:29:59', '2026-05-23 11:09:27'),
-(78, 44, NULL, NULL, 'Main Operating Account', 'USD', 0.00, 0.00, 0.00, 0.00, 'active', '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
-(79, 44, NULL, NULL, 'Petty Cash', 'USD', 0.00, 0.00, 0.00, 0.00, 'active', '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
-(80, 44, NULL, NULL, 'Client Deposits', 'USD', 0.00, 0.00, 0.00, 0.00, 'active', '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
-(81, 44, NULL, NULL, 'Kam Air', 'USD', 9000.00, 0.00, 0.00, 0.00, 'active', '2026-05-24 07:41:33', '2026-05-24 03:15:22');
+INSERT INTO `wallets` (`id`, `tenant_id`, `user_id`, `customer_id`, `name`, `currency`, `balance`, `reserved_balance`, `credit_limit`, `due_balance`, `account_id`, `status`, `created_at`, `updated_at`) VALUES
+(1, 1, NULL, NULL, 'Main Operating Account', 'USD', 125000.00, 5000.00, 0.00, 0.00, 242, 'active', '2026-05-11 10:23:06', '2026-06-09 15:10:18'),
+(2, 1, NULL, NULL, 'Sales Commission Pool', 'USD', 45000.00, 2000.00, 0.00, 0.00, 238, 'active', '2026-05-11 10:23:06', '2026-06-09 15:10:18'),
+(3, 1, NULL, NULL, 'Petty Cash', 'USD', 5000.00, 0.00, 0.00, 0.00, 239, 'active', '2026-05-11 10:23:06', '2026-06-09 15:10:18'),
+(4, 1, NULL, NULL, 'Client Deposits', 'USD', 78000.00, 15000.00, 0.00, 0.00, 240, 'active', '2026-05-11 10:23:06', '2026-06-09 15:10:18'),
+(5, 1, NULL, NULL, 'Refund Reserve', 'USD', 25000.00, 25000.00, 0.00, 0.00, 241, 'active', '2026-05-11 10:23:06', '2026-06-09 15:10:18'),
+(6, 1, NULL, NULL, 'Elham', 'USD', 0.00, 0.00, 0.00, 0.00, 236, 'active', '2026-05-11 12:39:43', '2026-06-09 15:10:18'),
+(7, 1, 1, NULL, 'dd', 'EUR', 4996.00, 0.00, 0.00, 0.00, 231, 'active', '2026-05-12 09:43:58', '2026-06-09 15:10:18'),
+(8, 1, 1, NULL, 'Elham', 'USD', 1000.00, 0.00, 0.00, 0.00, 230, 'active', '2026-05-12 09:48:35', '2026-06-09 15:10:18'),
+(9, 1, 1, NULL, 'Elham1', 'USD', 500.00, 0.00, 0.00, 0.00, 229, 'active', '2026-05-12 10:42:44', '2026-06-09 15:10:18'),
+(10, 1, NULL, NULL, 'Kam Air', 'USD', 54100.00, 0.00, 0.00, 0.00, 237, 'active', '2026-05-12 11:53:34', '2026-06-09 15:10:18'),
+(11, 1, NULL, NULL, 'Ariana ', 'USD', 65920.00, 0.00, 0.00, 0.00, 235, 'active', '2026-05-12 11:54:26', '2026-06-09 15:10:18'),
+(49, 1, 4, NULL, 'test', 'USD', 5000.00, 0.00, 0.00, 0.00, 234, 'active', '2026-05-17 02:33:55', '2026-06-09 15:10:18'),
+(68, 1, NULL, NULL, 'mahan', 'USD', 500.00, 0.00, 0.00, 0.00, 233, 'active', '2026-05-17 07:34:45', '2026-06-09 15:10:18'),
+(71, 1, 22, NULL, 'test', 'GBP', 10200.00, 0.00, 0.00, 0.00, 232, 'active', '2026-05-22 13:32:57', '2026-06-09 15:16:02'),
+(72, 41, 47, NULL, 'Company wallet', 'USD', 10000.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-22 13:35:39', '2026-05-22 13:35:39'),
+(73, 42, 48, NULL, 'test20', 'USD', 1000.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-22 17:28:50', '2026-05-22 17:28:50'),
+(74, 43, NULL, NULL, 'Main Operating Account', 'USD', 0.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-23 15:23:56', '2026-05-23 15:23:56'),
+(75, 43, NULL, NULL, 'Petty Cash', 'USD', 0.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-23 15:23:56', '2026-05-23 15:23:56'),
+(76, 43, NULL, NULL, 'Client Deposits', 'USD', 0.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-23 15:23:56', '2026-05-23 15:23:56'),
+(77, 43, NULL, NULL, 'petty cash', 'USD', 100.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-23 15:29:59', '2026-05-23 11:09:27'),
+(78, 44, NULL, NULL, 'Main Operating Account', 'USD', 0.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
+(79, 44, NULL, NULL, 'Petty Cash', 'USD', 0.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
+(80, 44, NULL, NULL, 'Client Deposits', 'USD', 0.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-24 07:40:32', '2026-05-24 07:40:32'),
+(81, 44, NULL, NULL, 'Kam Air', 'USD', 9000.00, 0.00, 0.00, 0.00, NULL, 'active', '2026-05-24 07:41:33', '2026-05-24 03:15:22'),
+(82, 45, NULL, NULL, 'Main Operating Account', 'USD', 0.00, 0.00, 0.00, 0.00, 247, 'active', '2026-06-02 15:13:07', '2026-06-09 15:20:21'),
+(83, 45, NULL, NULL, 'Petty Cash', 'USD', 0.00, 0.00, 0.00, 0.00, 251, 'active', '2026-06-02 15:13:07', '2026-06-09 15:20:21'),
+(84, 45, NULL, NULL, 'Client Deposits', 'USD', 0.00, 0.00, 0.00, 0.00, 252, 'active', '2026-06-02 15:13:07', '2026-06-09 15:20:21'),
+(85, 45, 51, NULL, 'yasinbooking account', 'USD', 10620.00, 0.00, 0.00, 0.00, 250, 'active', '2026-06-03 04:26:59', '2026-06-09 15:20:21'),
+(86, 45, 51, NULL, 'kam air', 'USD', 2251.00, 0.00, 0.00, 0.00, 249, 'active', '2026-06-03 04:29:13', '2026-06-09 15:20:21'),
+(87, 45, 51, NULL, 'skytravel account', 'USD', 2387.00, 0.00, 0.00, 0.00, 248, 'active', '2026-06-03 05:13:54', '2026-06-09 15:20:21');
 
 -- --------------------------------------------------------
 
@@ -1823,17 +2245,17 @@ CREATE TABLE `wallet_transactions` (
 
 INSERT INTO `wallet_transactions` (`id`, `wallet_id`, `tenant_id`, `type`, `amount`, `balance_after`, `description`, `reference_type`, `reference_id`, `metadata`, `created_by`, `created_at`) VALUES
 (1, 1, 1, 'credit', 50000.00, 50000.00, 'Initial funding', 'deposit', NULL, NULL, 1, '2026-05-11 10:23:07'),
-(2, 1, 1, 'credit', 45000.00, 95000.00, 'Customer deposits', 'deposit', NULL, NULL, 3, '2026-05-11 10:23:07'),
+(2, 1, 1, 'credit', 45000.00, 95000.00, 'Customer deposits', 'deposit', NULL, NULL, NULL, '2026-05-11 10:23:07'),
 (3, 1, 1, 'debit', 15000.00, 80000.00, 'Airline payment batch', 'payment', NULL, NULL, 1, '2026-05-11 10:23:07'),
-(4, 1, 1, 'credit', 35000.00, 115000.00, 'Weekly receipts', 'deposit', NULL, NULL, 3, '2026-05-11 10:23:07'),
+(4, 1, 1, 'credit', 35000.00, 115000.00, 'Weekly receipts', 'deposit', NULL, NULL, NULL, '2026-05-11 10:23:07'),
 (5, 1, 1, 'credit', 10000.00, 125000.00, 'Additional capital', 'deposit', NULL, NULL, 1, '2026-05-11 10:23:07'),
 (6, 2, 1, 'credit', 20000.00, 20000.00, 'Commission allocation', NULL, NULL, NULL, 1, '2026-05-11 10:23:07'),
-(7, 2, 1, 'credit', 25000.00, 45000.00, 'Q1 commissions', NULL, NULL, NULL, 3, '2026-05-11 10:23:07'),
+(7, 2, 1, 'credit', 25000.00, 45000.00, 'Q1 commissions', NULL, NULL, NULL, NULL, '2026-05-11 10:23:07'),
 (8, 3, 1, 'credit', 5000.00, 5000.00, 'Petty cash setup', NULL, NULL, NULL, 1, '2026-05-11 10:23:07'),
 (9, 4, 1, 'credit', 30000.00, 30000.00, 'Client advance deposits', NULL, NULL, NULL, 4, '2026-05-11 10:23:07'),
-(10, 4, 1, 'credit', 48000.00, 78000.00, 'New client deposits', NULL, NULL, NULL, 5, '2026-05-11 10:23:07'),
+(10, 4, 1, 'credit', 48000.00, 78000.00, 'New client deposits', NULL, NULL, NULL, NULL, '2026-05-11 10:23:07'),
 (11, 5, 1, 'credit', 25000.00, 25000.00, 'Refund reserve setup', NULL, NULL, NULL, 1, '2026-05-11 10:23:07'),
-(12, 5, 1, 'debit', 820.00, 24180.00, 'Refund - TKT-2026-009', 'refund', NULL, NULL, 3, '2026-05-11 10:23:07'),
+(12, 5, 1, 'debit', 820.00, 24180.00, 'Refund - TKT-2026-009', 'refund', NULL, NULL, NULL, '2026-05-11 10:23:07'),
 (13, 7, 1, 'credit', 5000.00, 5000.00, 'Initial wallet funding', NULL, NULL, NULL, 1, '2026-05-12 09:43:58'),
 (14, 8, 1, 'credit', 10000.00, 10000.00, 'Initial wallet funding', NULL, NULL, NULL, 1, '2026-05-12 09:48:35'),
 (15, 9, 1, 'credit', 5000.00, 5000.00, 'Initial wallet funding', NULL, NULL, NULL, 1, '2026-05-12 10:42:44'),
@@ -1872,7 +2294,15 @@ INSERT INTO `wallet_transactions` (`id`, `wallet_id`, `tenant_id`, `type`, `amou
 (124, 77, 43, 'debit', 800.00, 100.00, 'Ticket booking: kjk', 'ticket', 61, NULL, 49, '2026-05-23 15:39:27'),
 (125, 81, 44, 'credit', 10000.00, 10000.00, 'Initial wallet funding', NULL, NULL, NULL, 50, '2026-05-24 07:41:33'),
 (126, 81, 44, 'debit', 1500.00, 8500.00, 'Ticket booking: jfk-123', 'ticket', 62, NULL, 50, '2026-05-24 07:43:19'),
-(127, 81, 44, 'credit', 500.00, 9000.00, 'Deposit approved: MZR-2026-000001', 'deposit', 3, NULL, 50, '2026-05-24 07:45:22');
+(127, 81, 44, 'credit', 500.00, 9000.00, 'Deposit approved: MZR-2026-000001', 'deposit', 3, NULL, 50, '2026-05-24 07:45:22'),
+(128, 85, 45, 'credit', 11319.00, 11319.00, 'Initial wallet funding', NULL, NULL, NULL, 51, '2026-06-03 04:26:59'),
+(129, 86, 45, 'credit', 2251.00, 2251.00, 'Initial wallet funding', NULL, NULL, NULL, 51, '2026-06-03 04:29:13'),
+(130, 87, 45, 'credit', 2387.00, 2387.00, 'Initial wallet funding', NULL, NULL, NULL, 51, '2026-06-03 05:13:54'),
+(131, 68, 1, 'debit', 250.00, 500.00, 'Ticket booking: tkt-120', 'ticket', 63, NULL, 22, '2026-06-03 05:29:25'),
+(132, 85, 45, 'debit', 233.00, 11086.00, 'Ticket booking: 5 3 7 9 5 7 3 1 6 1 4 9 8', 'ticket', 64, NULL, 51, '2026-06-03 05:57:38'),
+(133, 85, 45, 'debit', 233.00, 10853.00, 'Ticket booking: 5379573161497', 'ticket', 65, NULL, 51, '2026-06-03 06:15:42'),
+(134, 85, 45, 'debit', 233.00, 10620.00, 'Ticket booking: 5379573161496', 'ticket', 66, NULL, 51, '2026-06-03 06:17:47'),
+(135, 71, 1, 'credit', 1000.00, 10200.00, 'Deposit approved: MZR-2026-000005', 'deposit', 4, NULL, 55, '2026-06-09 15:16:02');
 
 -- --------------------------------------------------------
 
@@ -1986,6 +2416,26 @@ ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`),
   ADD KEY `customers_tenant_id_tenants_id_fk` (`tenant_id`),
   ADD KEY `customers_assigned_to_users_id_fk` (`assigned_to`);
+
+--
+-- Indexes for table `customer_loans`
+--
+ALTER TABLE `customer_loans`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `customer_loans_number_unique` (`tenant_id`,`loan_number`),
+  ADD KEY `customer_loans_tenant_idx` (`tenant_id`),
+  ADD KEY `customer_loans_customer_idx` (`customer_id`),
+  ADD KEY `fk_customer_loans_created_by` (`created_by`),
+  ADD KEY `fk_customer_loans_deleted_by` (`deleted_by`);
+
+--
+-- Indexes for table `customer_loan_repayments`
+--
+ALTER TABLE `customer_loan_repayments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `loan_repayments_loan_idx` (`loan_id`),
+  ADD KEY `fk_customer_loan_repayments_tenant` (`tenant_id`),
+  ADD KEY `fk_customer_loan_repayments_created_by` (`created_by`);
 
 --
 -- Indexes for table `customer_transactions`
@@ -2231,7 +2681,8 @@ ALTER TABLE `users`
 ALTER TABLE `wallets`
   ADD PRIMARY KEY (`id`),
   ADD KEY `wallets_tenant_id_tenants_id_fk` (`tenant_id`),
-  ADD KEY `wallets_user_id_users_id_fk` (`user_id`);
+  ADD KEY `wallets_user_id_users_id_fk` (`user_id`),
+  ADD KEY `wallets_account_id_idx` (`account_id`);
 
 --
 -- Indexes for table `wallet_transactions`
@@ -2262,13 +2713,13 @@ ALTER TABLE `accounting_periods`
 -- AUTO_INCREMENT for table `airlines`
 --
 ALTER TABLE `airlines`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `ai_conversations`
 --
 ALTER TABLE `ai_conversations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `ai_messages`
@@ -2280,7 +2731,7 @@ ALTER TABLE `ai_messages`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=120;
 
 --
 -- AUTO_INCREMENT for table `bank_statements`
@@ -2310,25 +2761,37 @@ ALTER TABLE `bill_items`
 -- AUTO_INCREMENT for table `chart_of_accounts`
 --
 ALTER TABLE `chart_of_accounts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=204;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=253;
 
 --
 -- AUTO_INCREMENT for table `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+
+--
+-- AUTO_INCREMENT for table `customer_loans`
+--
+ALTER TABLE `customer_loans`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `customer_loan_repayments`
+--
+ALTER TABLE `customer_loan_repayments`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `customer_transactions`
 --
 ALTER TABLE `customer_transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `deposits`
 --
 ALTER TABLE `deposits`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `documents`
@@ -2340,13 +2803,13 @@ ALTER TABLE `documents`
 -- AUTO_INCREMENT for table `document_sequences`
 --
 ALTER TABLE `document_sequences`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `exchange_rates`
 --
 ALTER TABLE `exchange_rates`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `expenses`
@@ -2358,7 +2821,7 @@ ALTER TABLE `expenses`
 -- AUTO_INCREMENT for table `expense_categories`
 --
 ALTER TABLE `expense_categories`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `interactions`
@@ -2370,49 +2833,49 @@ ALTER TABLE `interactions`
 -- AUTO_INCREMENT for table `invoices`
 --
 ALTER TABLE `invoices`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `invoice_items`
 --
 ALTER TABLE `invoice_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `journal_entries`
 --
 ALTER TABLE `journal_entries`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
 
 --
 -- AUTO_INCREMENT for table `journal_entry_lines`
 --
 ALTER TABLE `journal_entry_lines`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=198;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=224;
 
 --
 -- AUTO_INCREMENT for table `leads`
 --
 ALTER TABLE `leads`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `ledger_entries`
 --
 ALTER TABLE `ledger_entries`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=185;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=211;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=137;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=163;
 
 --
 -- AUTO_INCREMENT for table `payment_locations`
 --
 ALTER TABLE `payment_locations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -2430,7 +2893,7 @@ ALTER TABLE `sessions`
 -- AUTO_INCREMENT for table `subscriptions`
 --
 ALTER TABLE `subscriptions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `suppliers`
@@ -2448,49 +2911,49 @@ ALTER TABLE `supplier_contacts`
 -- AUTO_INCREMENT for table `supplier_payments`
 --
 ALTER TABLE `supplier_payments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
 --
 ALTER TABLE `system_settings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
 
 --
 -- AUTO_INCREMENT for table `tenants`
 --
 ALTER TABLE `tenants`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `tickets`
 --
 ALTER TABLE `tickets`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `ticket_passengers`
 --
 ALTER TABLE `ticket_passengers`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `wallets`
 --
 ALTER TABLE `wallets`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
 
 --
 -- AUTO_INCREMENT for table `wallet_transactions`
 --
 ALTER TABLE `wallet_transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=128;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=136;
 
 --
 -- AUTO_INCREMENT for table `__drizzle_migrations`
@@ -2575,6 +3038,23 @@ ALTER TABLE `chart_of_accounts`
 ALTER TABLE `customers`
   ADD CONSTRAINT `customers_assigned_to_users_id_fk` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   ADD CONSTRAINT `customers_tenant_id_tenants_id_fk` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `customer_loans`
+--
+ALTER TABLE `customer_loans`
+  ADD CONSTRAINT `fk_customer_loans_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `fk_customer_loans_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`),
+  ADD CONSTRAINT `fk_customer_loans_deleted_by` FOREIGN KEY (`deleted_by`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `fk_customer_loans_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`);
+
+--
+-- Constraints for table `customer_loan_repayments`
+--
+ALTER TABLE `customer_loan_repayments`
+  ADD CONSTRAINT `fk_customer_loan_repayments_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `fk_customer_loan_repayments_loan` FOREIGN KEY (`loan_id`) REFERENCES `customer_loans` (`id`),
+  ADD CONSTRAINT `fk_customer_loan_repayments_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`);
 
 --
 -- Constraints for table `documents`
@@ -2726,6 +3206,7 @@ ALTER TABLE `users`
 -- Constraints for table `wallets`
 --
 ALTER TABLE `wallets`
+  ADD CONSTRAINT `fk_wallets_account_id_chart_of_accounts_id` FOREIGN KEY (`account_id`) REFERENCES `chart_of_accounts` (`id`),
   ADD CONSTRAINT `wallets_tenant_id_tenants_id_fk` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   ADD CONSTRAINT `wallets_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
 

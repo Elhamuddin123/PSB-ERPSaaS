@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Badge } from "@/components/ui/badge";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import {
   Building2, ArrowRight, Plane, Wallet, Users, Receipt,
   BookOpen, Brain, Shield, CheckCircle2, BarChart3,
-  Globe, Zap, Lock, Sparkles, TrendingUp, Clock,
+  Zap, Lock, Sparkles, TrendingUp, Clock,
   Play, Layers, Database, Star, Crown
 } from "lucide-react";
 
@@ -170,6 +172,7 @@ function FeatureCard({ icon: Icon, title, description, color, delay }: { icon: R
 
 /* ─── MAIN HOME PAGE ────────────────────────────────────────────────────── */
 export default function HomePage() {
+  const { t } = useTranslation("common");
   const { isLoggedIn } = useAuth();
 
   const { scrollYProgress } = useScroll();
@@ -177,21 +180,21 @@ export default function HomePage() {
   const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95]);
 
   const features = [
-    { icon: Wallet, title: "Wallet Management", description: "Multi-currency wallets with real-time balance tracking, automated transfers, and commission allocation across teams.", color: "bg-emerald-500", delay: 0 },
-    { icon: Plane, title: "Ticket Management", description: "Full airline ticket lifecycle from booking to refund with PNR tracking, passenger management, and automated invoicing.", color: "bg-blue-500", delay: 0.1 },
-    { icon: Users, title: "Customer CRM", description: "360-degree customer view with VIP classification, lead pipeline management, and interaction history tracking.", color: "bg-violet-500", delay: 0.2 },
-    { icon: Receipt, title: "Expense Control", description: "Streamlined expense submission with multi-level approval workflows, receipt storage, and budget analytics.", color: "bg-amber-500", delay: 0.3 },
-    { icon: BookOpen, title: "Accounting & Ledger", description: "Double-entry bookkeeping with chart of accounts, journal entries, immutable audit trails, and financial reporting.", color: "bg-rose-500", delay: 0.4 },
-    { icon: Brain, title: "AI Assistant", description: "Intelligent insights for revenue forecasting, expense anomaly detection, customer analysis, and automated reporting.", color: "bg-indigo-500", delay: 0.5 },
-    { icon: Shield, title: "Security & RBAC", description: "Role-based access control with 6 permission levels, immutable audit logs, and complete activity tracking.", color: "bg-cyan-500", delay: 0.6 },
-    { icon: BarChart3, title: "Real-time Analytics", description: "Interactive dashboards with revenue trends, ticket distribution, expense breakdowns, and predictive insights.", color: "bg-orange-500", delay: 0.7 },
+    { icon: Wallet, title: t("home.feature.walletManagement.title"), description: t("home.feature.walletManagement.description"), color: "bg-emerald-500", delay: 0 },
+    { icon: Plane, title: t("home.feature.ticketManagement.title"), description: t("home.feature.ticketManagement.description"), color: "bg-blue-500", delay: 0.1 },
+    { icon: Users, title: t("home.feature.customerCRM.title"), description: t("home.feature.customerCRM.description"), color: "bg-violet-500", delay: 0.2 },
+    { icon: Receipt, title: t("home.feature.expenseControl.title"), description: t("home.feature.expenseControl.description"), color: "bg-amber-500", delay: 0.3 },
+    { icon: BookOpen, title: t("home.feature.accountingLedger.title"), description: t("home.feature.accountingLedger.description"), color: "bg-rose-500", delay: 0.4 },
+    { icon: Brain, title: t("home.feature.aiAssistant.title"), description: t("home.feature.aiAssistant.description"), color: "bg-indigo-500", delay: 0.5 },
+    { icon: Shield, title: t("home.feature.securityRBAC.title"), description: t("home.feature.securityRBAC.description"), color: "bg-cyan-500", delay: 0.6 },
+    { icon: BarChart3, title: t("home.feature.realTimeAnalytics.title"), description: t("home.feature.realTimeAnalytics.description"), color: "bg-orange-500", delay: 0.7 },
   ];
 
   const stats = [
-    { value: 10000, suffix: "+", label: "Tickets Processed", icon: Plane },
-    { value: 500, suffix: "+", label: "Active Agencies", icon: Building2 },
-    { value: 50, suffix: "M+", label: "Revenue Tracked", icon: TrendingUp, prefix: "$" },
-    { value: 99.9, suffix: "%", label: "Uptime SLA", icon: Clock },
+    { value: 10000, suffix: "+", label: t("home.stats.ticketsProcessed"), icon: Plane },
+    { value: 500, suffix: "+", label: t("home.stats.activeAgencies"), icon: Building2 },
+    { value: 50, suffix: "M+", label: t("home.stats.revenueTracked"), icon: TrendingUp, prefix: "$" },
+    { value: 99.9, suffix: "%", label: t("home.stats.uptimeSLA"), icon: Clock },
   ];
 
   return (
@@ -204,22 +207,22 @@ export default function HomePage() {
               <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              <span className="font-bold text-xl text-slate-900 dark:text-white">PSB-ERP</span>
+              <span className="font-bold text-xl text-slate-900 dark:text-white">{t("appName")}</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Features</a>
-              <a href="#modules" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Modules</a>
-              <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Pricing</a>
+              <a href="#features" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">{t("home.nav.features")}</a>
+              <a href="#modules" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">{t("home.nav.modules")}</a>
+              <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">{t("home.nav.pricing")}</a>
             </div>
             <div className="flex items-center gap-3">
               {!isLoggedIn && (
                 <Link to="/login">
-                  <Button size="sm" variant="outline">Sign In</Button>
+                  <Button size="sm" variant="outline">{t("common.signIn")}</Button>
                 </Link>
               )}
               <Link to={isLoggedIn ? "/dashboard" : "/register"}>
                 <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                  {isLoggedIn ? "Dashboard" : "Register Agency"} <ArrowRight className="h-4 w-4 ml-1" />
+                  {isLoggedIn ? t("home.cta.dashboard") : t("home.cta.registerAgency")} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
@@ -244,7 +247,7 @@ export default function HomePage() {
           >
             <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300">
               <Sparkles className="h-3.5 w-3.5 mr-1.5 inline" />
-              Trusted by 500+ Travel Agencies Worldwide
+              {t("home.hero.badge")}
             </Badge>
           </motion.div>
 
@@ -255,10 +258,10 @@ export default function HomePage() {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-4xl sm:text-5xl lg:text-7xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight"
           >
-            The Complete ERP for{" "}
+            {t("home.hero.headline.before")}
             <span className="relative">
               <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                Travel Agencies
+                {t("home.hero.headline.highlight")}
               </span>
               <motion.svg
                 className="absolute -bottom-2 left-0 w-full"
@@ -294,8 +297,7 @@ export default function HomePage() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed"
           >
-            Multi-tenant ERP platform built specifically for travel agencies. Manage wallets,
-            tickets, customers, expenses, accounting, and AI-powered insights — all in one place.
+            {t("home.hero.subtitle")}
           </motion.p>
 
           {/* CTA Buttons */}
@@ -307,18 +309,18 @@ export default function HomePage() {
           >
             <Link to={isLoggedIn ? "/dashboard" : "/register"}>
               <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-base px-8 h-12 w-full sm:w-auto">
-                {isLoggedIn ? "Go to Dashboard" : "Register Your Agency"} <ArrowRight className="h-5 w-5 ml-2" />
+                {isLoggedIn ? t("home.cta.goToDashboard") : t("home.cta.registerAgency")} <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </Link>
             {!isLoggedIn && (
               <Link to="/login">
                 <Button size="lg" variant="outline" className="text-base px-8 h-12 w-full sm:w-auto">
-                  Sign In
+                  {t("common.signIn")}
                 </Button>
               </Link>
             )}
             <Button size="lg" variant="outline" className="text-base px-8 h-12 w-full sm:w-auto">
-              <Play className="h-4 w-4 mr-2" /> Watch Demo
+              <Play className="h-4 w-4 mr-2" /> {t("home.cta.watchDemo")}
             </Button>
           </motion.div>
 
@@ -329,7 +331,7 @@ export default function HomePage() {
             transition={{ duration: 1, delay: 0.6 }}
             className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800"
           >
-            <p className="text-sm text-slate-500 mb-6">Trusted by leading travel agencies</p>
+            <p className="text-sm text-slate-500 mb-6">{t("home.trustedBy")}</p>
             <div className="flex flex-wrap justify-center gap-8 opacity-50">
               {["American Airlines", "Delta", "Emirates", "Singapore Air", "British Airways"].map((name) => (
                 <span key={name} className="text-sm font-semibold text-slate-400">{name}</span>
@@ -374,13 +376,12 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-10 sm:mb-12"
           >
-            <Badge variant="outline" className="mb-4">Dashboard</Badge>
+            <Badge variant="outline" className="mb-4">{t("home.dashboardBadge")}</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
-              Everything at a Glance
+              {t("home.dashboardHeadline")}
             </h2>
             <p className="mt-4 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
-              Real-time KPIs, revenue trends, ticket status distribution, expense analytics,
-              and top customer insights in one unified dashboard.
+              {t("home.dashboardSubtitle")}
             </p>
           </motion.div>
 
@@ -400,14 +401,21 @@ export default function HomePage() {
               </div>
               <div className="flex-1 mx-4">
                 <div className="bg-white dark:bg-slate-700 rounded-md px-3 py-1 text-xs text-slate-500 text-center">
-                  psb-erp.com/dashboard
+                  {t("home.dashboardPreview.url")}
                 </div>
               </div>
             </div>
             {/* Dashboard preview content */}
             <div className="p-4 sm:p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
               {/* Stat cards */}
-              {["Total Tickets", "Customers", "Wallet Balance", "Revenue", "Expenses", "Pending"].map((title, i) => (
+              {[
+                t("home.dashboardPreview.stats.totalTickets"),
+                t("home.dashboardPreview.stats.customers"),
+                t("home.dashboardPreview.stats.walletBalance"),
+                t("home.dashboardPreview.stats.revenue"),
+                t("home.dashboardPreview.stats.expenses"),
+                t("home.dashboardPreview.stats.pending"),
+              ].map((title, i) => (
                 <div key={title} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
                   <div className="h-2 w-2 rounded-full bg-indigo-400 mb-2" />
                   <p className="text-[10px] text-slate-400">{title}</p>
@@ -416,7 +424,7 @@ export default function HomePage() {
               ))}
               {/* Chart placeholders */}
               <div className="col-span-3 bg-slate-50 dark:bg-slate-800 rounded-lg p-4 h-48">
-                <p className="text-xs text-slate-400 mb-2">Revenue Trend</p>
+                <p className="text-xs text-slate-400 mb-2">{t("home.dashboardPreview.revenueTrend")}</p>
                 <div className="flex items-end gap-2 h-32">
                   {[40, 55, 45, 70, 60, 85, 75, 90, 80, 95, 88, 100].map((h, i) => (
                     <motion.div
@@ -431,7 +439,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="col-span-3 bg-slate-50 dark:bg-slate-800 rounded-lg p-4 h-48">
-                <p className="text-xs text-slate-400 mb-2">Ticket Distribution</p>
+                <p className="text-xs text-slate-400 mb-2">{t("home.dashboardPreview.ticketDistribution")}</p>
                 <div className="flex items-center justify-center h-32">
                   <div className="relative h-24 w-24">
                     <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
@@ -466,13 +474,12 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <Badge variant="outline" className="mb-4">Features</Badge>
+            <Badge variant="outline" className="mb-4">{t("home.featuresBadge")}</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
-              Built for Travel Agency Operations
+              {t("home.featuresHeadline")}
             </h2>
             <p className="mt-4 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
-              Every feature designed specifically for the unique challenges of travel agencies —
-              from multi-airline bookings to complex commission structures.
+              {t("home.featuresSubtitle")}
             </p>
           </motion.div>
 
@@ -493,17 +500,17 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <Badge variant="outline" className="mb-4">How It Works</Badge>
+            <Badge variant="outline" className="mb-4">{t("home.howItWorksBadge")}</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
-              Streamlined Workflow
+              {t("home.howItWorksHeadline")}
             </h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "Connect & Configure", description: "Set up your agency profile, connect airlines, configure wallets, and invite your team with role-based permissions.", icon: Layers },
-              { step: "02", title: "Manage Operations", description: "Process bookings, track expenses, manage customer relationships, and monitor real-time financial data.", icon: Database },
-              { step: "03", title: "Analyze & Optimize", description: "Leverage AI-powered insights, generate reports, audit trails, and optimize your agency performance.", icon: Zap },
+              { step: "01", title: t("home.howItWorks.step1.title"), description: t("home.howItWorks.step1.description"), icon: Layers },
+              { step: "02", title: t("home.howItWorks.step2.title"), description: t("home.howItWorks.step2.description"), icon: Database },
+              { step: "03", title: t("home.howItWorks.step3.title"), description: t("home.howItWorks.step3.description"), icon: Zap },
             ].map((item, i) => (
               <motion.div
                 key={item.step}
@@ -534,18 +541,18 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-10 sm:mb-14"
           >
-            <Badge variant="outline" className="mb-4">Pricing</Badge>
+            <Badge variant="outline" className="mb-4">{t("home.pricingBadge")}</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
-              Simple, Transparent Pricing
+              {t("home.pricingHeadline")}
             </h2>
             <p className="mt-4 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              Monthly packages in AFN — same plans as registration. Each package includes one admin
-              account plus billable seats for manager, accountant, and agent roles. Pay at our office
-              and get activated within one business day.
+              {t("home.pricingSubtitle")}
             </p>
             <p className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-              Save up to {Math.max(...DURATION_OPTIONS.map((d) => d.discount))}% with multi-month billing
-              ({DURATION_OPTIONS.filter((d) => d.discount > 0).map((d) => `${d.months}mo −${d.discount}%`).join(" · ")})
+              {t("home.pricingSavings", {
+                discount: Math.max(...DURATION_OPTIONS.map((d) => d.discount)),
+                offers: DURATION_OPTIONS.filter((d) => d.discount > 0).map((d) => `${d.months}mo −${d.discount}%`).join(" · "),
+              })}
             </p>
           </motion.div>
 
@@ -568,7 +575,7 @@ export default function HomePage() {
                 >
                   {plan.highlighted && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white border-0 px-3">
-                      Most Popular
+                      {t("home.pricing.mostPopular")}
                     </Badge>
                   )}
                   <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl mb-4 ${
@@ -601,7 +608,7 @@ export default function HomePage() {
                     className="block mt-8"
                   >
                     <Button className={`w-full h-11 ${plan.highlighted ? "bg-white text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}>
-                      {isLoggedIn ? "Open App" : plan.contactSales ? "Contact Sales" : "Choose Plan"}
+                      {isLoggedIn ? t("home.pricing.openApp") : plan.contactSales ? t("home.pricing.contactSales") : t("home.pricing.choosePlan")}
                     </Button>
                   </Link>
                 </motion.div>
@@ -626,16 +633,15 @@ export default function HomePage() {
             </div>
             <div className="relative z-10">
               <h2 className="text-3xl lg:text-4xl font-bold text-white">
-                Ready to Transform Your Agency?
+                {t("home.ctaSection.headline")}
               </h2>
               <p className="mt-4 text-indigo-100 max-w-2xl mx-auto text-lg">
-                Join 500+ travel agencies already using PSB-ERP to streamline operations,
-                boost revenue, and delight customers.
+                {t("home.ctaSection.subtitle")}
               </p>
               <div className="mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
                 <Link to={isLoggedIn ? "/dashboard" : "/register"} className="w-full sm:w-auto">
                   <Button size="lg" className="bg-white text-indigo-600 hover:bg-indigo-50 text-base px-8 h-12 w-full sm:w-auto shadow-md">
-                    {isLoggedIn ? "Open Dashboard" : "View Packages & Register"} <ArrowRight className="h-5 w-5 ml-2" />
+                    {isLoggedIn ? t("home.ctaSection.openDashboard") : t("home.ctaSection.viewPackages") } <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
                 </Link>
                 <a
@@ -646,7 +652,7 @@ export default function HomePage() {
                     size="lg"
                     className="w-full sm:w-auto bg-white/15 border border-white/40 text-white hover:bg-white/25 hover:border-white/60 text-base px-8 h-12 shadow-sm backdrop-blur-sm"
                   >
-                    <Lock className="h-4 w-4 mr-2" /> Schedule a Demo
+                    <Lock className="h-4 w-4 mr-2" /> {t("home.ctaSection.scheduleDemo")}
                   </Button>
                 </a>
               </div>
@@ -664,45 +670,43 @@ export default function HomePage() {
                 <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                   <Building2 className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-bold text-lg text-slate-900 dark:text-white">PSB-ERP</span>
+                <span className="font-bold text-lg text-slate-900 dark:text-white">{t("appName")}</span>
               </div>
-              <p className="text-sm text-slate-500">
-                The complete ERP solution built specifically for travel agencies worldwide.
-              </p>
+              <p className="text-sm text-slate-500">{t("the_complete_erp_solution_built_specifically_for_travel_agencies_worldwide")}</p>
             </div>
             <div>
-              <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">Product</h4>
+              <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">{t("home.footer.product")}</h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li><a href="#features" className="hover:text-indigo-600 transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">API</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Integrations</a></li>
+                <li><a href="#features" className="hover:text-indigo-600 transition-colors">{t("home.footer.features")}</a></li>
+                <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">{t("home.footer.pricing")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.api")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.integrations")}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">Company</h4>
+              <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">{t("home.footer.company")}</h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Contact</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.about")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.blog")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.careers")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.contact")}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">Legal</h4>
+              <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">{t("home.footer.legal")}</h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Terms</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Security</a></li>
-                <li><a href="#" className="hover:text-indigo-600 transition-colors">Compliance</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.privacy")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.terms")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.security")}</a></li>
+                <li><a href="#" className="hover:text-indigo-600 transition-colors">{t("home.footer.compliance")}</a></li>
               </ul>
             </div>
           </div>
           <div className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-500">@ 2026 All rights reserved - Pouyan Shahr Balkh TMS</p>
+            <p className="text-sm text-slate-500">{t("2026_all_rights_reserved_pouyan_shahr_balkh_tms")}</p>
             <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-500">Global • Multi-tenant • Secure</span>
+              <LanguageSwitcher />
+              <span className="text-sm text-slate-500">{t("global_multi_tenant_secure")}</span>
             </div>
           </div>
         </div>

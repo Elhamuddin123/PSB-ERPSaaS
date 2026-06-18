@@ -11,7 +11,7 @@ import { deleteUserAndAssociatedData } from "./lib/user-delete";
 import { isBillableStaffRole } from "@contracts/plans";
 
 /** Staff roles that an agency admin can create within their agency */
-const STAFF_ROLES = ["manager", "accountant", "agent", "viewer"] as const;
+const STAFF_ROLES = ["agent", "viewer"] as const;
 
 export const usersRouter = createRouter({
   // ─── READ-ONLY STAFF DIRECTORY (for dropdowns, no management) ──────────────
@@ -364,7 +364,7 @@ export const usersRouter = createRouter({
 
     if (!tenantId) {
       const byRole = Object.fromEntries(
-        (["manager", "accountant", "agent"] as const).map((role) => [
+        (["agent"] as const).map((role) => [
           role,
           { used: 0, limit: 9999, remaining: 9999, canAdd: true },
         ]),

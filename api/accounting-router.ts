@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, accountantQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { chartOfAccounts, journalEntries, journalEntryLines, ledgerEntries, expenses, tickets, accountingPeriods } from "@db/schema";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
@@ -35,7 +35,7 @@ export const accountingRouter = createRouter({
       return { account, ledger };
     }),
 
-  createAccount: accountantQuery
+  createAccount: supervisoryQuery
     .input(z.object({
       code: z.string().min(1),
       name: z.string().min(1),
@@ -128,7 +128,7 @@ export const accountingRouter = createRouter({
       }
     }),
 
-  createJournalEntry: accountantQuery
+  createJournalEntry: supervisoryQuery
     .input(z.object({
       entryNumber: z.string().min(1),
       date: z.string(),
@@ -208,7 +208,7 @@ export const accountingRouter = createRouter({
       return { id: journalEntryId };
     }),
 
-  postJournalEntry: accountantQuery
+  postJournalEntry: supervisoryQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -559,7 +559,7 @@ export const accountingRouter = createRouter({
     };
   }),
 
-  closingPeriod: accountantQuery
+  closingPeriod: supervisoryQuery
     .input(z.object({ year: z.number(), month: z.number().optional() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -598,7 +598,7 @@ export const accountingRouter = createRouter({
       return { success: true };
     }),
 
-  deleteJournalEntry: accountantQuery
+  deleteJournalEntry: supervisoryQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();

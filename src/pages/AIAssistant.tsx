@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,26 +8,28 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Brain, Send, Plus, MessageSquare, TrendingUp, AlertTriangle, FileQuestion, Sparkles } from "lucide-react";
-
-const quickPrompts = [
-  { icon: TrendingUp, label: "Revenue Forecast", prompt: "What is our projected revenue for Q3 2026?" },
-  { icon: AlertTriangle, label: "Anomaly Detection", prompt: "Are there any unusual expense patterns this month?" },
-  { icon: FileQuestion, label: "Journal Help", prompt: "How do I record a ticket refund in the journal?" },
-  { icon: Sparkles, label: "Customer Insights", prompt: "Analyze our top customers and their booking patterns" },
-];
+import { alertServerError } from "@/lib/i18n-ui";
 
 export default function AIAssistantPage() {
+  const { t } = useTranslation("common");
+
+  const quickPrompts = [
+    { icon: TrendingUp, label: t("ai.revenueForecast"), prompt: t("ai.revenueForecastPrompt") },
+    { icon: AlertTriangle, label: t("ai.anomalyDetection"), prompt: t("ai.anomalyDetectionPrompt") },
+    { icon: FileQuestion, label: t("ai.journalHelp"), prompt: t("ai.journalHelpPrompt") },
+    { icon: Sparkles, label: t("ai.customerInsights"), prompt: t("ai.customerInsightsPrompt") },
+  ];
   const { data: conversations, refetch } = trpc.ai.conversations.useQuery();
   const sendMessage = trpc.ai.sendMessage.useMutation({
     onSuccess: () => { refetch(); },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
   const createConversation = trpc.ai.createConversation.useMutation({
     onSuccess: (data) => {
       refetch();
       if (data?.id) setActiveConversation(data.id);
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const [activeConversation, setActiveConversation] = useState<number | null>(null);
@@ -71,23 +74,23 @@ export default function AIAssistantPage() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">AI Assistant</h1>
-          <p className="text-slate-500 mt-1 text-sm">Intelligent insights, forecasts, and automation</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{t("ai_assistant")}</h1>
+          <p className="text-slate-500 mt-1 text-sm">{t("intelligent_insights_forecasts_and_automation")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" /> New Chat</Button>
+            <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />{t("new_chat")}</Button>
           </DialogTrigger>
           <DialogContent className="max-w-[95vw] sm:max-w-md">
-            <DialogHeader><DialogTitle>Start New Conversation</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("start_new_conversation")}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
-              <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Conversation title..." />
+              <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder={t("conversation_title")} />
               <Button
                 className="w-full bg-indigo-600"
-                onClick={() => { createConversation.mutate({ title: newTitle || "New Conversation" }); setCreateOpen(false); setNewTitle(""); }}
+                onClick={() => { createConversation.mutate({ title: newTitle || t("ai.newConversation") }); setCreateOpen(false); setNewTitle(""); }}
                 disabled={createConversation.isPending}
               >
-                {createConversation.isPending ? "Starting..." : "Start Conversation"}
+                {createConversation.isPending ? t("actions.starting") : t("actions.startConversation")}
               </Button>
             </div>
           </DialogContent>
@@ -99,7 +102,7 @@ export default function AIAssistantPage() {
         {/* Conversation List */}
         <Card className="border-0 shadow-sm lg:w-72 flex-shrink-0 overflow-hidden">
           <CardContent className="p-0">
-            <div className="p-3 border-b font-medium text-sm text-slate-600">Conversations</div>
+            <div className="p-3 border-b font-medium text-sm text-slate-600">{t("conversations")}</div>
             <ScrollArea className="h-auto lg:h-[calc(100vh-16rem)]">
               <div className="space-y-1 p-2">
                 {(conversations || []).map(conv => (
@@ -118,12 +121,12 @@ export default function AIAssistantPage() {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="secondary" className="text-[10px]">{conv.status}</Badge>
-                      <span className="text-[10px] text-slate-400">{conv.messages?.length || 0} msgs</span>
+                      <span className="text-[10px] text-slate-400">{conv.messages?.length || 0} {t("ai.msgs")}</span>
                     </div>
                   </button>
                 ))}
                 {(!conversations || conversations.length === 0) && (
-                  <p className="text-center text-sm text-slate-400 py-8">No conversations yet</p>
+                  <p className="text-center text-sm text-slate-400 py-8">{t("no_conversations_yet")}</p>
                 )}
               </div>
             </ScrollArea>
@@ -141,7 +144,7 @@ export default function AIAssistantPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{activeConv.title}</p>
-                    <p className="text-xs text-slate-500">{activeConv.model} • {activeConv.messages?.length || 0} messages</p>
+                    <p className="text-xs text-slate-500">{activeConv.model} • {activeConv.messages?.length || 0} {t("ai.messages")}</p>
                   </div>
                 </div>
                 <Badge variant="outline" className="text-xs flex-shrink-0">{activeConv.status}</Badge>
@@ -178,12 +181,12 @@ export default function AIAssistantPage() {
                       {msg.role === "assistant" && (
                         <div className="flex items-center gap-1 mb-1">
                           <Sparkles className="h-3 w-3 text-indigo-500" />
-                          <span className="text-[10px] font-medium text-indigo-500">PSB AI</span>
+                          <span className="text-[10px] font-medium text-indigo-500">{t("psb_ai")}</span>
                         </div>
                       )}
                       <p className="text-xs sm:text-sm whitespace-pre-wrap">{msg.content}</p>
                       {msg.tokensUsed && (
-                        <p className="text-[10px] opacity-60 mt-1">{msg.tokensUsed} tokens</p>
+                        <p className="text-[10px] opacity-60 mt-1">{msg.tokensUsed} {t("ai.tokens")}</p>
                       )}
                     </div>
                   </div>
@@ -208,7 +211,7 @@ export default function AIAssistantPage() {
                     value={message}
                     onChange={e => setMessage(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleSend()}
-                    placeholder="Ask about revenue, expenses, tickets..."
+                    placeholder={t("ask_about_revenue_expenses_tickets")}
                     className="flex-1 text-sm"
                   />
                   <Button className="bg-indigo-600 flex-shrink-0" onClick={handleSend} disabled={!message.trim() || isTyping}>
@@ -223,8 +226,8 @@ export default function AIAssistantPage() {
                 <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3 sm:mb-4">
                   <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
                 </div>
-                <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">PSB AI Assistant</h3>
-                <p className="text-slate-500 mt-1 max-w-sm text-xs sm:text-sm">Select a conversation or start a new one to get AI-powered insights about your business.</p>
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">{t("psb_ai_assistant")}</h3>
+                <p className="text-slate-500 mt-1 max-w-sm text-xs sm:text-sm">{t("select_a_conversation_or_start_a_new_one_to_get_ai_powered_insights_about_your_b")}</p>
               </div>
             </div>
           )}

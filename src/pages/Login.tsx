@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, LogIn, AlertCircle, Eye, EyeOff, Shield, User, Lock } from "lucide-react";
 import { hasActiveSubscription } from "@/lib/subscription";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function LoginPage() {
   const { t } = useTranslation("login");
@@ -51,19 +52,21 @@ export default function LoginPage() {
 
   const demoAccounts = [
     { role: t("adminDemo"), email: "admin@psb-erp.com", password: "admin123", color: "bg-red-50 text-red-700 border-red-200" },
-    { role: t("managerDemo"), email: "manager@psb-erp.com", password: "manager123", color: "bg-blue-50 text-blue-700 border-blue-200" },
     { role: t("agentDemo"), email: "agent@psb-erp.com", password: "agent123", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 end-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-600 shadow-lg mb-4">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">PSB-ERP</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("appName")}</h1>
           <p className="text-sm text-slate-500 mt-1">{t("subtitle")}</p>
         </div>
 
@@ -161,9 +164,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-4 text-center">
-              <Link to="/" className="text-xs text-slate-400 hover:text-indigo-600 transition-colors">
-                Back to Home Page
-              </Link>
+              <Link to="/" className="text-xs text-slate-400 hover:text-indigo-600 transition-colors">{t("back_to_home_page")}</Link>
             </div>
           </CardContent>
         </Card>

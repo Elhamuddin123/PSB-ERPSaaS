@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `name` varchar(255),
   `email` varchar(320),
   `avatar` text,
-  `role` enum('super_admin','admin','manager','accountant','agent','viewer') NOT NULL DEFAULT "agent",
+  `role` enum('super_admin','admin','agent','viewer') NOT NULL DEFAULT "agent",
   `status` enum('active','inactive','suspended') NOT NULL DEFAULT "active",
   `department` varchar(100),
   `phone` varchar(50),

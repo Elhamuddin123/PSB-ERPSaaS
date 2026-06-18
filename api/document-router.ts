@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery } from "./middleware";
+import { createRouter, authedQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   documents, invoices, invoiceItems, customers, tickets, deposits,
@@ -8,6 +8,7 @@ import {
 } from "@db/schema";
 import { eq, desc, sql, and, isNull } from "drizzle-orm";
 import { deleteStoredFile } from "./lib/file-storage";
+import { auditLog } from "./lib/audit";
 
 function ensureTenant(ctx: any, label = "") {
   const tid = ctx.user?.tenantId;
@@ -216,6 +217,56 @@ export const documentRouter = createRouter({
         .where(and(eq(documents.id, input.id), eq(documents.tenantId, tenantId)))
         .limit(1);
       return doc[0] || null;
+    }),
+
+  // Agency-admin edit: metadata only — entity links and file paths are immutable.
+  update: agencyAdminQuery
+    .input(z.object({
+      id: z.number(),
+      documentNumber: z.string().optional(),
+      fileName: z.string().optional(),
+      status: z.enum(["draft", "generated", "sent", "archived"]).optional(),
+      sentTo: z.string().optional(),
+      metadata: z.record(z.string(), z.any()).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ensureTenant(ctx, "update");
+      const { id, documentNumber, fileName, status, sentTo, metadata } = input;
+
+      const existing = await db.query.documents.findFirst({
+        where: and(eq(documents.id, id), eq(documents.tenantId, tenantId), isNull(documents.deletedAt)),
+      });
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
+
+      const updateData: Record<string, unknown> = {};
+      if (documentNumber !== undefined) updateData.documentNumber = documentNumber.trim() || null;
+      if (fileName !== undefined) updateData.fileName = fileName.trim() || null;
+      if (status !== undefined) updateData.status = status;
+      if (sentTo !== undefined) updateData.sentTo = sentTo.trim() || null;
+      if (metadata !== undefined) updateData.metadata = metadata;
+
+      if (Object.keys(updateData).length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
+      }
+
+      await db.update(documents).set(updateData).where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)));
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "document",
+        entityId: id,
+        oldValues: {
+          documentNumber: existing.documentNumber,
+          fileName: existing.fileName,
+          status: existing.status,
+          sentTo: existing.sentTo,
+        },
+        newValues: updateData,
+      });
+
+      return { success: true };
     }),
 
   // ─── DELETE DOCUMENT ───────────────────────────────────────────────────────

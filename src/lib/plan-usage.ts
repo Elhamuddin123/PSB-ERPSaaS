@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import {
   BILLABLE_STAFF_ROLES,
   type BillableStaffRole,
@@ -20,15 +21,15 @@ export type PlanUsageView = {
   canAdd: boolean;
   unlimited: boolean;
   customSeatsPerRole: number | null;
-  byRole: Record<BillableStaffRole, RoleSeatUsage>;
+  byRole: Record<string, RoleSeatUsage>;
   limit: number;
   used: number;
 };
 
-export function formatTotalSeatLabel(usage: PlanUsageView): string {
+export function formatTotalSeatLabel(usage: PlanUsageView, t: TFunction): string {
   if (usage.unlimited) {
     return usage.customSeatsPerRole
-      ? `${usage.totalUsed} / ${usage.customSeatsPerRole * BILLABLE_STAFF_ROLES.length} staff`
+      ? t("totalSeats", { count: usage.customSeatsPerRole * BILLABLE_STAFF_ROLES.length })
       : `${usage.totalUsed} staff (custom plan)`;
   }
   return `${usage.totalUsed} / ${usage.limit} staff`;
@@ -50,10 +51,18 @@ export function canAddUserWithRole(usage: PlanUsageView | null | undefined, role
   return usage.canAdd;
 }
 
-export function seatLimitMessage(usage: PlanUsageView, role?: string): string {
+export function seatLimitMessage(usage: PlanUsageView, t: TFunction, role?: string): string {
   if (role && role in usage.byRole) {
     const slot = usage.byRole[role as BillableStaffRole];
-    return `${formatPlanLabel(role)} seat limit reached (${slot.used}/${slot.limit}) on your ${formatPlanLabel(usage.plan)} plan.`;
+    return t("seatLimit", {
+      plan: `${formatPlanLabel(role)} (${slot.used}/${slot.limit})`,
+      used: slot.used,
+      limit: slot.limit,
+    });
   }
-  return `Staff user limit reached for your ${formatPlanLabel(usage.plan)} plan (${usage.used}/${usage.limit}). Upgrade your plan to add more users.`;
+  return t("seatLimit", {
+    plan: formatPlanLabel(usage.plan),
+    used: usage.used,
+    limit: usage.limit,
+  });
 }

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { changeLanguage, isRTL } from "@/lib/i18n";
+import { isRTL } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { canAccessNavItem } from "@/lib/roles";
 import { trpc } from "@/providers/trpc";
 import {
@@ -34,40 +35,37 @@ import {
   DollarSign,
   BarChart3,
   Shield,
-  Globe,
   HandCoins,
 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { t } = useTranslation("sidebar");
-  const { i18n } = useTranslation();
+  const { t } = useTranslation(["sidebar", "common"]);
 
   const baseNavigation = [
-    { name: t("dashboard"), href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "accountant", "manager", "agent", "viewer"] },
-    { name: t("wallets", "Wallets"), href: "/wallets", icon: Wallet, roles: ["super_admin", "accountant", "manager", "agent"] },
-    { name: t("tickets"), href: "/tickets", icon: Plane, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
-    { name: t("customers", "CRM"), href: "/crm", icon: Users, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
-    { name: t("invoices", "Invoices"), href: "/invoices", icon: FileText, roles: ["super_admin", "accountant", "manager"] },
-    { name: t("receivables", "Receivables"), href: "/receivables", icon: Landmark, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("loans", "Cash Loans"), href: "/loans", icon: HandCoins, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("deposits", "Deposits"), href: "/deposits", icon: PiggyBank, roles: ["super_admin", "accountant", "manager", "agent"] },
-    { name: t("locations", "Locations"), href: "/payment-locations", icon: MapPin, roles: ["super_admin", "admin", "accountant", "manager"] },
-    { name: t("suppliers", "Suppliers"), href: "/suppliers", icon: Tractor, roles: ["super_admin", "accountant", "manager", "agent"] },
-    { name: t("payables", "Payables"), href: "/payables", icon: CreditCard, roles: ["super_admin", "accountant", "manager"] },
-    { name: t("exchangeRates", "Exchange Rates"), href: "/exchange-rates", icon: DollarSign, roles: ["super_admin", "accountant", "manager"] },
-    { name: t("bankRecon", "Bank Recon"), href: "/bank-reconciliation", icon: Landmark, roles: ["super_admin", "accountant", "manager"] },
-    { name: t("reports"), href: "/reports", icon: BarChart3, roles: ["super_admin", "admin", "accountant", "manager", "viewer"] },
-    { name: t("documents", "Documents"), href: "/documents", icon: FileText, roles: ["super_admin", "accountant", "manager", "agent"] },
-    { name: t("expenses"), href: "/expenses", icon: Receipt, roles: ["super_admin", "accountant", "manager", "agent"] },
-    { name: t("accounting", "Accounting"), href: "/accounting", icon: BookOpen, roles: ["super_admin", "accountant"] },
-    { name: t("ai", "AI Assistant"), href: "/ai", icon: Brain, roles: ["super_admin", "accountant", "manager", "agent", "viewer"] },
-    { name: t("settings"), href: "/settings", icon: Settings, roles: ["super_admin", "admin", "accountant", "manager", "agent", "viewer"] },
+    { name: t("dashboard"), href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "agent", "viewer"] },
+    { name: t("wallets"), href: "/wallets", icon: Wallet, roles: ["super_admin", "admin", "agent"] },
+    { name: t("tickets"), href: "/tickets", icon: Plane, roles: ["super_admin", "admin", "agent", "viewer"] },
+    { name: t("customers"), href: "/crm", icon: Users, roles: ["super_admin", "admin", "agent", "viewer"] },
+    { name: t("invoices"), href: "/invoices", icon: FileText, roles: ["super_admin", "admin"] },
+    { name: t("receivables"), href: "/receivables", icon: Landmark, roles: ["super_admin", "admin"] },
+    { name: t("loans"), href: "/loans", icon: HandCoins, roles: ["super_admin", "admin"] },
+    { name: t("deposits"), href: "/deposits", icon: PiggyBank, roles: ["super_admin", "admin", "agent"] },
+    { name: t("locations"), href: "/payment-locations", icon: MapPin, roles: ["super_admin", "admin"] },
+    { name: t("suppliers"), href: "/suppliers", icon: Tractor, roles: ["super_admin", "admin", "agent"] },
+    { name: t("payables"), href: "/payables", icon: CreditCard, roles: ["super_admin", "admin"] },
+    { name: t("exchangeRates"), href: "/exchange-rates", icon: DollarSign, roles: ["super_admin", "admin"] },
+    { name: t("bankRecon"), href: "/bank-reconciliation", icon: Landmark, roles: ["super_admin", "admin"] },
+    { name: t("reports"), href: "/reports", icon: BarChart3, roles: ["super_admin", "admin", "viewer"] },
+    { name: t("documents"), href: "/documents", icon: FileText, roles: ["super_admin", "admin", "agent"] },
+    { name: t("expenses"), href: "/expenses", icon: Receipt, roles: ["super_admin", "admin", "agent"] },
+    { name: t("accounting"), href: "/accounting", icon: BookOpen, roles: ["super_admin", "admin"] },
+    { name: t("ai"), href: "/ai", icon: Brain, roles: ["super_admin", "admin", "agent", "viewer"] },
+    { name: t("settings"), href: "/settings", icon: Settings, roles: ["super_admin", "admin", "agent", "viewer"] },
   ];
 
   const navigation = user?.role === "super_admin"
@@ -107,19 +105,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate(`/settings?tab=notifications&notificationId=${notification.id}`);
   };
 
-  const handleLanguageChange = (lng: string) => {
-    changeLanguage(lng);
-    setLangOpen(false);
-  };
-
-  const currentLng = i18n.language;
-  const rtl = isRTL(currentLng);
-
-  const languages = [
-    { code: "fa", label: "دری", flag: "🇦🇫" },
-    { code: "ps", label: "پښتو", flag: "🇦🇫" },
-    { code: "en", label: "English", flag: "🇬🇧" },
-  ];
+  const rtl = isRTL();
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden" dir={rtl ? "rtl" : "ltr"}>
@@ -135,9 +121,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center h-14 xl:h-16 px-3 xl:px-4 border-b border-slate-200 dark:border-slate-800">
           <Building2 className="h-5 w-5 xl:h-6 xl:w-6 text-indigo-600 flex-shrink-0" />
           {!collapsed && (
-            <span className="ml-2 xl:ml-3 font-bold text-base xl:text-lg text-slate-900 dark:text-white truncate">
-              PSB-ERP
-            </span>
+            <span className="ml-2 xl:ml-3 font-bold text-base xl:text-lg text-slate-900 dark:text-white truncate">{t("psb_erp")}</span>
           )}
         </div>
 
@@ -182,7 +166,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             ) : (
               <>
                 {rtl ? <ChevronRight className="h-4 w-4 mr-1 xl:mr-2" /> : <ChevronLeft className="h-4 w-4 mr-1 xl:mr-2" />}
-                <span className="text-xs">Collapse</span>
+                <span className="text-xs">{t("collapse")}</span>
               </>
             )}
           </Button>
@@ -213,7 +197,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onClick={logout}
             >
               <LogOut className="h-3 w-3 mr-1.5" />
-              {t("logout", "Logout")}
+              {t("logout")}
             </Button>
           )}
         </div>
@@ -232,7 +216,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SheetContent side={rtl ? "right" : "left"} className="w-64 p-0">
                 <div className="flex items-center h-14 px-4 border-b">
                   <Building2 className="h-6 w-6 text-indigo-600" />
-                  <span className="ml-3 font-bold text-lg">PSB-ERP</span>
+                  <span className="ml-3 font-bold text-lg">{t("appName")}</span>
                 </div>
                 <ScrollArea className="h-[calc(100vh-4rem)] py-4">
                   <nav className="space-y-1 px-2">
@@ -261,37 +245,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50"
                     >
                       <LogOut className="h-5 w-5" />
-                      <span className="ml-3">{t("logout", "Logout")}</span>
+                      <span className="ml-3">{t("logout")}</span>
                     </button>
                   </nav>
                 </ScrollArea>
               </SheetContent>
             </Sheet>
-            <span className="ml-2 font-bold text-base">PSB-ERP</span>
+            <span className="ml-2 font-bold text-base">{t("appName")}</span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Mobile language switcher */}
-            <div className="relative">
-              <button onClick={() => setLangOpen(!langOpen)} className="p-1.5 rounded-full hover:bg-slate-100">
-                <Globe className="h-4 w-4 text-slate-600" />
-              </button>
-              {langOpen && (
-                <div className="absolute right-0 top-8 w-32 bg-white dark:bg-slate-900 border rounded-lg shadow-lg z-50 py-1">
-                  {languages.map((l) => (
-                    <button
-                      key={l.code}
-                      onClick={() => handleLanguageChange(l.code)}
-                      className={cn(
-                        "w-full text-left px-3 py-2 text-xs hover:bg-slate-50",
-                        currentLng === l.code && "bg-indigo-50 text-indigo-700 font-medium"
-                      )}
-                    >
-                      {l.flag} {l.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <LanguageSwitcher />
             {/* Mobile notification bell */}
             <div className="relative">
               <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-1.5 rounded-full hover:bg-slate-100">
@@ -305,16 +268,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {notifOpen && (
                 <div className="absolute right-0 top-8 w-72 bg-white dark:bg-slate-900 border rounded-lg shadow-lg z-50 py-2">
                   <div className="flex items-center justify-between px-3 pb-2 border-b">
-                    <span className="text-xs font-medium">Notifications</span>
+                    <span className="text-xs font-medium">{t("notifications")}</span>
                     {unreadCount > 0 && (
                       <button onClick={handleMarkAllRead} className="text-[10px] text-indigo-600 hover:underline flex items-center">
-                        <Check className="h-3 w-3 mr-0.5" /> Mark all read
+                        <Check className="h-3 w-3 mr-0.5" /> {t("markAllRead")}
                       </button>
                     )}
                   </div>
                   <ScrollArea className="max-h-64">
                     {(notifications || []).length === 0 && (
-                      <p className="text-xs text-slate-400 text-center py-4">No notifications</p>
+                      <p className="text-xs text-slate-400 text-center py-4">{t("noNotifications")}</p>
                     )}
                     {(notifications || []).map((n) => (
                       <button
@@ -327,14 +290,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <p className="text-[10px] text-slate-500">{n.message}</p>
                         <div className="flex items-center justify-between mt-1">
                           <span className="text-[9px] text-slate-400">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</span>
-                          {!n.isRead && <span className="text-[9px] text-indigo-600">Unread</span>}
+                          {!n.isRead && <span className="text-[9px] text-indigo-600">{t("unread")}</span>}
                         </div>
                       </button>
                     ))}
                   </ScrollArea>
                   <div className="px-3 pt-2 border-t">
                     <Link to="/settings?tab=notifications" onClick={() => setNotifOpen(false)} className="text-[10px] text-indigo-600 hover:underline block text-center">
-                      View all notifications
+                      {t("viewAllNotifications")}
                     </Link>
                   </div>
                 </div>
@@ -351,32 +314,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-auto pt-12 lg:pt-0">
         {/* Desktop header bar with notification */}
         <div className="hidden lg:flex items-center justify-end h-14 xl:h-16 px-6 xl:px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 gap-3">
-          {/* Language Switcher */}
-          <div className="relative">
-            <button onClick={() => setLangOpen(!langOpen)} className="flex items-center gap-1.5 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm text-slate-600 dark:text-slate-400">
-              <Globe className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase">{currentLng}</span>
-            </button>
-            {langOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />
-                <div className="absolute right-0 top-10 w-36 bg-white dark:bg-slate-900 border rounded-lg shadow-lg z-50 py-1">
-                  {languages.map((l) => (
-                    <button
-                      key={l.code}
-                      onClick={() => handleLanguageChange(l.code)}
-                      className={cn(
-                        "w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors",
-                        currentLng === l.code && "bg-indigo-50 text-indigo-700 font-medium"
-                      )}
-                    >
-                      {l.flag} {l.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <LanguageSwitcher variant="full" />
 
           {/* Notification Bell */}
           <div className="relative">
@@ -393,16 +331,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
                 <div className="absolute right-0 top-10 w-80 bg-white dark:bg-slate-900 border rounded-lg shadow-lg z-50 py-2">
                   <div className="flex items-center justify-between px-4 pb-2 border-b">
-                    <span className="text-sm font-medium">Notifications</span>
+                    <span className="text-sm font-medium">{t("notifications")}</span>
                     {unreadCount > 0 && (
                       <button onClick={handleMarkAllRead} className="text-xs text-indigo-600 hover:underline flex items-center">
-                        <Check className="h-3 w-3 mr-1" /> Mark all read
+                        <Check className="h-3 w-3 mr-1" /> {t("markAllRead")}
                       </button>
                     )}
                   </div>
                   <ScrollArea className="max-h-72">
                     {(notifications || []).length === 0 && (
-                      <p className="text-sm text-slate-400 text-center py-6">No notifications</p>
+                      <p className="text-sm text-slate-400 text-center py-6">{t("noNotifications")}</p>
                     )}
                     {(notifications || []).map((n) => (
                       <button
@@ -415,14 +353,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
                         <div className="flex items-center justify-between mt-1.5">
                           <span className="text-[10px] text-slate-400">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</span>
-                          {!n.isRead && <span className="text-[10px] text-indigo-600">Unread</span>}
+                          {!n.isRead && <span className="text-[10px] text-indigo-600">{t("unread")}</span>}
                         </div>
                       </button>
                     ))}
                   </ScrollArea>
                   <div className="px-4 pt-2 border-t">
                     <Link to="/settings?tab=notifications" onClick={() => setNotifOpen(false)} className="text-xs text-indigo-600 hover:underline block text-center py-1">
-                      View all notifications
+                      {t("viewAllNotifications")}
                     </Link>
                   </div>
                 </div>

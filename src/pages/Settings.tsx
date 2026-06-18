@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { trpc } from "@/providers/trpc";
 import { canManageAgencyStaff, canViewSecurityAudit, isSuperAdmin } from "@/lib/roles";
+import { alertServerError } from "@/lib/i18n-ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,18 +45,17 @@ import {
   Phone, Building2, UserPlus, CreditCard, Trash2,
 } from "lucide-react";
 
-const STAFF_ROLES = [
-  { value: "manager", label: "Manager" },
-  { value: "accountant", label: "Accountant" },
-  { value: "agent", label: "Agent" },
-  { value: "viewer", label: "Viewer" },
-] as const;
+const STAFF_ROLE_KEYS = ["agent", "viewer"] as const;
+
+type StaffRole = (typeof STAFF_ROLE_KEYS)[number];
+
+function normalizeStaffRole(role: string | undefined): StaffRole {
+  return role === "viewer" ? "viewer" : "agent";
+}
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin: "bg-purple-100 text-purple-800",
   admin: "bg-indigo-100 text-indigo-800",
-  manager: "bg-blue-100 text-blue-800",
-  accountant: "bg-emerald-100 text-emerald-800",
   agent: "bg-amber-100 text-amber-800",
   viewer: "bg-slate-100 text-slate-800",
 };
@@ -66,6 +67,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function SettingsPage() {
+  const { t } = useTranslation("common");
+  const staffRoles = STAFF_ROLE_KEYS.map((value) => ({
+    value,
+    label: t(`roles.${value}`),
+  }));
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const canManageStaff = canManageAgencyStaff(user?.role);
@@ -111,7 +117,7 @@ export default function SettingsPage() {
       await utils.notification.unread.invalidate();
       refetchNotif();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const markAllRead = trpc.notification.markAllRead.useMutation({
@@ -120,15 +126,15 @@ export default function SettingsPage() {
       await utils.notification.unread.invalidate();
       refetchNotif();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const updateProfile = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
-      alert("Profile updated successfully");
+      alert(t("alerts.profileUpdated"));
       utils.auth.me.invalidate();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   // User management mutations
@@ -139,7 +145,7 @@ export default function SettingsPage() {
       await refetchUsers();
       await refetchPlanUsage();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const updateUser = trpc.users.update.useMutation({
@@ -150,7 +156,7 @@ export default function SettingsPage() {
       await refetchUsers();
       await refetchPlanUsage();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const deleteUser = trpc.users.delete.useMutation({
@@ -159,7 +165,7 @@ export default function SettingsPage() {
       await refetchUsers();
       await refetchPlanUsage();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const [profileForm, setProfileForm] = useState({
@@ -177,7 +183,7 @@ export default function SettingsPage() {
     name: "",
     email: "",
     password: "",
-    role: "agent" as typeof STAFF_ROLES[number]["value"],
+    role: "agent" as StaffRole,
     department: "",
     phone: "",
     status: "active" as "active" | "inactive" | "suspended",
@@ -187,14 +193,14 @@ export default function SettingsPage() {
     setUserForm({ name: "", email: "", password: "", role: "agent", department: "", phone: "", status: "active" });
   };
 
-  const availableStaffRoles = STAFF_ROLES.filter((role) => {
+  const availableStaffRoles = staffRoles.filter((role) => {
     if (role.value === "viewer") return planUsage?.plan === "enterprise";
     return true;
   });
 
   const openCreateUser = () => {
     if (planUsage && !planUsage.canAdd) {
-      alert(seatLimitMessage(planUsage));
+      alert(seatLimitMessage(planUsage, t));
       return;
     }
     setEditingUser(null);
@@ -208,7 +214,7 @@ export default function SettingsPage() {
       name: u.name || "",
       email: u.email || "",
       password: "",
-      role: u.role || "agent",
+      role: normalizeStaffRole(u.role),
       department: u.department || "",
       phone: u.phone || "",
       status: u.status || "active",
@@ -228,7 +234,7 @@ export default function SettingsPage() {
       updateUser.mutate(update);
     } else {
       if (planUsage && !canAddUserWithRole(planUsage, userForm.role)) {
-        alert(seatLimitMessage(planUsage, userForm.role));
+        alert(seatLimitMessage(planUsage, t, userForm.role));
         return;
       }
       createUser.mutate({
@@ -262,64 +268,64 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Settings & Security</h1>
-        <p className="text-slate-500 mt-1 text-sm">Manage profile, notifications, audit logs, users, and roles</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{t("settings_security")}</h1>
+        <p className="text-slate-500 mt-1 text-sm">{t("manage_profile_notifications_audit_logs_users_and_roles")}</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         {/* FIXED: scrollable tabs on mobile */}
         <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto flex-nowrap h-auto p-1 gap-1">
-          <TabsTrigger value="profile" className="text-xs sm:text-sm"><UserCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Profile</TabsTrigger>
+          <TabsTrigger value="profile" className="text-xs sm:text-sm"><UserCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("profile_1")}</TabsTrigger>
           {!isPlatformAdmin && (
-            <TabsTrigger value="subscription" className="text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Subscription</TabsTrigger>
+            <TabsTrigger value="subscription" className="text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("subscription")}</TabsTrigger>
           )}
           {canViewSecurity && (
-            <TabsTrigger value="sessions" className="text-xs sm:text-sm"><Monitor className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Sessions</TabsTrigger>
+            <TabsTrigger value="sessions" className="text-xs sm:text-sm"><Monitor className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("sessions")}</TabsTrigger>
           )}
-          <TabsTrigger value="notifications" className="text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Notifications</TabsTrigger>
+          <TabsTrigger value="notifications" className="text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("notifications_1")}</TabsTrigger>
           {canViewSecurity && (
-            <TabsTrigger value="audit" className="text-xs sm:text-sm"><Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Audit Logs</TabsTrigger>
+            <TabsTrigger value="audit" className="text-xs sm:text-sm"><Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("audit_logs")}</TabsTrigger>
           )}
           {!isPlatformAdmin && (
-            <TabsTrigger value="users" className="text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Users</TabsTrigger>
+            <TabsTrigger value="users" className="text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("users")}</TabsTrigger>
           )}
-          <TabsTrigger value="roles" className="text-xs sm:text-sm"><Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /> Roles</TabsTrigger>
+          <TabsTrigger value="roles" className="text-xs sm:text-sm"><Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("roles.title")}</TabsTrigger>
         </TabsList>
 
         {!isPlatformAdmin && (
           <TabsContent value="subscription" className="mt-6">
             <Card className="border-0 shadow-sm max-w-lg">
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Agency Subscription</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("agency_subscription")}</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">Plan</span>
+                  <span className="text-slate-500">{t("plan_1")}</span>
                   <span className="font-medium capitalize">{formatPlanLabel(user?.subscription?.plan ?? planUsage?.plan ?? "starter")}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">Status</span>
-                  <Badge variant="secondary">{getSubscriptionStatusLabel(user?.subscription?.status)}</Badge>
+                  <span className="text-slate-500">{t("status_1_1_1_1_1_1_1_1_1_1_1")}</span>
+                  <Badge variant="secondary">{getSubscriptionStatusLabel(user?.subscription?.status, t)}</Badge>
                 </div>
                 {user?.subscription?.expiresAt && (
                   <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Expires</span>
+                    <span className="text-slate-500">{t("expires")}</span>
                     <span className="font-medium">{new Date(user.subscription.expiresAt).toLocaleDateString()}</span>
                   </div>
                 )}
                 {user?.registrationToken && (
                   <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Registration code</span>
+                    <span className="text-slate-500">{t("registration_code")}</span>
                     <span className="font-mono font-semibold text-indigo-600">{user.registrationToken}</span>
                   </div>
                 )}
                 {planUsage && (
                   <>
                     <div className="flex justify-between gap-3">
-                      <span className="text-slate-500">User seats</span>
-                      <span className="font-medium">{formatTotalSeatLabel(planUsage)}</span>
+                      <span className="text-slate-500">{t("user_seats")}</span>
+                      <span className="font-medium">{formatTotalSeatLabel(planUsage, t)}</span>
                     </div>
                     <div className="rounded-md bg-slate-50 dark:bg-slate-800/50 p-3 text-xs text-slate-600 dark:text-slate-300">
                       {formatRoleSeatBreakdown(planUsage)}
-                      <p className="mt-1 text-slate-500">Admin account is not counted toward staff seats.</p>
+                      <p className="mt-1 text-slate-500">{t("admin_account_is_not_counted_toward_staff_seats")}</p>
                     </div>
                   </>
                 )}
@@ -329,7 +335,7 @@ export default function SettingsPage() {
                       Complete payment at {PLATFORM_PAYMENT_CONTACT.agencyName} to activate your package.
                     </p>
                     <Link to="/payment-activation">
-                      <Button variant="outline" size="sm">View Payment Instructions</Button>
+                      <Button variant="outline" size="sm">{t("view_payment_instructions")}</Button>
                     </Link>
                   </div>
                 )}
@@ -340,22 +346,22 @@ export default function SettingsPage() {
 
         <TabsContent value="profile" className="mt-6">
           <Card className="border-0 shadow-sm max-w-lg">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Update Profile</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("update_profile")}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <Label className="text-xs text-slate-500">Name</Label>
+                <Label className="text-xs text-slate-500">{t("name_1_1_1_1")}</Label>
                 <Input value={profileForm.name} onChange={e => setProfileForm(s => ({ ...s, name: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs text-slate-500">Email</Label>
+                <Label className="text-xs text-slate-500">{t("email_1_1")}</Label>
                 <Input type="email" value={profileForm.email} onChange={e => setProfileForm(s => ({ ...s, email: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs text-slate-500">Phone</Label>
+                <Label className="text-xs text-slate-500">{t("phone_1_1_1")}</Label>
                 <Input value={profileForm.phone} onChange={e => setProfileForm(s => ({ ...s, phone: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs text-slate-500">Department</Label>
+                <Label className="text-xs text-slate-500">{t("department")}</Label>
                 <Input value={profileForm.department} onChange={e => setProfileForm(s => ({ ...s, department: e.target.value }))} />
               </div>
               <Button
@@ -363,7 +369,7 @@ export default function SettingsPage() {
                 disabled={updateProfile.isPending}
                 onClick={() => updateProfile.mutate(profileForm)}
               >
-                {updateProfile.isPending ? "Saving..." : "Save Changes"}
+                {updateProfile.isPending ? t("actions.saving") : t("actions.saveChanges")}
               </Button>
             </CardContent>
           </Card>
@@ -374,22 +380,22 @@ export default function SettingsPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">
-                {isPlatformAdmin ? "Platform Active Sessions" : "Agency Active Sessions"}
+                {isPlatformAdmin ? t("settings.platformActiveSessions") : t("settings.agencyActiveSessions")}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[700px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user")}</th>
                     {isPlatformAdmin && (
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Agency</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("agency_1")}</th>
                     )}
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Role</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">IP Address</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User Agent</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Created</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Expires</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("role_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("ip_address")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user_agent")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("created")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("expires_1")}</th>
                   </tr></thead>
                   <tbody>
                     {sessions.map(s => (
@@ -410,9 +416,7 @@ export default function SettingsPage() {
                     ))}
                     {sessions.length === 0 && (
                       <tr>
-                        <td colSpan={isPlatformAdmin ? 7 : 6} className="p-4 text-center text-sm text-slate-400">
-                          No active sessions found.
-                        </td>
+                        <td colSpan={isPlatformAdmin ? 7 : 6} className="p-4 text-center text-sm text-slate-400">{t("no_active_sessions_found")}</td>
                       </tr>
                     )}
                   </tbody>
@@ -426,11 +430,9 @@ export default function SettingsPage() {
         <TabsContent value="notifications" className="mt-6">
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Notifications</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("notifications_1_1")}</CardTitle>
               {(notifications?.items || []).some(n => !n.isRead) && (
-                <Button size="sm" variant="outline" onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
-                  Mark All Read
-                </Button>
+                <Button size="sm" variant="outline" onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>{t("mark_all_read")}</Button>
               )}
             </CardHeader>
             <CardContent className="p-0">
@@ -462,15 +464,13 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       {!notif.isRead && (
-                        <Button size="sm" variant="ghost" className="h-7 text-xs flex-shrink-0" onClick={() => markRead.mutate({ id: notif.id })} disabled={markRead.isPending}>
-                          Mark Read
-                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs flex-shrink-0" onClick={() => markRead.mutate({ id: notif.id })} disabled={markRead.isPending}>{t("mark_read")}</Button>
                       )}
                     </div>
                   );
                 })}
                 {(!notifications?.items || notifications.items.length === 0) && (
-                  <p className="text-center text-sm text-slate-400 py-8">No notifications</p>
+                  <p className="text-center text-sm text-slate-400 py-8">{t("no_notifications")}</p>
                 )}
               </div>
             </CardContent>
@@ -481,33 +481,33 @@ export default function SettingsPage() {
         <TabsContent value="audit" className="mt-6 space-y-5">
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <Card className="border-0 shadow-sm"><CardContent className="p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-slate-500">Total Logs</p>
+              <p className="text-[10px] sm:text-xs text-slate-500">{t("total_logs")}</p>
               <p className="text-lg sm:text-2xl font-bold">{auditLogs?.total ?? 0}</p>
             </CardContent></Card>
             <Card className="border-0 shadow-sm"><CardContent className="p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-slate-500">Action Types</p>
+              <p className="text-[10px] sm:text-xs text-slate-500">{t("action_types")}</p>
               <p className="text-lg sm:text-2xl font-bold">{auditStats?.actionCounts?.length ?? 0}</p>
             </CardContent></Card>
             <Card className="border-0 shadow-sm"><CardContent className="p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-slate-500">Entity Types</p>
+              <p className="text-[10px] sm:text-xs text-slate-500">{t("entity_types")}</p>
               <p className="text-lg sm:text-2xl font-bold">{auditStats?.entityCounts?.length ?? 0}</p>
             </CardContent></Card>
           </div>
 
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recent Audit Logs</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_audit_logs")}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[500px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Action</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Entity</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("action_1_1_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("entity")}</th>
                     {isPlatformAdmin && (
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Agency</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("agency_1_1")}</th>
                     )}
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">IP</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Time</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("ip")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("time")}</th>
                   </tr></thead>
                   <tbody>
                     {(auditLogs?.items || []).map(log => (
@@ -524,9 +524,7 @@ export default function SettingsPage() {
                     ))}
                     {(auditLogs?.items || []).length === 0 && (
                       <tr>
-                        <td colSpan={isPlatformAdmin ? 6 : 5} className="p-4 text-center text-sm text-slate-400">
-                          No audit logs found.
-                        </td>
+                        <td colSpan={isPlatformAdmin ? 6 : 5} className="p-4 text-center text-sm text-slate-400">{t("no_audit_logs_found")}</td>
                       </tr>
                     )}
                   </tbody>
@@ -541,9 +539,7 @@ export default function SettingsPage() {
         <TabsContent value="users" className="mt-6 space-y-5">
           {!canManageStaff && (
             <Card className="border-0 shadow-sm border-amber-200 bg-amber-50/50">
-              <CardContent className="p-4 text-sm text-amber-800">
-                This is a read-only staff directory. User activation, deactivation, and deletion are managed by your agency admin only.
-              </CardContent>
+              <CardContent className="p-4 text-sm text-amber-800">{t("this_is_a_read_only_staff_directory_user_activation_deactivation_and_deletion_ar")}</CardContent>
             </Card>
           )}
           {/* Plan usage indicator (agency admin only) */}
@@ -556,16 +552,16 @@ export default function SettingsPage() {
                       <Users className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Plan Usage</p>
+                      <p className="text-sm font-medium">{t("plan_usage")}</p>
                       <p className="text-xs text-slate-500 capitalize">
-                        {formatPlanLabel(planUsage.plan)} Plan — {formatTotalSeatLabel(planUsage)}
+                        {formatPlanLabel(planUsage.plan)} Plan — {formatTotalSeatLabel(planUsage, t)}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">{formatRoleSeatBreakdown(planUsage)}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold">{planUsage.remaining}</p>
-                    <p className="text-[10px] text-slate-500">remaining</p>
+                    <p className="text-[10px] text-slate-500">{t("remaining")}</p>
                   </div>
                 </div>
                 <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -576,12 +572,11 @@ export default function SettingsPage() {
                 </div>
                 {planUsage.canAdd ? (
                   <Button size="sm" className="mt-3 bg-indigo-600 hover:bg-indigo-700" onClick={openCreateUser}>
-                    <Plus className="h-4 w-4 mr-1.5" /> Add User
-                  </Button>
+                    <Plus className="h-4 w-4 mr-1.5" />{t("add_user")}</Button>
                 ) : (
                   <div className="mt-3 flex items-center gap-2 text-amber-600 text-xs">
                     <AlertCircle className="h-4 w-4" />
-                    <span>Staff user limit reached. Upgrade your plan to add more users.</span>
+                    <span>{t("staff_user_limit_reached_upgrade_your_plan_to_add_more_users")}</span>
                   </div>
                 )}
               </CardContent>
@@ -590,18 +585,18 @@ export default function SettingsPage() {
 
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">System Users</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("system_users")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[640px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">User</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Role</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Dept</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Status</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">Last Sign In</th>
-                    {canManageStaff && <th className="text-right px-4 py-3 font-medium text-slate-500 text-xs">Actions</th>}
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user_1_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("role_1_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("dept")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("status_1_1_1_1_1_1_1_1_1_1_1_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("last_sign_in")}</th>
+                    {canManageStaff && <th className="text-right px-4 py-3 font-medium text-slate-500 text-xs">{t("actions_1_1")}</th>}
                   </tr></thead>
                   <tbody>
                     {(displayUsers || []).map(u => (
@@ -634,7 +629,7 @@ export default function SettingsPage() {
                                 size="sm" variant="ghost" className="h-7 w-7 p-0"
                                 onClick={() => openEditUser(u)}
                                 disabled={u.role === "admin" || u.role === "super_admin"}
-                                title="Edit"
+                                title={t("edit_1")}
                               >
                                 <Pencil className="h-3.5 w-3.5 text-slate-500" />
                               </Button>
@@ -647,7 +642,7 @@ export default function SettingsPage() {
                                   || u.role === "super_admin"
                                   || deleteUser.isPending
                                 }
-                                title="Delete user"
+                                title={t("delete_user")}
                               >
                                 <Trash2 className="h-3.5 w-3.5 text-red-600" />
                               </Button>
@@ -657,7 +652,7 @@ export default function SettingsPage() {
                       </tr>
                     ))}
                     {(!displayUsers || displayUsers.length === 0) && (
-                      <tr><td colSpan={canManageStaff ? 6 : 5} className="p-4 text-center text-sm text-slate-400">No users found.</td></tr>
+                      <tr><td colSpan={canManageStaff ? 6 : 5} className="p-4 text-center text-sm text-slate-400">{t("no_users_found_1")}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -691,7 +686,7 @@ export default function SettingsPage() {
                           <p className="text-[10px] sm:text-xs text-slate-500">{role.slug}</p>
                         </div>
                       </div>
-                      {role.isSystem && <Badge variant="secondary" className="text-[10px]">System</Badge>}
+                      {role.isSystem && <Badge variant="secondary" className="text-[10px]">{t("system")}</Badge>}
                     </div>
                     <p className="text-xs sm:text-sm text-slate-600 mt-2">{role.description}</p>
                     <div className="mt-3 flex flex-wrap gap-1">
@@ -717,7 +712,7 @@ export default function SettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteUser.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteUser.isPending}>{t("cancel_1_1")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               disabled={deleteUser.isPending}
@@ -740,33 +735,33 @@ export default function SettingsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-indigo-600" />
-              {editingUser ? "Edit User" : "Add New User"}
+              {editingUser ? t("settings.editUser") : t("settings.addNewUser")}
             </DialogTitle>
             <DialogDescription>
               {editingUser
                 ? "Update user details and permissions."
                 : planUsage
-                ? `${formatTotalSeatLabel(planUsage)} on your ${formatPlanLabel(planUsage.plan)} plan. ${formatRoleSeatBreakdown(planUsage)}`
+                ? `${formatTotalSeatLabel(planUsage, t)} on your ${formatPlanLabel(planUsage.plan)} plan. ${formatRoleSeatBreakdown(planUsage)}`
                 : "Create a new staff user for your agency."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-xs">Full Name</Label>
+              <Label className="text-xs">{t("full_name")}</Label>
               <Input
-                placeholder="e.g. Ahmad Khan"
+                placeholder={t("e_g_ahmad_khan")}
                 value={userForm.name}
                 onChange={e => setUserForm(s => ({ ...s, name: e.target.value }))}
               />
             </div>
             <div>
-              <Label className="text-xs">Email</Label>
+              <Label className="text-xs">{t("email_1_1_1")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   type="email"
-                  placeholder="user@agency.com"
+                  placeholder={t("user_agency_com")}
                   value={userForm.email}
                   onChange={e => setUserForm(s => ({ ...s, email: e.target.value }))}
                   className="pl-10"
@@ -775,12 +770,12 @@ export default function SettingsPage() {
             </div>
             {!editingUser && (
               <div>
-                <Label className="text-xs">Password</Label>
+                <Label className="text-xs">{t("password")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     type="password"
-                    placeholder="Min 8 characters"
+                    placeholder={t("min_8_characters")}
                     value={userForm.password}
                     onChange={e => setUserForm(s => ({ ...s, password: e.target.value }))}
                     className="pl-10"
@@ -790,7 +785,7 @@ export default function SettingsPage() {
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Role</Label>
+                <Label className="text-xs">{t("role_1_1_1")}</Label>
                 <select
                   value={userForm.role}
                   onChange={e => setUserForm(s => ({ ...s, role: e.target.value as any }))}
@@ -802,24 +797,24 @@ export default function SettingsPage() {
                 </select>
               </div>
               <div>
-                <Label className="text-xs">Status</Label>
+                <Label className="text-xs">{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
                 <select
                   value={userForm.status}
                   onChange={e => setUserForm(s => ({ ...s, status: e.target.value as any }))}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="active">{t("active_1_1")}</option>
+                  <option value="inactive">{t("inactive_1")}</option>
+                  <option value="suspended">{t("suspended")}</option>
                 </select>
               </div>
             </div>
             <div>
-              <Label className="text-xs">Department</Label>
+              <Label className="text-xs">{t("department_1")}</Label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="e.g. Sales"
+                  placeholder={t("e_g_sales")}
                   value={userForm.department}
                   onChange={e => setUserForm(s => ({ ...s, department: e.target.value }))}
                   className="pl-10"
@@ -827,11 +822,11 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <Label className="text-xs">Phone</Label>
+              <Label className="text-xs">{t("phone_1_1_1_1")}</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Phone number"
+                  placeholder={t("phone_number")}
                   value={userForm.phone}
                   onChange={e => setUserForm(s => ({ ...s, phone: e.target.value }))}
                   className="pl-10"
@@ -841,7 +836,7 @@ export default function SettingsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUserDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setUserDialogOpen(false)}>{t("cancel_1_1_1")}</Button>
             <Button
               className="bg-indigo-600 hover:bg-indigo-700"
               onClick={handleSaveUser}
@@ -852,8 +847,8 @@ export default function SettingsPage() {
               }
             >
               {editingUser
-                ? (updateUser.isPending ? "Saving..." : "Save Changes")
-                : (createUser.isPending ? "Creating..." : "Create User")}
+                ? (updateUser.isPending ? t("actions.saving") : t("actions.saveChanges"))
+                : (createUser.isPending ? t("actions.creating") : t("actions.createUser"))}
             </Button>
           </DialogFooter>
         </DialogContent>

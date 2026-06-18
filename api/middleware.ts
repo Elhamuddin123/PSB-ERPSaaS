@@ -1,7 +1,5 @@
 import { ErrorMessages } from "@contracts/constants";
 import {
-  ACCOUNTANT_ROLES,
-  MANAGER_ROLES,
   OPERATIONAL_ROLES,
   ROLES,
   SUPERVISORY_ROLES,
@@ -16,6 +14,20 @@ import { eq } from "drizzle-orm";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    try {
+      console.error("tRPC error:", {
+        message: error.message,
+        code: (error as any).code,
+        path: (error as any).path,
+        stack: error.stack,
+        cause: (error as any).cause ?? null,
+      });
+    } catch (e) {
+      console.error("Failed to log tRPC error:", e);
+    }
+    return shape;
+  },
 });
 
 export const createRouter = t.router;
@@ -187,6 +199,4 @@ const requireSecurityAuditAccess = t.middleware(async (opts) => {
 export const securityAuditQuery = authedQuery.use(requireSecurityAuditAccess);
 export const superAdminQuery = authedQuery.use(requireRole(ROLES.SUPER_ADMIN));
 export const supervisoryQuery = authedQuery.use(requireAnyRole(...SUPERVISORY_ROLES));
-export const managerQuery = authedQuery.use(requireAnyRole(...MANAGER_ROLES));
-export const accountantQuery = authedQuery.use(requireAnyRole(...ACCOUNTANT_ROLES));
 export const agentQuery = authedQuery.use(requireAnyRole(...OPERATIONAL_ROLES));

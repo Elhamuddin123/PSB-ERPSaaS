@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { paymentLocations, deposits } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
@@ -65,7 +65,7 @@ export const paymentLocationRouter = createRouter({
       return { id: Number(result[0].insertId) };
     }),
 
-  update: authedQuery
+  update: agencyAdminQuery
     .input(z.object({
       id: z.number(),
       name: z.string().min(1).optional(),
@@ -81,13 +81,30 @@ export const paymentLocationRouter = createRouter({
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
       const { id, ...update } = input;
+
+      const existing = await db.query.paymentLocations.findFirst({
+        where: and(eq(paymentLocations.id, id), eq(paymentLocations.tenantId, tenantId)),
+      });
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Payment location not found" });
+
       if (Object.keys(update).length === 0) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
       }
+
       await db.update(paymentLocations).set({
         ...update,
         supportedMethods: update.supportedMethods ? JSON.stringify(update.supportedMethods) : undefined,
       }).where(and(eq(paymentLocations.id, id), eq(paymentLocations.tenantId, tenantId)));
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "payment_location",
+        entityId: id,
+        oldValues: { name: existing.name, city: existing.city, status: existing.status },
+        newValues: update,
+      });
+
       return { success: true };
     }),
 

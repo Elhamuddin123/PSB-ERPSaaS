@@ -1,0 +1,180 @@
+{
+  "parityErrors": [],
+  "missingInLocales": [],
+  "untranslatedFa": [
+    {
+      "ns": "common",
+      "key": "appName",
+      "value": "PSB-ERP"
+    },
+    {
+      "ns": "common",
+      "key": "home.dashboardPreview.url",
+      "value": "psb-erp.com/dashboard"
+    },
+    {
+      "ns": "common",
+      "key": "https",
+      "value": "https://..."
+    },
+    {
+      "ns": "common",
+      "key": "je_2026_xxx",
+      "value": "JE-2026-XXX"
+    },
+    {
+      "ns": "common",
+      "key": "psb_ai",
+      "value": "PSB AI"
+    },
+    {
+      "ns": "common",
+      "key": "psb_erp",
+      "value": "PSB-ERP"
+    },
+    {
+      "ns": "common",
+      "key": "errors.serverError",
+      "value": "{{message}}"
+    },
+    {
+      "ns": "common",
+      "key": "edit_location",
+      "value": "Edit Location"
+    },
+    {
+      "ns": "common",
+      "key": "save_changes",
+      "value": "Save Changes"
+    },
+    {
+      "ns": "common",
+      "key": "financial_fields_locked",
+      "value": "Financial fields are locked on approved tickets. Only metadata can be edited."
+    },
+    {
+      "ns": "register",
+      "key": "progressTimeline",
+      "value": "[object Object],[object Object],[object Object]"
+    },
+    {
+      "ns": "tickets",
+      "key": "notes_1_1_1_1_1_1_1",
+      "value": "Notes"
+    },
+    {
+      "ns": "tickets",
+      "key": "amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Amount"
+    },
+    {
+      "ns": "tickets",
+      "key": "retry_1_1_1_1_1_1",
+      "value": "Retry"
+    },
+    {
+      "ns": "tickets",
+      "key": "amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Amount"
+    },
+    {
+      "ns": "tickets",
+      "key": "description_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Description"
+    },
+    {
+      "ns": "reports",
+      "key": "description_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Description"
+    }
+  ],
+  "untranslatedPs": [
+    {
+      "ns": "common",
+      "key": "appName",
+      "value": "PSB-ERP"
+    },
+    {
+      "ns": "common",
+      "key": "home.dashboardPreview.url",
+      "value": "psb-erp.com/dashboard"
+    },
+    {
+      "ns": "common",
+      "key": "https",
+      "value": "https://..."
+    },
+    {
+      "ns": "common",
+      "key": "je_2026_xxx",
+      "value": "JE-2026-XXX"
+    },
+    {
+      "ns": "common",
+      "key": "psb_erp",
+      "value": "PSB-ERP"
+    },
+    {
+      "ns": "common",
+      "key": "errors.serverError",
+      "value": "{{message}}"
+    },
+    {
+      "ns": "common",
+      "key": "edit_location",
+      "value": "Edit Location"
+    },
+    {
+      "ns": "common",
+      "key": "save_changes",
+      "value": "Save Changes"
+    },
+    {
+      "ns": "common",
+      "key": "financial_fields_locked",
+      "value": "Financial fields are locked on approved tickets. Only metadata can be edited."
+    },
+    {
+      "ns": "register",
+      "key": "progressTimeline",
+      "value": "[object Object],[object Object],[object Object]"
+    },
+    {
+      "ns": "tickets",
+      "key": "notes_1_1_1_1_1_1_1",
+      "value": "Notes"
+    },
+    {
+      "ns": "tickets",
+      "key": "amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Amount"
+    },
+    {
+      "ns": "tickets",
+      "key": "retry_1_1_1_1_1_1",
+      "value": "Retry"
+    },
+    {
+      "ns": "tickets",
+      "key": "amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Amount"
+    },
+    {
+      "ns": "tickets",
+      "key": "description_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Description"
+    },
+    {
+      "ns": "reports",
+      "key": "description_1_1_1_1_1_1_1_1_1_1_1_1_1_1",
+      "value": "Description"
+    }
+  ],
+  "stats": {
+    "parityErrorCount": 0,
+    "missingInLocalesCount": 0,
+    "untranslatedFaCount": 17,
+    "untranslatedPsCount": 16,
+    "usedKeyCount": 1321
+  }
+}

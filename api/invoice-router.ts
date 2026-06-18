@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { invoices, invoiceItems, customers, tickets, ticketPassengers, airlines, customerTransactions, chartOfAccounts, journalEntries, journalEntryLines, notifications } from "@db/schema";
+import { invoices, invoiceItems, customers, tickets, ticketPassengers, airlines, customerTransactions, notifications } from "@db/schema";
 import { eq, desc, sql, and, isNull, inArray } from "drizzle-orm";
 import { nextNumber } from "./lib/numbering";
 import { recordCustomerPayment } from "./lib/customer-payment";

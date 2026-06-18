@@ -68,7 +68,16 @@ export async function resetTenantData(
   }
 
   const ticketRows = await db.select({ id: tickets.id }).from(tickets).where(eq(tickets.tenantId, tenantId));
-  const ticketIds = ticketRows.map((r) => r.id);
+  const ticketIdsByTenant = ticketRows.map((r) => r.id);
+
+  const airlineRows = await db.select({ id: airlines.id }).from(airlines).where(eq(airlines.tenantId, tenantId));
+  const airlineIds = airlineRows.map((r) => r.id);
+
+  const ticketRowsByAirline = airlineIds.length
+    ? await db.select({ id: tickets.id }).from(tickets).where(inArray(tickets.airlineId, airlineIds))
+    : [];
+  const ticketIdsByAirline = ticketRowsByAirline.map((r) => r.id);
+  const ticketIds = Array.from(new Set([...ticketIdsByTenant, ...ticketIdsByAirline]));
 
   const invoiceRows = await db.select({ id: invoices.id }).from(invoices).where(eq(invoices.tenantId, tenantId));
   const invoiceIds = invoiceRows.map((r) => r.id);
@@ -107,8 +116,8 @@ export async function resetTenantData(
 
   if (ticketIds.length > 0) {
     await db.delete(ticketPassengers).where(inArray(ticketPassengers.ticketId, ticketIds));
+    await db.delete(tickets).where(inArray(tickets.id, ticketIds));
   }
-  await db.delete(tickets).where(eq(tickets.tenantId, tenantId));
 
   await db.delete(deposits).where(eq(deposits.tenantId, tenantId));
   await db.delete(paymentLocations).where(eq(paymentLocations.tenantId, tenantId));

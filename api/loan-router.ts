@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   customerLoans,
@@ -182,6 +182,52 @@ export const loanRouter = createRouter({
       });
 
       return { success: true, loanNumber };
+    }),
+
+  // Agency-admin edit: loans post to GL on creation — only metadata fields are safe.
+  update: agencyAdminQuery
+    .input(z.object({
+      id: z.number(),
+      description: z.string().optional(),
+      notes: z.string().optional(),
+      dueDate: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const { id, description, notes, dueDate } = input;
+
+      const loan = await db.query.customerLoans.findFirst({
+        where: and(eq(customerLoans.id, id), eq(customerLoans.tenantId, tenantId), isNull(customerLoans.deletedAt)),
+      });
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+
+      const updateData: Record<string, unknown> = {};
+      if (description !== undefined) updateData.description = description.trim() || null;
+      if (notes !== undefined) updateData.notes = notes.trim() || null;
+      if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+
+      if (Object.keys(updateData).length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
+      }
+
+      await db.update(customerLoans).set(updateData).where(and(eq(customerLoans.id, id), eq(customerLoans.tenantId, tenantId)));
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "loan",
+        entityId: id,
+        oldValues: {
+          loanNumber: loan.loanNumber,
+          description: loan.description,
+          notes: loan.notes,
+          dueDate: loan.dueDate,
+        },
+        newValues: updateData,
+      });
+
+      return { success: true };
     }),
 
   recordRepayment: supervisoryQuery

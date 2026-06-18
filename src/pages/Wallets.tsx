@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, ArrowUpRight, ArrowDownRight, RefreshCw, Plus, Send, FileText, ShieldAlert, ShieldCheck, Lock, Unlock, Trash2 } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, RefreshCw, Plus, Send, FileText, ShieldAlert, ShieldCheck, Lock, Unlock, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
+import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
+import { alertServerError } from "@/lib/i18n-ui";
 
 export default function WalletsPage() {
+  const { t, t: tc } = useTranslation("common");
   const { user } = useAuth();
   const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
+  const canEdit = isAgencyAdmin(user?.role);
   const { data: wallets, refetch, isLoading: walletsLoading, error: walletsError } = trpc.wallet.list.useQuery();
   const { data: allTransactions } = trpc.wallet.allTransactions.useQuery();
   const { data: usersData } = trpc.users.directory.useQuery();
@@ -30,7 +34,7 @@ const createWallet = trpc.wallet.create.useMutation({
     setDialogOpen(false);
     setNewWallet({ name: "", currency: "USD", initialBalance: "", userId: "" });
   },
-  onError: (err) => alert(err.message),
+  onError: (err) => alertServerError(t, err),
 });
 
   const deleteWallet = trpc.wallet.delete.useMutation({
@@ -39,7 +43,17 @@ const createWallet = trpc.wallet.create.useMutation({
       await utils.wallet.allTransactions.invalidate();
       refetch();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
+  });
+
+  const updateWallet = trpc.wallet.update.useMutation({
+    onSuccess: async () => {
+      await utils.wallet.list.invalidate();
+      refetch();
+      setEditWallet(null);
+      alert(t("alerts.walletUpdated"));
+    },
+    onError: (err) => alertServerError(t, err),
   });
 
   const transfer = trpc.wallet.transfer.useMutation({
@@ -50,7 +64,7 @@ const createWallet = trpc.wallet.create.useMutation({
     refetch();
     setTransferData({ fromWalletId: 0, toWalletId: 0, amount: "", description: "" });
   },
-  onError: (err) => alert(err.message),
+  onError: (err) => alertServerError(t, err),
 });
 
   const [newWallet, setNewWallet] = useState({
@@ -62,8 +76,15 @@ const createWallet = trpc.wallet.create.useMutation({
   const [transferData, setTransferData] = useState({ fromWalletId: 0, toWalletId: 0, amount: "", description: "" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statementWalletId, setStatementWalletId] = useState<number | null>(null);
+  const [editWallet, setEditWallet] = useState<{
+    id: number;
+    name: string;
+    currency: string;
+    userId: string;
+    status: "active" | "frozen" | "closed";
+  } | null>(null);
 
-  if (walletsLoading) return <div className="py-8 text-center text-slate-500">Loading wallets...</div>;
+  if (walletsLoading) return <div className="py-8 text-center text-slate-500">{t("loading_wallets")}</div>;
   if (walletsError) return <div className="py-8 text-center text-red-600">Error loading wallets: {walletsError.message}</div>;
 
   const totalBalance = wallets?.reduce((sum, w) => sum + Number(w.balance), 0) ?? 0;
@@ -72,38 +93,37 @@ const createWallet = trpc.wallet.create.useMutation({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Wallet Management</h1>
-          <p className="text-slate-500 mt-1 text-sm">Manage wallets, transactions, and transfers</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{t("wallet_management")}</h1>
+          <p className="text-slate-500 mt-1 text-sm">{t("manage_wallets_transactions_and_transfers")}</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" /> New Wallet
-            </Button>
+              <Plus className="h-4 w-4 mr-2" />{t("new_wallet")}</Button>
           </DialogTrigger>
           {/* FIXED: max-w-[95vw] for mobile, sm:max-w-lg for tablet+ */}
           <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Create New Wallet</DialogTitle>
+              <DialogTitle>{t("create_new_wallet")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>
-                <Label>Wallet Name</Label>
-                <Input value={newWallet.name} onChange={(e) => setNewWallet({ ...newWallet, name: e.target.value })} placeholder="e.g., Marketing Budget" />
+                <Label>{t("wallet_name")}</Label>
+                <Input value={newWallet.name} onChange={(e) => setNewWallet({ ...newWallet, name: e.target.value })} placeholder={t("e_g_marketing_budget")} />
               </div>
               <div>
-                <Label>Currency</Label>
+                <Label>{t("currency_1_1")}</Label>
                 <Select value={newWallet.currency} onValueChange={(v) => setNewWallet({ ...newWallet, currency: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="USD">{t("usd")}</SelectItem>
+                    <SelectItem value="EUR">{t("eur")}</SelectItem>
+                    <SelectItem value="GBP">{t("gbp")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-  <Label>Wallet Owner</Label>
+  <Label>{t("wallet_owner")}</Label>
 
   <Select
     value={newWallet.userId}
@@ -115,13 +135,11 @@ const createWallet = trpc.wallet.create.useMutation({
     }
   >
     <SelectTrigger>
-      <SelectValue placeholder="Company Wallet" />
+      <SelectValue placeholder={t("company_wallet")} />
     </SelectTrigger>
 
     <SelectContent>
-      <SelectItem value="company">
-        Company Wallet
-      </SelectItem>
+      <SelectItem value="company">{t("company_wallet_1")}</SelectItem>
 
       {users.map((u) => (
         <SelectItem
@@ -134,19 +152,17 @@ const createWallet = trpc.wallet.create.useMutation({
     </SelectContent>
   </Select>
 
-  <p className="text-xs text-slate-500 mt-1">
-    Assign wallet to company or employee
-  </p>
+  <p className="text-xs text-slate-500 mt-1">{t("assign_wallet_to_company_or_employee")}</p>
 </div>
               <div>
-                <Label>Initial Balance</Label>
+                <Label>{t("initial_balance")}</Label>
                 <Input
                   type="number"
                   value={newWallet.initialBalance}
                   onChange={(e) => setNewWallet({ ...newWallet, initialBalance: e.target.value })}
                   placeholder="0.00"
                 />
-                <p className="text-xs text-slate-500 mt-1">Starting amount to fund this wallet</p>
+                <p className="text-xs text-slate-500 mt-1">{t("starting_amount_to_fund_this_wallet")}</p>
               </div>
               <Button
                 className="w-full bg-indigo-600"
@@ -164,7 +180,7 @@ const createWallet = trpc.wallet.create.useMutation({
                 }}
                 disabled={!newWallet.name || createWallet.isPending}
               >
-                {createWallet.isPending ? "Creating..." : "Create Wallet"}
+                {createWallet.isPending ? tc("actions.creating") : tc("actions.createWallet")}
               </Button>
             </div>
           </DialogContent>
@@ -176,7 +192,7 @@ const createWallet = trpc.wallet.create.useMutation({
         <CardContent className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-indigo-100 text-xs sm:text-sm">Total Balance Across All Wallets</p>
+              <p className="text-indigo-100 text-xs sm:text-sm">{t("total_balance_across_all_wallets")}</p>
               <p className="text-2xl sm:text-4xl font-bold mt-1">${totalBalance.toLocaleString()}</p>
             </div>
             <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/20 flex items-center justify-center">
@@ -185,11 +201,11 @@ const createWallet = trpc.wallet.create.useMutation({
           </div>
           <div className="mt-3 sm:mt-4 flex gap-4 sm:gap-6">
             <div>
-              <p className="text-indigo-100 text-xs">Active Wallets</p>
+              <p className="text-indigo-100 text-xs">{t("active_wallets")}</p>
               <p className="text-lg sm:text-xl font-semibold">{wallets?.filter(w => w.status === "active").length ?? 0}</p>
             </div>
             <div>
-              <p className="text-indigo-100 text-xs">Total Reserved</p>
+              <p className="text-indigo-100 text-xs">{t("total_reserved")}</p>
               <p className="text-lg sm:text-xl font-semibold">
                 ${wallets?.reduce((sum, w) => sum + Number(w.reservedBalance), 0).toLocaleString() ?? 0}
               </p>
@@ -200,10 +216,10 @@ const createWallet = trpc.wallet.create.useMutation({
 
       <Tabs defaultValue="wallets" className="space-y-4">
         <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto">
-          <TabsTrigger value="wallets">Wallets</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="transfer">Transfer</TabsTrigger>
-          <TabsTrigger value="statements">Statements</TabsTrigger>
+          <TabsTrigger value="wallets">{t("wallets")}</TabsTrigger>
+          <TabsTrigger value="transactions">{t("transactions_1_1")}</TabsTrigger>
+          <TabsTrigger value="transfer">{t("transfer")}</TabsTrigger>
+          <TabsTrigger value="statements">{t("statements_1")}</TabsTrigger>
         </TabsList>
 
         {/* Wallets Tab */}
@@ -237,18 +253,33 @@ const createWallet = trpc.wallet.create.useMutation({
                       className="flex-1 text-indigo-600 border-indigo-200 hover:bg-indigo-50 text-xs"
                       onClick={() => setStatementWalletId(wallet.id)}
                     >
-                      <FileText className="h-3 w-3 mr-1" /> Statement
-                    </Button>
+                      <FileText className="h-3 w-3 mr-1" />{t("statement_1")}</Button>
                     <ReconcileButton walletId={wallet.id} />
+                    {canEdit && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 h-8 px-2"
+                        onClick={() => setEditWallet({
+                          id: wallet.id,
+                          name: wallet.name,
+                          currency: wallet.currency,
+                          userId: wallet.userId ? wallet.userId.toString() : "company",
+                          status: wallet.status as "active" | "frozen" | "closed",
+                        })}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
                     {canManage && (
                       <Button
                         size="sm"
                         variant="ghost"
                         className="text-red-500 h-8 px-2"
-                        title="Close wallet (must have $0 balance)"
+                        title={t("close_wallet_must_have_0_balance")}
                         disabled={deleteWallet.isPending || Number(wallet.balance) !== 0 || Number(wallet.reservedBalance) !== 0}
                         onClick={() => {
-                          if (confirm(`Close wallet "${wallet.name}"? It must have zero balance.`)) {
+                          if (confirm(tc("confirm.closeWallet", { name: wallet.name }))) {
                             deleteWallet.mutate({ id: wallet.id });
                           }
                         }}
@@ -267,7 +298,7 @@ const createWallet = trpc.wallet.create.useMutation({
         <TabsContent value="transactions">
           <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Recent Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("recent_transactions")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -303,16 +334,16 @@ const createWallet = trpc.wallet.create.useMutation({
         <TabsContent value="transfer">
           <Card className="border-0 shadow-sm max-w-lg mx-auto">
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Transfer Between Wallets</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("transfer_between_wallets")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>From Wallet</Label>
+                <Label>{t("from_wallet")}</Label>
                 <Select onValueChange={(v) => setTransferData({ ...transferData, fromWalletId: Number(v) })}>
-                  <SelectTrigger><SelectValue placeholder="Select source wallet" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("select_source_wallet")} /></SelectTrigger>
                   <SelectContent>
                     {(wallets || []).length === 0 ? (
-                      <SelectItem value="__empty__" disabled>No records found</SelectItem>
+                      <SelectItem value="__empty__" disabled>{t("no_records_found_1_1_1")}</SelectItem>
                     ) : (
                       (wallets || []).map(w => (
                         <SelectItem key={w.id} value={w.id.toString()}>{w.name} (${Number(w.balance).toLocaleString()})</SelectItem>
@@ -322,12 +353,12 @@ const createWallet = trpc.wallet.create.useMutation({
                 </Select>
               </div>
               <div>
-                <Label>To Wallet</Label>
+                <Label>{t("to_wallet")}</Label>
                 <Select onValueChange={(v) => setTransferData({ ...transferData, toWalletId: Number(v) })}>
-                  <SelectTrigger><SelectValue placeholder="Select destination wallet" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("select_destination_wallet")} /></SelectTrigger>
                   <SelectContent>
                     {(wallets || []).length === 0 ? (
-                      <SelectItem value="__empty__" disabled>No records found</SelectItem>
+                      <SelectItem value="__empty__" disabled>{t("no_records_found_1_1_1_1")}</SelectItem>
                     ) : (
                       (wallets || []).map(w => (
                         <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>
@@ -337,19 +368,19 @@ const createWallet = trpc.wallet.create.useMutation({
                 </Select>
               </div>
               <div>
-                <Label>Amount</Label>
+                <Label>{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
                 <Input type="number" placeholder="0.00" onChange={(e) => setTransferData({ ...transferData, amount: e.target.value })} />
               </div>
               <div>
-                <Label>Description</Label>
-                <Input placeholder="Transfer description" onChange={(e) => setTransferData({ ...transferData, description: e.target.value })} />
+                <Label>{t("description_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Input placeholder={t("transfer_description")} onChange={(e) => setTransferData({ ...transferData, description: e.target.value })} />
               </div>
               <Button
                 className="w-full bg-indigo-600"
                 onClick={() => transfer.mutate(transferData)}
                 disabled={!transferData.fromWalletId || !transferData.toWalletId || !transferData.amount || transfer.isPending}
               >
-                <Send className="h-4 w-4 mr-2" /> {transfer.isPending ? "Transferring..." : "Transfer Funds"}
+                <Send className="h-4 w-4 mr-2" /> {transfer.isPending ? tc("actions.transferring") : tc("actions.transferFunds")}
               </Button>
             </CardContent>
           </Card>
@@ -358,7 +389,7 @@ const createWallet = trpc.wallet.create.useMutation({
         {/* Statements Tab */}
         <TabsContent value="statements">
           <Card className="border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-sm font-medium">Wallet Statements</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium">{t("wallet_statements")}</CardTitle></CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(wallets || []).map((wallet) => (
@@ -366,7 +397,7 @@ const createWallet = trpc.wallet.create.useMutation({
                     <CardContent className="p-4">
                       <h3 className="font-semibold text-sm">{wallet.name}</h3>
                       <p className="text-lg font-bold mt-1">${Number(wallet.balance).toLocaleString()}</p>
-                      <p className="text-xs text-slate-500">Click to view statement</p>
+                      <p className="text-xs text-slate-500">{t("click_to_view_statement")}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -376,10 +407,72 @@ const createWallet = trpc.wallet.create.useMutation({
         </TabsContent>
       </Tabs>
 
+      {/* Edit Wallet Dialog */}
+      <Dialog open={!!editWallet} onOpenChange={() => setEditWallet(null)}>
+        <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-lg">
+          <DialogHeader><DialogTitle>{t("edit_wallet")}</DialogTitle></DialogHeader>
+          {editWallet && (
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label>{t("wallet_name")}</Label>
+                <Input value={editWallet.name} onChange={(e) => setEditWallet({ ...editWallet, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t("currency_1_1")}</Label>
+                <Select value={editWallet.currency} onValueChange={(v) => setEditWallet({ ...editWallet, currency: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">{t("usd")}</SelectItem>
+                    <SelectItem value="EUR">{t("eur")}</SelectItem>
+                    <SelectItem value="GBP">{t("gbp")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{t("wallet_owner")}</Label>
+                <Select value={editWallet.userId} onValueChange={(v) => setEditWallet({ ...editWallet, userId: v })}>
+                  <SelectTrigger><SelectValue placeholder={t("company_wallet")} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="company">{t("company_wallet_1")}</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id.toString()}>{u.name} ({u.role})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Select value={editWallet.status} onValueChange={(v) => setEditWallet({ ...editWallet, status: v as "active" | "frozen" | "closed" })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">active</SelectItem>
+                    <SelectItem value="frozen">frozen</SelectItem>
+                    <SelectItem value="closed">closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                className="w-full bg-indigo-600"
+                disabled={!editWallet.name || updateWallet.isPending}
+                onClick={() => updateWallet.mutate({
+                  id: editWallet.id,
+                  name: editWallet.name,
+                  currency: editWallet.currency,
+                  userId: editWallet.userId !== "company" ? Number(editWallet.userId) : null,
+                  status: editWallet.status,
+                })}
+              >
+                {updateWallet.isPending ? "Saving..." : t("save_changes")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Statement Dialog */}
       <Dialog open={!!statementWalletId} onOpenChange={() => setStatementWalletId(null)}>
         <DialogContent aria-describedby={undefined} className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Wallet Statement</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("wallet_statement")}</DialogTitle></DialogHeader>
           {statementWalletId && <WalletStatement walletId={statementWalletId} />}
         </DialogContent>
       </Dialog>
@@ -388,18 +481,18 @@ const createWallet = trpc.wallet.create.useMutation({
 }
 
 function ReconcileButton({ walletId }: { walletId: number }) {
+  const { t } = useTranslation("common");
   const { data, refetch } = trpc.wallet.reconcile.useQuery({ walletId });
   const [checked, setChecked] = useState(false);
 
   if (!checked) {
     return (
       <Button size="sm" variant="outline" className="flex-1 text-slate-600 border-slate-200 hover:bg-slate-50 text-xs" onClick={() => { setChecked(true); refetch(); }}>
-        <ShieldCheck className="h-3 w-3 mr-1" /> Reconcile
-      </Button>
+        <ShieldCheck className="h-3 w-3 mr-1" />{t("reconcile")}</Button>
     );
   }
 
-  if (!data) return <span className="text-xs text-slate-400">Checking...</span>;
+  if (!data) return <span className="text-xs text-slate-400">{t("checking")}</span>;
 
   const coaOk = data.isCoaBalanced !== false;
   const allOk = data.isBalanced && coaOk;
@@ -411,18 +504,19 @@ function ReconcileButton({ walletId }: { walletId: number }) {
     >
       {allOk ? <ShieldCheck className="h-3 w-3 mr-1" /> : <ShieldAlert className="h-3 w-3 mr-1" />}
       {allOk
-        ? "Balanced"
+        ? t("balanced", "Balanced")
         : !data.isBalanced
-          ? `Tx gap: $${data.discrepancy.toLocaleString()}`
-          : `COA gap: $${Number(data.coaDiscrepancy ?? 0).toLocaleString()}`}
+          ? `${t("tx_gap", "Tx gap:")} $${data.discrepancy.toLocaleString()}`
+          : `${t("coa_gap", "COA gap:")} $${Number(data.coaDiscrepancy ?? 0).toLocaleString()}`}
     </span>
   );
 }
 
 function WalletStatement({ walletId }: { walletId: number }) {
+  const { t } = useTranslation("common");
   const { data, isLoading } = trpc.wallet.statement.useQuery({ walletId, limit: 50 });
 
-  if (isLoading) return <div className="py-8 text-center text-slate-500">Loading statement...</div>;
+  if (isLoading) return <div className="py-8 text-center text-slate-500">{t("loading_statement")}</div>;
   if (!data) return null;
 
   return (
@@ -430,9 +524,9 @@ function WalletStatement({ walletId }: { walletId: number }) {
       <div className="bg-indigo-50 p-4 rounded-lg">
         <h3 className="font-semibold text-indigo-900">{data.wallet.name}</h3>
         <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
-          <div><p className="text-indigo-600">Balance</p><p className="font-bold">${Number(data.wallet.balance).toLocaleString()}</p></div>
-          <div><p className="text-indigo-600">Reserved</p><p className="font-bold">${Number(data.wallet.reservedBalance).toLocaleString()}</p></div>
-          <div><p className="text-indigo-600">Available</p><p className="font-bold">${(Number(data.wallet.balance) - Number(data.wallet.reservedBalance)).toLocaleString()}</p></div>
+          <div><p className="text-indigo-600">{t("balance_1_1_1_1_1_1_1")}</p><p className="font-bold">${Number(data.wallet.balance).toLocaleString()}</p></div>
+          <div><p className="text-indigo-600">{t("reserved")}</p><p className="font-bold">${Number(data.wallet.reservedBalance).toLocaleString()}</p></div>
+          <div><p className="text-indigo-600">{t("available")}</p><p className="font-bold">${(Number(data.wallet.balance) - Number(data.wallet.reservedBalance)).toLocaleString()}</p></div>
         </div>
       </div>
 
@@ -461,7 +555,7 @@ function WalletStatement({ walletId }: { walletId: number }) {
             </div>
           </div>
         ))}
-        {data.items.length === 0 && <p className="text-center text-sm text-slate-400 py-8">No transactions found.</p>}
+        {data.items.length === 0 && <p className="text-center text-sm text-slate-400 py-8">{t("no_transactions_found_1")}</p>}
       </div>
     </div>
   );

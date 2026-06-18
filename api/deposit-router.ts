@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, agentQuery, supervisoryQuery } from "./middleware";
+import { createRouter, authedQuery, agentQuery, supervisoryQuery, agencyAdminQuery } from "./middleware";
 import { reverseApprovedDeposit } from "./lib/deposit-reverse";
 import { postLedgerLines } from "./lib/ledger-posting";
 import {
@@ -13,7 +13,6 @@ import {
   deposits,
   wallets,
   walletTransactions,
-  chartOfAccounts,
   journalEntries,
   journalEntryLines,
   customers,
@@ -199,6 +198,107 @@ export const depositRouter = createRouter({
       return { id: depositId, depositCode };
     }),
 
+  // Agency-admin edit: pending/under_review allow full edit; approved/posted records are metadata-only.
+  update: agencyAdminQuery
+    .input(z.object({
+      id: z.number(),
+      customerId: z.number().optional(),
+      walletId: z.number().optional(),
+      amount: z.string().optional(),
+      paymentMethod: z.enum(["cash", "bank_transfer", "cheque"]).optional(),
+      referenceNumber: z.string().optional(),
+      locationId: z.number().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const { id, ...fields } = input;
+
+      const deposit = await db.query.deposits.findFirst({
+        where: and(eq(deposits.id, id), eq(deposits.tenantId, tenantId), isNull(deposits.deletedAt)),
+      });
+      if (!deposit) throw new TRPCError({ code: "NOT_FOUND", message: "Deposit not found" });
+
+      const isPending = ["pending", "under_review"].includes(deposit.status);
+      const updateData: Record<string, unknown> = {};
+
+      if (fields.notes !== undefined) updateData.notes = fields.notes.trim() || null;
+      if (fields.referenceNumber !== undefined) updateData.referenceNumber = fields.referenceNumber.trim() || null;
+
+      if (isPending) {
+        if (fields.customerId !== undefined) updateData.customerId = fields.customerId ?? null;
+        if (fields.locationId !== undefined) updateData.locationId = fields.locationId ?? null;
+        if (fields.paymentMethod !== undefined) updateData.paymentMethod = fields.paymentMethod;
+
+        if (fields.walletId !== undefined) {
+          const wallet = await db.query.wallets.findFirst({
+            where: and(eq(wallets.id, fields.walletId), eq(wallets.tenantId, tenantId)),
+          });
+          if (!wallet) throw new TRPCError({ code: "NOT_FOUND", message: "Wallet not found" });
+          updateData.walletId = fields.walletId;
+        }
+
+        if (fields.amount !== undefined) {
+          const amount = Number(fields.amount);
+          if (isNaN(amount) || amount <= 0) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be positive" });
+          }
+          updateData.amount = amount.toFixed(2);
+        }
+
+        if (fields.customerId !== undefined && fields.customerId) {
+          const customer = await db.query.customers.findFirst({
+            where: and(eq(customers.id, fields.customerId), eq(customers.tenantId, tenantId)),
+          });
+          if (!customer) throw new TRPCError({ code: "NOT_FOUND", message: "Customer not found" });
+        }
+
+        if (fields.locationId !== undefined && fields.locationId) {
+          const location = await db.query.paymentLocations.findFirst({
+            where: and(eq(paymentLocations.id, fields.locationId), eq(paymentLocations.tenantId, tenantId)),
+          });
+          if (!location) throw new TRPCError({ code: "NOT_FOUND", message: "Payment location not found" });
+        }
+      } else if (
+        fields.customerId !== undefined ||
+        fields.walletId !== undefined ||
+        fields.amount !== undefined ||
+        fields.paymentMethod !== undefined ||
+        fields.locationId !== undefined
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Approved or finalized deposits only allow notes and reference number edits",
+        });
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
+      }
+
+      await db.update(deposits).set(updateData).where(and(eq(deposits.id, id), eq(deposits.tenantId, tenantId)));
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "deposit",
+        entityId: id,
+        oldValues: {
+          depositCode: deposit.depositCode,
+          status: deposit.status,
+          amount: deposit.amount,
+          walletId: deposit.walletId,
+          customerId: deposit.customerId,
+          referenceNumber: deposit.referenceNumber,
+          notes: deposit.notes,
+        },
+        newValues: updateData,
+      });
+
+      return { success: true };
+    }),
+
   updateStatus: supervisoryQuery
     .input(z.object({
       id: z.number(),
@@ -303,7 +403,7 @@ export const depositRouter = createRouter({
         // Notify finance / admin on approval
         if (input.status === "approved") {
           const financeUsers = await db.select({ id: users.id }).from(users).where(
-            and(eq(users.tenantId, tenantId), inArray(users.role, ["admin", "accountant", "super_admin"]))
+            and(eq(users.tenantId, tenantId), inArray(users.role, ["admin", "super_admin"]))
           );
           if (financeUsers.length > 0) {
             await db.insert(notifications).values(

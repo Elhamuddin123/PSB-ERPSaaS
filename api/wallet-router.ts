@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { wallets, walletTransactions, notifications } from "@db/schema";
+import { wallets, walletTransactions, notifications, chartOfAccounts } from "@db/schema";
 import { eq, desc, sql, and, ne } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import {
@@ -262,6 +262,98 @@ create: supervisoryQuery
 
     return { id: walletId };
   }),
+
+  update: agencyAdminQuery
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        currency: z.string().length(3).optional(),
+        userId: z.number().nullable().optional(),
+        status: z.enum(["active", "frozen", "closed"]).optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const { id, ...fields } = input;
+
+      const wallet = await db.query.wallets.findFirst({
+        where: and(eq(wallets.id, id), eq(wallets.tenantId, tenantId)),
+      });
+      if (!wallet) throw new TRPCError({ code: "NOT_FOUND", message: "Wallet not found" });
+      if (wallet.status === "closed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot edit a closed wallet" });
+      }
+
+      const updateData: Record<string, unknown> = {};
+
+      if (fields.name !== undefined) updateData.name = fields.name.trim();
+      if (fields.userId !== undefined) updateData.userId = fields.userId;
+
+      if (fields.currency !== undefined && fields.currency !== wallet.currency) {
+        const txCount = await db.select({ count: sql<number>`count(*)` })
+          .from(walletTransactions)
+          .where(and(eq(walletTransactions.walletId, id), eq(walletTransactions.tenantId, tenantId)));
+        if ((txCount[0]?.count ?? 0) > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Currency cannot be changed after transactions have been recorded",
+          });
+        }
+        updateData.currency = fields.currency;
+      }
+
+      if (fields.status !== undefined) {
+        if (fields.status === "closed") {
+          if (Number(wallet.balance) !== 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Wallet balance must be $0 before closing. Current balance: $${Number(wallet.balance).toLocaleString()}`,
+            });
+          }
+          if (Number(wallet.reservedBalance) !== 0) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Unlock reserved funds before closing the wallet" });
+          }
+        }
+        updateData.status = fields.status;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
+      }
+
+      await db.update(wallets).set(updateData).where(eq(wallets.id, id));
+
+      if (fields.name !== undefined) {
+        const account = await ensureWalletCoaAccount(db, tenantId, { ...wallet, name: fields.name });
+        if (account) {
+          await db.update(chartOfAccounts)
+            .set({ name: `Wallet: ${fields.name}` })
+            .where(eq(chartOfAccounts.id, account.id));
+        }
+      }
+
+      if (fields.currency !== undefined && fields.currency !== wallet.currency) {
+        const account = await ensureWalletCoaAccount(db, tenantId, wallet);
+        if (account) {
+          await db.update(chartOfAccounts)
+            .set({ currency: fields.currency })
+            .where(eq(chartOfAccounts.id, account.id));
+        }
+      }
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "wallet",
+        entityId: id,
+        oldValues: { name: wallet.name, currency: wallet.currency, status: wallet.status, userId: wallet.userId },
+        newValues: updateData,
+      });
+
+      return { success: true };
+    }),
 
   lockFunds: supervisoryQuery
     .input(z.object({

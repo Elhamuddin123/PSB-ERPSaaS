@@ -1,7 +1,5 @@
 import { ErrorMessages } from "@contracts/constants";
 import {
-  ACCOUNTANT_ROLES,
-  MANAGER_ROLES,
   OPERATIONAL_ROLES,
   ROLES,
   SUPERVISORY_ROLES,
@@ -164,6 +162,4 @@ const requireAgencyAdmin = t.middleware(async (opts) => {
 export const agencyAdminQuery = authedQuery.use(requireAgencyAdmin);
 export const superAdminQuery = authedQuery.use(requireRole(ROLES.SUPER_ADMIN));
 export const supervisoryQuery = authedQuery.use(requireAnyRole(...SUPERVISORY_ROLES));
-export const managerQuery = authedQuery.use(requireAnyRole(...MANAGER_ROLES));
-export const accountantQuery = authedQuery.use(requireAnyRole(...ACCOUNTANT_ROLES));
 export const agentQuery = authedQuery.use(requireAnyRole(...OPERATIONAL_ROLES));

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { alertServerError } from "@/lib/i18n-ui";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,7 @@ const typeColors: Record<string, string> = {
 
 export default function ReceivablesPage() {
   const [search, setSearch] = useState("");
+  const { t, t: tc } = useTranslation("common");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [paymentForm, setPaymentForm] = useState({ amount: "", description: "" });
 
@@ -60,7 +63,7 @@ export default function ReceivablesPage() {
       refetch();
       setPaymentForm({ amount: "", description: "" });
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const agingBuckets = agingData
@@ -87,30 +90,24 @@ export default function ReceivablesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Customer Receivables</h1>
+        <h1 className="text-2xl font-bold">{t("customerReceivables")}</h1>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border rounded-lg p-4 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <TrendingUp className="h-4 w-4" />
-            Total Receivables
-          </div>
+            <TrendingUp className="h-4 w-4" />{t("total_receivables")}</div>
           <p className="text-2xl font-bold">${totalReceivable.toLocaleString()}</p>
         </div>
         <div className="bg-white border rounded-lg p-4 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <DollarSign className="h-4 w-4" />
-            Total Customers
-          </div>
+            <DollarSign className="h-4 w-4" />{t("total_customers_1")}</div>
           <p className="text-2xl font-bold">{new Set(data?.items?.map((t: any) => t.customerId)).size}</p>
         </div>
         <div className="bg-white border rounded-lg p-4 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <FileText className="h-4 w-4" />
-            Transactions
-          </div>
+            <FileText className="h-4 w-4" />{t("transactions_1")}</div>
           <p className="text-2xl font-bold">{data?.items?.length ?? 0}</p>
         </div>
       </div>
@@ -118,7 +115,7 @@ export default function ReceivablesPage() {
       {/* Aging Report */}
       {agingBuckets.length > 0 && (
         <div className="border rounded-lg p-4">
-          <h3 className="text-sm font-semibold mb-3">Aging Summary</h3>
+          <h3 className="text-sm font-semibold mb-3">{t("aging_summary")}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {agingBuckets.map((bucket) => (
               <div key={bucket.label} className="bg-gray-50 rounded p-3">
@@ -134,7 +131,7 @@ export default function ReceivablesPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search by customer or reference..."
+            placeholder={t("searchByCustomerOrReference")}
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -150,28 +147,28 @@ export default function ReceivablesPage() {
         </div>
       ) : error ? (
         <div className="text-center py-12 border rounded-lg">
-          <p className="text-red-500 mb-2">Failed to load receivables</p>
-          <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+          <p className="text-red-500 mb-2">{t("failed_to_load_receivables")}</p>
+          <Button variant="outline" onClick={() => refetch()}>{t("retry_1_1_1_1_1")}</Button>
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("customer")}</TableHead>
+                <TableHead>{t("type")}</TableHead>
+                <TableHead>{t("amount")}</TableHead>
+                <TableHead>{t("balance")}</TableHead>
+                <TableHead>{t("date")}</TableHead>
+                <TableHead>{t("description")}</TableHead>
+                <TableHead className="text-right">{t("actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredItems?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    No receivable transactions found.
+                    {t("noReceivablesFound")}
                   </TableCell>
                 </TableRow>
               )}
@@ -208,7 +205,7 @@ export default function ReceivablesPage() {
                         </DialogHeader>
                         {balanceData !== undefined && (
                           <div className="bg-gray-50 p-3 rounded mb-3">
-                            <p className="text-sm text-gray-500">Current Balance</p>
+                            <p className="text-sm text-gray-500">{t("current_balance")}</p>
                             <p className={`text-xl font-bold ${balanceData.balance > 0 ? "text-red-600" : "text-green-600"}`}>
                               ${Number(balanceData.balance).toLocaleString()}
                             </p>
@@ -218,20 +215,19 @@ export default function ReceivablesPage() {
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button size="sm" className="mb-2">
-                              <DollarSign className="h-4 w-4 mr-1" /> Record Payment
-                            </Button>
+                              <DollarSign className="h-4 w-4 mr-1" />{t("record_payment_1_1")}</Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Record Payment</DialogTitle>
+                              <DialogTitle>{t("record_payment_1_1_1")}</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-3">
                               <div>
-                                <label className="text-sm text-gray-500">Customer</label>
+                                <label className="text-sm text-gray-500">{t("customer_1_1_1")}</label>
                                 <p className="font-medium">{tx.customer?.firstName} {tx.customer?.lastName}</p>
                               </div>
                               <div>
-                                <label className="text-sm text-gray-500">Amount</label>
+                                <label className="text-sm text-gray-500">{t("amount_1_1_1_1_1_1_1_1_1_1")}</label>
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -241,11 +237,11 @@ export default function ReceivablesPage() {
                                 />
                               </div>
                               <div>
-                                <label className="text-sm text-gray-500">Description</label>
+                                <label className="text-sm text-gray-500">{t("description_1_1_1_1_1_1_1_1_1_1_1_1")}</label>
                                 <Input
                                   value={paymentForm.description}
                                   onChange={(e) => setPaymentForm((s) => ({ ...s, description: e.target.value }))}
-                                  placeholder="Payment description..."
+                                  placeholder={t("payment_description")}
                                 />
                               </div>
                               <Button
@@ -260,7 +256,7 @@ export default function ReceivablesPage() {
                                   })
                                 }
                               >
-                                {createPayment.isPending ? "Processing..." : "Record Payment"}
+                                {createPayment.isPending ? tc("actions.processing") : tc("actions.recordPayment")}
                               </Button>
                             </div>
                           </DialogContent>
@@ -269,11 +265,11 @@ export default function ReceivablesPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Type</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Balance</TableHead>
-                              <TableHead>Description</TableHead>
+                              <TableHead>{t("date_1_1_1_1_1_1_1_1_1")}</TableHead>
+                              <TableHead>{t("type_1_1")}</TableHead>
+                              <TableHead>{t("amount_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                              <TableHead>{t("balance_1_1_1_1")}</TableHead>
+                              <TableHead>{t("description_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>

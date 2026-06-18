@@ -1,5 +1,9 @@
 import { useState } from "react";
+import { alertServerError } from "@/lib/i18n-ui";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
+import { useAuth } from "@/hooks/useAuth";
+import { isAgencyAdmin } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +28,16 @@ import {
   Plus,
   Trash2,
   ArrowRightLeft,
+  Pencil,
 } from "lucide-react";
 
 export default function ExchangeRatesPage() {
+  const { t } = useTranslation("common");
+  const { user } = useAuth();
+  const canEdit = isAgencyAdmin(user?.role);
   const [createOpen, setCreateOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [editRate, setEditRate] = useState<{ id: number; rate: string; effectiveDate: string } | null>(null);
 
   const [form, setForm] = useState({
     fromCurrency: "USD",
@@ -63,7 +72,7 @@ export default function ExchangeRatesPage() {
       onSuccess: async () => {
         await utils.exchangeRate.list.invalidate();
       },
-      onError: (err) => alert(err.message),
+      onError: (err) => alertServerError(t, err),
     });
 
   const createRate =
@@ -77,18 +86,34 @@ export default function ExchangeRatesPage() {
         resetForm();
       },
 
-      onError: (err) =>
-        alert(err.message),
+      onError: (err) => alertServerError(t, err),
     });
 
   const deleteRate =
     trpc.exchangeRate.delete.useMutation({
       onSuccess: async () => {
         await utils.exchangeRate.list.invalidate();
-
         await utils.exchangeRate.currencies.invalidate();
       },
+      onError: (err) => alertServerError(t, err),
     });
+
+  const updateRate = trpc.exchangeRate.update.useMutation({
+    onSuccess: async () => {
+      await utils.exchangeRate.list.invalidate();
+      setEditRate(null);
+      alert(t("alerts.exchangeRateUpdated"));
+    },
+    onError: (err) => alertServerError(t, err),
+  });
+
+  const handleDeleteRate = async (id: number) => {
+    try {
+      await deleteRate.mutateAsync({ id });
+    } catch {
+      // error handled in onError above
+    }
+  };
 
   const convert =
     trpc.exchangeRate.convert.useQuery(
@@ -149,13 +174,9 @@ export default function ExchangeRatesPage() {
 
         <div>
 
-          <h1 className="text-xl sm:text-2xl font-bold">
-            Exchange Rates
-          </h1>
+          <h1 className="text-xl sm:text-2xl font-bold">{t("exchange_rates")}</h1>
 
-          <p className="text-slate-500 text-sm mt-1">
-            Manage multi-currency exchange rates
-          </p>
+          <p className="text-slate-500 text-sm mt-1">{t("manage_multi_currency_exchange_rates")}</p>
 
         </div>
 
@@ -188,26 +209,20 @@ export default function ExchangeRatesPage() {
                 variant="outline"
                 size="sm"
               >
-                <ArrowRightLeft className="h-4 w-4 mr-1" />
-                Convert
-              </Button>
+                <ArrowRightLeft className="h-4 w-4 mr-1" />{t("convert")}</Button>
 
             </DialogTrigger>
 
             <DialogContent>
 
               <DialogHeader>
-                <DialogTitle>
-                  Currency Converter
-                </DialogTitle>
+                <DialogTitle>{t("currency_converter")}</DialogTitle>
               </DialogHeader>
 
               <div className="space-y-3">
 
                 <div>
-                  <Label>
-                    Amount
-                  </Label>
+                  <Label>{t("amount_1_1_1_1")}</Label>
 
                   <Input
                     type="number"
@@ -260,9 +275,7 @@ export default function ExchangeRatesPage() {
             <DialogTrigger asChild>
 
               <Button size="sm">
-                <Plus className="h-4 w-4 mr-1"/>
-                Add Rate
-              </Button>
+                <Plus className="h-4 w-4 mr-1"/>{t("add_rate")}</Button>
 
             </DialogTrigger>
 
@@ -270,16 +283,14 @@ export default function ExchangeRatesPage() {
 
               <DialogHeader>
 
-                <DialogTitle>
-                  Add Exchange Rate
-                </DialogTitle>
+                <DialogTitle>{t("add_exchange_rate")}</DialogTitle>
 
               </DialogHeader>
 
               <div className="space-y-3">
 
                 <Input
-                  placeholder="From"
+                  placeholder={t("from")}
                   value={
                     form.fromCurrency
                   }
@@ -293,7 +304,7 @@ export default function ExchangeRatesPage() {
                 />
 
                 <Input
-                  placeholder="To"
+                  placeholder={t("to")}
                   value={
                     form.toCurrency
                   }
@@ -321,9 +332,7 @@ export default function ExchangeRatesPage() {
                   onClick={
                     handleCreate
                   }
-                >
-                  Save Rate
-                </Button>
+                >{t("save_rate")}</Button>
 
               </div>
 
@@ -375,11 +384,7 @@ export default function ExchangeRatesPage() {
 
               </p>
 
-              <p className="text-green-600 text-xs">
-
-                Live Market
-
-              </p>
+              <p className="text-green-600 text-xs">{t("live_market")}</p>
 
             </div>
 
@@ -411,19 +416,17 @@ export default function ExchangeRatesPage() {
 
               <TableRow>
 
-                <TableHead>From</TableHead>
+                <TableHead>{t("from_1")}</TableHead>
 
-                <TableHead>To</TableHead>
+                <TableHead>{t("to_1")}</TableHead>
 
-                <TableHead>Rate</TableHead>
+                <TableHead>{t("rate")}</TableHead>
 
-                <TableHead>Date</TableHead>
+                <TableHead>{t("date_1_1_1_1_1")}</TableHead>
 
-                <TableHead>Source</TableHead>
+                <TableHead>{t("source_1_1")}</TableHead>
 
-                <TableHead>
-                  Action
-                </TableHead>
+                <TableHead>{t("action_1")}</TableHead>
 
               </TableRow>
 
@@ -459,18 +462,33 @@ export default function ExchangeRatesPage() {
 
                   <TableCell>
 
+                    {canEdit && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 mr-1"
+                        title={t("edit_exchange_rate")}
+                        onClick={() => setEditRate({
+                          id: rate.id,
+                          rate: String(rate.rate),
+                          effectiveDate: String(rate.effectiveDate).slice(0, 10),
+                        })}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() =>
-                        deleteRate.mutate({
-                          id:rate.id
-                        })
-                      }
+                      onClick={() => handleDeleteRate(rate.id)}
+                      disabled={deleteRate.isPending}
                     >
-
-                      <Trash2 className="h-4 w-4 text-red-500"/>
-
+                      {deleteRate.isPending ? (
+                        "Deleting..."
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      )}
                     </Button>
 
                   </TableCell>
@@ -486,6 +504,35 @@ export default function ExchangeRatesPage() {
         </div>
 
       )}
+
+      <Dialog open={!!editRate} onOpenChange={() => setEditRate(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("edit_exchange_rate")}</DialogTitle></DialogHeader>
+          {editRate && (
+            <div className="space-y-3">
+              <div>
+                <Label>{t("rate")}</Label>
+                <Input type="number" step="0.000001" value={editRate.rate} onChange={(e) => setEditRate({ ...editRate, rate: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t("date_1_1_1_1_1")}</Label>
+                <Input type="date" value={editRate.effectiveDate} onChange={(e) => setEditRate({ ...editRate, effectiveDate: e.target.value })} />
+              </div>
+              <Button
+                className="w-full"
+                disabled={!editRate.rate || updateRate.isPending}
+                onClick={() => updateRate.mutate({
+                  id: editRate.id,
+                  rate: Number(editRate.rate),
+                  effectiveDate: editRate.effectiveDate,
+                })}
+              >
+                {updateRate.isPending ? t("actions.saving") : t("save_changes")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

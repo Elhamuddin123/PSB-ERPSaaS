@@ -9,7 +9,7 @@ export interface LocalUser {
   id: number;
   name: string;
   email: string;
-  role: "super_admin" | "admin" | "manager" | "accountant" | "agent" | "viewer";
+  role: "super_admin" | "admin" | "agent" | "viewer";
   avatar?: string;
   department: string;
 }
@@ -27,10 +27,6 @@ const DEMO_USERS: Record<string, { user: LocalUser; password: string }> =
         "admin@psb-erp.com": {
           user: { id: 1, name: "Super Admin", email: "admin@psb-erp.com", role: "super_admin", department: "Management" },
           password: "admin123",
-        },
-        "manager@psb-erp.com": {
-          user: { id: 2, name: "Marcus Johnson", email: "manager@psb-erp.com", role: "manager", department: "Operations" },
-          password: "manager123",
         },
         "agent@psb-erp.com": {
           user: { id: 3, name: "David Kim", email: "agent@psb-erp.com", role: "agent", department: "Sales" },

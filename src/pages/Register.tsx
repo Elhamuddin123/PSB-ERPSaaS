@@ -25,6 +25,7 @@ import {
   calculateSubscriptionTotal,
   formatPlanPriceDisplay,
 } from "@contracts/plans";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const planIcons = {
   starter: Plane,
@@ -132,14 +133,17 @@ export default function RegisterPage() {
   const stepLabels = [t("step1"), t("step2"), t("step3")];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 end-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-600 shadow-lg mb-4">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">PSB-ERP</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("appName")}</h1>
           <p className="text-sm text-slate-500 mt-1">{t("subtitle")}</p>
         </div>
 
@@ -380,13 +384,13 @@ export default function RegisterPage() {
                   {pricing.contactSales ? (
                     <div className="border-t pt-2 flex justify-between text-sm font-semibold">
                       <span>{t("totalPrice", "Total Price")}</span>
-                      <span className="text-indigo-600">Contact Sales</span>
+                      <span className="text-indigo-600">{t("contact_sales")}</span>
                     </div>
                   ) : (
                     <>
                       {pricing.discountPercent > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-500">Discount</span>
+                          <span className="text-slate-500">{t("discount_1")}</span>
                           <span className="font-medium text-emerald-600">-{pricing.discountPercent}% ({pricing.discountAmount!.toFixed(0)} AFN)</span>
                         </div>
                       )}

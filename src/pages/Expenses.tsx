@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { alertServerError } from "@/lib/i18n-ui";
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Receipt, Search, Plus, CheckCircle, XCircle, Clock, DollarSign, BookOpen, Trash2 } from "lucide-react";
+import { Receipt, Search, Plus, CheckCircle, XCircle, Clock, DollarSign, BookOpen, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
+import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
@@ -21,11 +23,26 @@ const statusConfig: Record<string, { color: string; icon: any }> = {
 };
 
 export default function ExpensesPage() {
+  const { t } = useTranslation("common");
   const { user } = useAuth();
   const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
+  const canEdit = isAgencyAdmin(user?.role);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editExpense, setEditExpense] = useState<{
+    id: number;
+    status: string;
+    categoryId: number;
+    title: string;
+    description: string;
+    amount: string;
+    expenseDate: string;
+    paymentMethod: "cash" | "card" | "bank_transfer" | "cheque" | "wallet" | "other";
+    vendor: string;
+    receiptNumber: string;
+    notes: string;
+  } | null>(null);
 
   const utils = trpc.useUtils();
   const { data: expensesData, refetch } = trpc.expense.list.useQuery({ search, status: statusFilter });
@@ -41,7 +58,7 @@ export default function ExpensesPage() {
       setCreateOpen(false);
       setNewExpense({ categoryId: 0, title: "", description: "", amount: "", expenseDate: "", paymentMethod: "card" as const, vendor: "", receiptNumber: "", notes: "" });
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
   const deleteExpense = trpc.expense.delete.useMutation({
     onSuccess: async () => {
@@ -49,7 +66,7 @@ export default function ExpensesPage() {
       await utils.expense.stats.invalidate();
       refetch();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const updateStatus = trpc.expense.updateStatus.useMutation({
@@ -60,7 +77,17 @@ export default function ExpensesPage() {
       await utils.dashboard.expenseByCategory.invalidate();
       refetch();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
+  });
+  const updateExpense = trpc.expense.update.useMutation({
+    onSuccess: async () => {
+      await utils.expense.list.invalidate();
+      await utils.expense.stats.invalidate();
+      setEditExpense(null);
+      refetch();
+      alert(t("alerts.expenseUpdated"));
+    },
+    onError: (err) => alertServerError(t, err),
   });
 
   const [newExpense, setNewExpense] = useState<{
@@ -79,47 +106,47 @@ export default function ExpensesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Expense Management</h1>
-          <p className="text-slate-500 mt-1 text-sm">Track, approve, and manage business expenses</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{t("expense_management")}</h1>
+          <p className="text-slate-500 mt-1 text-sm">{t("track_approve_and_manage_business_expenses")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" /> Submit Expense</Button>
+            <Button className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />{t("submit_expense")}</Button>
           </DialogTrigger>
           <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-lg">
-            <DialogHeader><DialogTitle>Submit New Expense</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("submit_new_expense")}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-4">
               <div>
-                <Label>Category</Label>
+                <Label>{t("category")}</Label>
                 <Select onValueChange={v => setNewExpense({...newExpense, categoryId: Number(v)})}>
-                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("select_category")} /></SelectTrigger>
                   <SelectContent>
                     {(categories || []).length === 0 ? (
-                      <SelectItem value="__empty__" disabled>No records found</SelectItem>
+                      <SelectItem value="__empty__" disabled>{t("no_records_found")}</SelectItem>
                     ) : (
                       (categories || []).map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)
                     )}
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Title</Label><Input value={newExpense.title} onChange={e => setNewExpense({...newExpense, title: e.target.value})} placeholder="Expense title" /></div>
-              <div><Label>Amount</Label><Input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} placeholder="0.00" /></div>
-              <div><Label>Date</Label><Input type="date" onChange={e => setNewExpense({...newExpense, expenseDate: e.target.value})} /></div>
+              <div><Label>{t("title")}</Label><Input value={newExpense.title} onChange={e => setNewExpense({...newExpense, title: e.target.value})} placeholder={t("expense_title")} /></div>
+              <div><Label>{t("amount_1_1_1_1_1")}</Label><Input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} placeholder="0.00" /></div>
+              <div><Label>{t("date_1_1_1_1_1_1")}</Label><Input type="date" onChange={e => setNewExpense({...newExpense, expenseDate: e.target.value})} /></div>
               <div>
-                <Label>Payment Method</Label>
+                <Label>{t("payment_method_1")}</Label>
                 <Select value={newExpense.paymentMethod} onValueChange={v => setNewExpense({...newExpense, paymentMethod: v as "cash" | "card" | "bank_transfer" | "cheque" | "wallet" | "other"})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                    <SelectItem value="wallet">Wallet</SelectItem>
+                    <SelectItem value="cash">{t("cash_1")}</SelectItem>
+                    <SelectItem value="card">{t("card")}</SelectItem>
+                    <SelectItem value="bank_transfer">{t("bank_transfer_1")}</SelectItem>
+                    <SelectItem value="cheque">{t("cheque_1")}</SelectItem>
+                    <SelectItem value="wallet">{t("wallet_1")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Vendor</Label><Input value={newExpense.vendor} onChange={e => setNewExpense({...newExpense, vendor: e.target.value})} placeholder="Vendor name" /></div>
-              <Button className="w-full bg-indigo-600" onClick={() => createExpense.mutate(newExpense)} disabled={!newExpense.title || !newExpense.amount || !newExpense.categoryId || !newExpense.expenseDate || createExpense.isPending}>Submit Expense</Button>
+              <div><Label>{t("vendor")}</Label><Input value={newExpense.vendor} onChange={e => setNewExpense({...newExpense, vendor: e.target.value})} placeholder={t("vendor_name")} /></div>
+              <Button className="w-full bg-indigo-600" onClick={() => createExpense.mutate(newExpense)} disabled={!newExpense.title || !newExpense.amount || !newExpense.categoryId || !newExpense.expenseDate || createExpense.isPending}>{t("submit_expense_1")}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -154,7 +181,7 @@ export default function ExpensesPage() {
 
       {/* Chart */}
       <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-600">Monthly Expense Trend</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-600">{t("monthly_expense_trend")}</CardTitle></CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={stats?.monthly || []}>
@@ -171,7 +198,7 @@ export default function ExpensesPage() {
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <Input className="pl-9" placeholder="Search expenses..." value={search} onChange={e => setSearch(e.target.value)} />
+        <Input className="pl-9" placeholder={t("search_expenses")} value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {/* Table */}
@@ -180,13 +207,13 @@ export default function ExpensesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Expense</th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Category</th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Vendor</th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">Date</th>
-                <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">Amount</th>
-                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">Status</th>
-                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">Actions</th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("expense_1_1")}</th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("category_1")}</th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("vendor_1")}</th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("date_1_1_1_1_1_1_1")}</th>
+                <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("amount_1_1_1_1_1_1")}</th>
+                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("status_1_1_1_1_1_1_1")}</th>
+                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("actions_1")}</th>
               </tr></thead>
               <tbody>
                 {(expensesData?.items || []).map((expense) => (
@@ -208,24 +235,44 @@ export default function ExpensesPage() {
                       <Badge className={`text-[10px] ${statusConfig[expense.status]?.color || ""}`}>{expense.status}</Badge>
                     </td>
                     <td className="p-2 sm:p-3 text-center">
+                      <div className="flex justify-center gap-1 flex-wrap items-center">
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          title={t("edit_expense")}
+                          onClick={() => setEditExpense({
+                            id: expense.id,
+                            status: expense.status,
+                            categoryId: expense.categoryId ?? 0,
+                            title: expense.title,
+                            description: expense.description || "",
+                            amount: String(expense.amount),
+                            expenseDate: expense.expenseDate ? String(expense.expenseDate).slice(0, 10) : "",
+                            paymentMethod: expense.paymentMethod,
+                            vendor: expense.vendor || "",
+                            receiptNumber: expense.receiptNumber || "",
+                            notes: expense.notes || "",
+                          })}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
                       {expense.status === "pending" && (
                         <div className="flex justify-center gap-1 flex-wrap">
                           <Button size="sm" variant="ghost" className="text-emerald-600 h-7 text-xs px-2" onClick={() => updateStatus.mutate({ id: expense.id, status: "approved" })}>
-                            <CheckCircle className="h-3 w-3 mr-1" /> Approve
-                          </Button>
+                            <CheckCircle className="h-3 w-3 mr-1" />{t("approve_1")}</Button>
                           <Button size="sm" variant="ghost" className="text-red-600 h-7 text-xs px-2" onClick={() => updateStatus.mutate({ id: expense.id, status: "rejected" })}>
-                            <XCircle className="h-3 w-3 mr-1" /> Reject
-                          </Button>
+                            <XCircle className="h-3 w-3 mr-1" />{t("reject_1")}</Button>
                         </div>
                       )}
                       {expense.status === "approved" && (
                         <div className="flex justify-center gap-1 flex-wrap items-center">
-                          <span className="inline-flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-2 py-1 rounded" title="Journal entry auto-posted on approval">
-                            <BookOpen className="h-3 w-3 mr-1" /> Posted
-                          </span>
+                          <span className="inline-flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-2 py-1 rounded" title={t("journal_entry_auto_posted_on_approval")}>
+                            <BookOpen className="h-3 w-3 mr-1" />{t("posted")}</span>
                           <Button size="sm" variant="ghost" className="text-blue-600 h-7 text-xs px-2" onClick={() => updateStatus.mutate({ id: expense.id, status: "reimbursed" })}>
-                            <DollarSign className="h-3 w-3 mr-1" /> Reimburse
-                          </Button>
+                            <DollarSign className="h-3 w-3 mr-1" />{t("reimburse")}</Button>
                         </div>
                       )}
                       {canManage && (
@@ -233,10 +280,10 @@ export default function ExpensesPage() {
                           size="sm"
                           variant="ghost"
                           className="text-red-500 h-7 w-7 p-0 ml-1"
-                          title="Delete (reverses accounting if posted)"
+                          title={t("delete_reverses_accounting_if_posted")}
                           disabled={deleteExpense.isPending}
                           onClick={() => {
-                            if (confirm(`Delete expense "${expense.title}"?${expense.status === "approved" ? " Accounting will be reversed." : ""}`)) {
+                            if (confirm(t("confirm.deleteExpense", { name: expense.title, suffix: expense.status === "approved" ? t("confirm.accountingReversal") : "" }))) {
                               deleteExpense.mutate({ id: expense.id });
                             }
                           }}
@@ -244,6 +291,7 @@ export default function ExpensesPage() {
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -252,6 +300,72 @@ export default function ExpensesPage() {
           </div>
         </CardContent>
       </Card>
+      <Dialog open={!!editExpense} onOpenChange={() => setEditExpense(null)}>
+        <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-lg">
+          <DialogHeader><DialogTitle>{t("edit_expense")}</DialogTitle></DialogHeader>
+          {editExpense && (
+            <div className="space-y-3 pt-4">
+              {editExpense.status !== "pending" && (
+                <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">{t("expense_fields_locked")}</p>
+              )}
+              <div><Label>{t("title")}</Label><Input value={editExpense.title} onChange={e => setEditExpense({ ...editExpense, title: e.target.value })} /></div>
+              <div><Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label><Input value={editExpense.description} onChange={e => setEditExpense({ ...editExpense, description: e.target.value })} /></div>
+              {editExpense.status === "pending" && (
+                <>
+                  <div>
+                    <Label>{t("category")}</Label>
+                    <Select value={editExpense.categoryId ? String(editExpense.categoryId) : ""} onValueChange={v => setEditExpense({ ...editExpense, categoryId: Number(v) })}>
+                      <SelectTrigger><SelectValue placeholder={t("select_category")} /></SelectTrigger>
+                      <SelectContent>
+                        {(categories || []).map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>{t("amount_1_1_1_1_1")}</Label><Input type="number" value={editExpense.amount} onChange={e => setEditExpense({ ...editExpense, amount: e.target.value })} /></div>
+                  <div><Label>{t("date_1_1_1_1_1_1")}</Label><Input type="date" value={editExpense.expenseDate} onChange={e => setEditExpense({ ...editExpense, expenseDate: e.target.value })} /></div>
+                  <div>
+                    <Label>{t("payment_method_1")}</Label>
+                    <Select value={editExpense.paymentMethod} onValueChange={v => setEditExpense({ ...editExpense, paymentMethod: v as typeof editExpense.paymentMethod })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">{t("cash_1")}</SelectItem>
+                        <SelectItem value="card">{t("card")}</SelectItem>
+                        <SelectItem value="bank_transfer">{t("bank_transfer_1")}</SelectItem>
+                        <SelectItem value="cheque">{t("cheque_1")}</SelectItem>
+                        <SelectItem value="wallet">{t("wallet_1")}</SelectItem>
+                        <SelectItem value="other">other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              <div><Label>{t("vendor")}</Label><Input value={editExpense.vendor} onChange={e => setEditExpense({ ...editExpense, vendor: e.target.value })} /></div>
+              <div><Label>{t("receipt_cheque_number")}</Label><Input value={editExpense.receiptNumber} onChange={e => setEditExpense({ ...editExpense, receiptNumber: e.target.value })} /></div>
+              <div><Label>{t("notes_1")}</Label><Input value={editExpense.notes} onChange={e => setEditExpense({ ...editExpense, notes: e.target.value })} /></div>
+              <Button
+                className="w-full bg-indigo-600"
+                disabled={!editExpense.title || updateExpense.isPending}
+                onClick={() => updateExpense.mutate({
+                  id: editExpense.id,
+                  title: editExpense.title,
+                  description: editExpense.description || undefined,
+                  vendor: editExpense.vendor || undefined,
+                  receiptNumber: editExpense.receiptNumber || undefined,
+                  notes: editExpense.notes || undefined,
+                  ...(editExpense.status === "pending" ? {
+                    categoryId: editExpense.categoryId,
+                    amount: editExpense.amount,
+                    expenseDate: editExpense.expenseDate,
+                    paymentMethod: editExpense.paymentMethod,
+                  } : {}),
+                })}
+              >
+                {updateExpense.isPending ? t("actions.saving") : t("save_changes")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

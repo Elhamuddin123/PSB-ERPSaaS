@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, supervisoryQuery, agentQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery, agentQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 
 import {
@@ -600,6 +600,193 @@ export const ticketRouter = createRouter({
         count: created.length,
         tickets: created,
       };
+    }),
+
+  // =====================================================
+  // UPDATE TICKET (agency admin only — accounting-safe)
+  // =====================================================
+
+  update: agencyAdminQuery
+    .input(
+      z.object({
+        id: z.number(),
+        ticketNumber: z.string().optional(),
+        pnrCode: z.string().optional(),
+        airlineId: optionalId,
+        customerId: optionalId,
+        walletId: z.number().min(1).optional(),
+        travelDate: optionalValidDateString,
+        returnDate: optionalValidDateString,
+        routeFrom: z.string().max(10).optional(),
+        routeTo: z.string().max(10).optional(),
+        tripType: z.enum(["one_way", "round_trip", "multi_city"]).optional(),
+        class: z.enum(["economy", "premium_economy", "business", "first"]).optional(),
+        baseFare: z.string().optional(),
+        taxAmount: z.string().optional(),
+        totalAmount: z.string().optional(),
+        commissionAmount: z.string().optional(),
+        discountAmount: z.string().optional(),
+        paidAmount: z.string().optional(),
+        netPayable: z.string().optional(),
+        notes: z.string().optional(),
+        passengers: z
+          .array(
+            ticketPassengerInputSchema.extend({ id: z.number().optional() }),
+          )
+          .optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const { id, passengers, walletId, travelDate, returnDate, ...fields } = input;
+
+      const existing = await db.query.tickets.findFirst({
+        where: and(eq(tickets.id, id), eq(tickets.tenantId, tenantId), isNull(tickets.deletedAt)),
+      });
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+      }
+      if (["refunded", "cancelled"].includes(existing.status)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot edit refunded or cancelled tickets" });
+      }
+
+      const isPending = existing.status === "pending";
+      const updateData: Record<string, unknown> = {};
+
+      if (isPending) {
+        if (walletId !== undefined) {
+          await validateTicketCreatePrerequisites(db, tenantId, walletId, fields.airlineId ?? existing.airlineId ?? undefined);
+        } else if (fields.airlineId !== undefined) {
+          const metaWalletId = getTicketMetadata(existing)?.walletId;
+          if (!metaWalletId) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Ticket wallet not recorded" });
+          }
+          await validateTicketCreatePrerequisites(db, tenantId, metaWalletId, fields.airlineId);
+        }
+
+        if (fields.ticketNumber !== undefined) updateData.ticketNumber = fields.ticketNumber.trim() || existing.ticketNumber;
+        if (fields.pnrCode !== undefined) updateData.pnrCode = fields.pnrCode.trim() || null;
+        if (fields.airlineId !== undefined) updateData.airlineId = fields.airlineId ?? null;
+        if (fields.customerId !== undefined) updateData.customerId = fields.customerId ?? null;
+        if (fields.routeFrom !== undefined) updateData.routeFrom = (fields.routeFrom.trim() || "TBD").slice(0, 10);
+        if (fields.routeTo !== undefined) updateData.routeTo = (fields.routeTo.trim() || "TBD").slice(0, 10);
+        if (fields.tripType !== undefined) updateData.tripType = fields.tripType;
+        if (fields.class !== undefined) updateData.class = fields.class;
+        if (fields.notes !== undefined) updateData.notes = fields.notes.trim() || null;
+        if (travelDate !== undefined) updateData.travelDate = travelDate ? new Date(travelDate) : null;
+        if (returnDate !== undefined) updateData.returnDate = returnDate ? new Date(returnDate) : null;
+
+        if (fields.totalAmount !== undefined || fields.commissionAmount !== undefined || fields.discountAmount !== undefined) {
+          const ticketPrice = Number(fields.totalAmount ?? existing.totalAmount);
+          const commissionAmount = Number(fields.commissionAmount ?? existing.commissionAmount);
+          const discountAmount = Number(fields.discountAmount ?? existing.discountAmount ?? 0);
+          const paidAmount = Number(fields.paidAmount ?? existing.paidAmount ?? 0);
+
+          if (discountAmount > commissionAmount) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Customer discount cannot exceed airline commission" });
+          }
+
+          const customerCharge = ticketPrice - discountAmount;
+          let paymentStatus: "pending" | "partial" | "paid" = "pending";
+          if (paidAmount >= customerCharge && customerCharge > 0) paymentStatus = "paid";
+          else if (paidAmount > 0) paymentStatus = "partial";
+
+          if (fields.baseFare !== undefined) updateData.baseFare = fields.baseFare;
+          if (fields.taxAmount !== undefined) updateData.taxAmount = fields.taxAmount;
+          if (fields.totalAmount !== undefined) updateData.totalAmount = fields.totalAmount;
+          if (fields.commissionAmount !== undefined) updateData.commissionAmount = fields.commissionAmount;
+          if (fields.discountAmount !== undefined) updateData.discountAmount = discountAmount.toFixed(2);
+          if (fields.paidAmount !== undefined) updateData.paidAmount = paidAmount.toFixed(2);
+          updateData.netPayable = (ticketPrice - commissionAmount).toFixed(2);
+          updateData.paymentStatus = paymentStatus;
+        } else {
+          if (fields.baseFare !== undefined) updateData.baseFare = fields.baseFare;
+          if (fields.taxAmount !== undefined) updateData.taxAmount = fields.taxAmount;
+          if (fields.commissionAmount !== undefined) updateData.commissionAmount = fields.commissionAmount;
+          if (fields.paidAmount !== undefined) updateData.paidAmount = fields.paidAmount;
+          if (fields.netPayable !== undefined) updateData.netPayable = fields.netPayable;
+        }
+
+        if (walletId !== undefined) {
+          const metadata = getTicketMetadata(existing) ?? {};
+          updateData.metadata = { ...metadata, walletId };
+        }
+      } else {
+        const financialKeys = [
+          "walletId", "customerId", "baseFare", "taxAmount", "totalAmount",
+          "commissionAmount", "discountAmount", "paidAmount", "netPayable",
+        ] as const;
+        for (const key of financialKeys) {
+          if ((input as Record<string, unknown>)[key] !== undefined) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Financial fields cannot be changed on approved tickets. Use refund/reversal flows.",
+            });
+          }
+        }
+
+        if (fields.ticketNumber !== undefined) updateData.ticketNumber = fields.ticketNumber.trim() || existing.ticketNumber;
+        if (fields.pnrCode !== undefined) updateData.pnrCode = fields.pnrCode.trim() || null;
+        if (fields.routeFrom !== undefined) updateData.routeFrom = (fields.routeFrom.trim() || existing.routeFrom).slice(0, 10);
+        if (fields.routeTo !== undefined) updateData.routeTo = (fields.routeTo.trim() || existing.routeTo).slice(0, 10);
+        if (fields.tripType !== undefined) updateData.tripType = fields.tripType;
+        if (fields.class !== undefined) updateData.class = fields.class;
+        if (fields.airlineId !== undefined) updateData.airlineId = fields.airlineId ?? null;
+        if (fields.notes !== undefined) updateData.notes = fields.notes.trim() || null;
+        if (travelDate !== undefined) updateData.travelDate = travelDate ? new Date(travelDate) : null;
+        if (returnDate !== undefined) updateData.returnDate = returnDate ? new Date(returnDate) : null;
+      }
+
+      if (Object.keys(updateData).length === 0 && !passengers) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
+      }
+
+      await db.transaction(async (tx) => {
+        if (Object.keys(updateData).length > 0) {
+          await tx.update(tickets).set(updateData).where(eq(tickets.id, id));
+        }
+
+        if (passengers && passengers.length > 0) {
+          if (isPending) {
+            await tx.delete(ticketPassengers).where(eq(ticketPassengers.ticketId, id));
+            await tx.insert(ticketPassengers).values(
+              passengers.map((p) => ({
+                ticketId: id,
+                firstName: p.firstName,
+                lastName: p.lastName,
+                passengerType: p.passengerType ?? "adult",
+                passportNumber: p.passportNumber,
+                nationality: p.nationality,
+                seatNumber: p.seatNumber,
+              })),
+            );
+          } else {
+            for (const p of passengers) {
+              if (p.id) {
+                await tx.update(ticketPassengers).set({
+                  firstName: p.firstName,
+                  lastName: p.lastName,
+                  seatNumber: p.seatNumber,
+                  passportNumber: p.passportNumber,
+                  nationality: p.nationality,
+                }).where(and(eq(ticketPassengers.id, p.id), eq(ticketPassengers.ticketId, id)));
+              }
+            }
+          }
+        }
+      });
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "ticket",
+        entityId: id,
+        oldValues: { status: existing.status, ticketNumber: existing.ticketNumber },
+        newValues: { ...updateData, passengerCount: passengers?.length },
+      });
+
+      return { success: true };
     }),
 
   // =====================================================

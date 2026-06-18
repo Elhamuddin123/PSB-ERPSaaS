@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useParams, Link } from "react-router";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,7 @@ const paymentMethodLabels: Record<string, string> = {
 };
 
 export default function SupplierDetailPage() {
+  const { t } = useTranslation("common");
   const { id } = useParams<{ id: string }>();
   const supplierId = Number(id);
 
@@ -71,9 +73,9 @@ export default function SupplierDetailPage() {
     return (
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-400" />
-        <p className="text-lg font-medium">Supplier not found</p>
+        <p className="text-lg font-medium">{t("supplier_not_found")}</p>
         <Button variant="outline" className="mt-4" asChild>
-          <Link to="/suppliers"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Suppliers</Link>
+          <Link to="/suppliers"><ArrowLeft className="h-4 w-4 mr-1" />{t("back_to_suppliers")}</Link>
         </Button>
       </div>
     );
@@ -86,7 +88,7 @@ export default function SupplierDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" asChild>
-          <Link to="/suppliers"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link>
+          <Link to="/suppliers"><ArrowLeft className="h-4 w-4 mr-1" />{t("back_1_1_1")}</Link>
         </Button>
       </div>
 
@@ -107,25 +109,25 @@ export default function SupplierDetailPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-slate-500">Total Bills</p>
+            <p className="text-xs text-slate-500">{t("total_bills_1")}</p>
             <p className="text-xl font-bold mt-1">{stats.totalBills}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-slate-500">Total Amount</p>
+            <p className="text-xs text-slate-500">{t("total_amount")}</p>
             <p className="text-xl font-bold mt-1">${stats.totalAmount.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-slate-500">Balance Due</p>
+            <p className="text-xs text-slate-500">{t("balance_due_1_1_1")}</p>
             <p className="text-xl font-bold mt-1 text-amber-600">${stats.totalDue.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-slate-500">Overdue</p>
+            <p className="text-xs text-slate-500">{t("overdue_1_1_1")}</p>
             <p className="text-xl font-bold mt-1 text-red-600">{stats.overdueBills}</p>
           </CardContent>
         </Card>
@@ -134,17 +136,17 @@ export default function SupplierDetailPage() {
       {/* Tabs */}
       <Tabs defaultValue="overview">
         <TabsList className="w-full sm:w-auto overflow-x-auto">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="bills">Bills</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
+          <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
+          <TabsTrigger value="bills">{t("bills_1")}</TabsTrigger>
+          <TabsTrigger value="payments">{t("payments_1")}</TabsTrigger>
+          <TabsTrigger value="contacts">{t("contacts")}</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
         <TabsContent value="overview" className="mt-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Company Info</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("company_info")}</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {supplier.tradeName && <p className="flex items-center gap-2"><Building2 className="h-4 w-4 text-slate-400" /> {supplier.tradeName}</p>}
                 {supplier.email && <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {supplier.email}</p>}
@@ -159,7 +161,7 @@ export default function SupplierDetailPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Financial Terms</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("financial_terms")}</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-slate-400" /> Credit Limit: ${Number(supplier.creditLimit).toLocaleString()}</p>
                 <p className="flex items-center gap-2"><Calendar className="h-4 w-4 text-slate-400" /> Payment Terms: {supplier.paymentTerms} days</p>
@@ -170,7 +172,7 @@ export default function SupplierDetailPage() {
           </div>
           {supplier.notes && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Notes</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("notes_1_1_1_1_1")}</CardTitle></CardHeader>
               <CardContent className="text-sm text-slate-600">{supplier.notes}</CardContent>
             </Card>
           )}
@@ -179,22 +181,22 @@ export default function SupplierDetailPage() {
         {/* Bills */}
         <TabsContent value="bills" className="mt-4">
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recent Bills</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_bills")}</CardTitle></CardHeader>
             <CardContent>
               {recentBills.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4 text-center">No bills yet</p>
+                <p className="text-sm text-slate-500 py-4 text-center">{t("no_bills_yet")}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Bill #</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Paid</TableHead>
-                        <TableHead>Balance</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{t("bill_1")}</TableHead>
+                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("due_date_1_1_1")}</TableHead>
+                        <TableHead>{t("total_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("paid_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("balance_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -220,20 +222,20 @@ export default function SupplierDetailPage() {
         {/* Payments */}
         <TabsContent value="payments" className="mt-4">
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recent Payments</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_payments")}</CardTitle></CardHeader>
             <CardContent>
               {recentPayments.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4 text-center">No payments yet</p>
+                <p className="text-sm text-slate-500 py-4 text-center">{t("no_payments_yet_1")}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Payment #</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Reference</TableHead>
+                        <TableHead>{t("payment_1_1")}</TableHead>
+                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("method_1")}</TableHead>
+                        <TableHead>{t("reference_1_2_1")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -257,10 +259,10 @@ export default function SupplierDetailPage() {
         {/* Contacts */}
         <TabsContent value="contacts" className="mt-4">
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Contacts</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("contacts_1")}</CardTitle></CardHeader>
             <CardContent>
               {contacts.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4 text-center">No contacts added</p>
+                <p className="text-sm text-slate-500 py-4 text-center">{t("no_contacts_added")}</p>
               ) : (
                 <div className="space-y-3">
                   {contacts.map(contact => (
@@ -269,7 +271,7 @@ export default function SupplierDetailPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm">{contact.name}</p>
-                          {contact.isPrimary && <Badge className="text-[10px] bg-indigo-100 text-indigo-800">Primary</Badge>}
+                          {contact.isPrimary && <Badge className="text-[10px] bg-indigo-100 text-indigo-800">{t("primary")}</Badge>}
                         </div>
                         {contact.position && <p className="text-xs text-slate-500">{contact.position}</p>}
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-slate-600">

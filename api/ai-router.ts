@@ -106,8 +106,9 @@ analytics`
   }
 ]);
 
+const response = result as any;
 const responseText =
-  result?.choices?.[0]
+  response?.choices?.[0]
     ?.message?.content
   ||
   "No response generated";

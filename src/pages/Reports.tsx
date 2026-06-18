@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,7 +96,9 @@ function SummaryRow({
 }
 
 export default function ReportsPage() {
-  const [fromDate, setFromDate] = useState(() => {
+  try {
+    const { t } = useTranslation("reports");
+    const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
     return d.toISOString().split("T")[0];
@@ -116,12 +119,12 @@ export default function ReportsPage() {
 
   const trialRows = trialBalanceData?.rows ?? [];
 
-  return (
-    <div className="space-y-6">
+    return (
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Reports & Analytics</h1>
-          <p className="text-slate-500 mt-1 text-sm">Advanced reporting with export options</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{t("reports_analytics")}</h1>
+          <p className="text-slate-500 mt-1 text-sm">{t("advanced_reporting_with_export_options")}</p>
         </div>
       </div>
 
@@ -131,11 +134,11 @@ export default function ReportsPage() {
           <div className="flex flex-col sm:flex-row gap-3 items-end">
             <div className="grid grid-cols-2 gap-3 flex-1 w-full">
               <div>
-                <Label className="text-xs">From Date</Label>
+                <Label className="text-xs">{t("from_date")}</Label>
                 <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
               </div>
               <div>
-                <Label className="text-xs">To Date</Label>
+                <Label className="text-xs">{t("to_date")}</Label>
                 <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
               </div>
             </div>
@@ -145,9 +148,9 @@ export default function ReportsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="daily">{t("daily")}</SelectItem>
+                  <SelectItem value="weekly">{t("weekly")}</SelectItem>
+                  <SelectItem value="monthly">{t("monthly")}</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -157,47 +160,47 @@ export default function ReportsPage() {
 
       <Tabs value={reportTab} onValueChange={setReportTab}>
         <TabsList className="w-full sm:w-auto overflow-x-auto flex-wrap h-auto">
-          <TabsTrigger value="revenue"><TrendingUp className="h-3 w-3 mr-1" /> Revenue</TabsTrigger>
-          <TabsTrigger value="expenses"><Receipt className="h-3 w-3 mr-1" /> Expenses</TabsTrigger>
-          <TabsTrigger value="payables"><Users className="h-3 w-3 mr-1" /> Payables</TabsTrigger>
-          <TabsTrigger value="cashflow"><Wallet className="h-3 w-3 mr-1" /> Cash Flow</TabsTrigger>
-          <TabsTrigger value="income"><Scale className="h-3 w-3 mr-1" /> Income Statement</TabsTrigger>
-          <TabsTrigger value="trial"><BookOpen className="h-3 w-3 mr-1" /> Trial Balance</TabsTrigger>
-          <TabsTrigger value="ledger"><Landmark className="h-3 w-3 mr-1" /> Ledger</TabsTrigger>
+          <TabsTrigger value="revenue"><TrendingUp className="h-3 w-3 mr-1" />{t("revenue_1_1_1")}</TabsTrigger>
+          <TabsTrigger value="expenses"><Receipt className="h-3 w-3 mr-1" />{t("expenses_1")}</TabsTrigger>
+          <TabsTrigger value="payables"><Users className="h-3 w-3 mr-1" />{t("payables")}</TabsTrigger>
+          <TabsTrigger value="cashflow"><Wallet className="h-3 w-3 mr-1" />{t("cash_flow")}</TabsTrigger>
+          <TabsTrigger value="income"><Scale className="h-3 w-3 mr-1" />{t("income_statement")}</TabsTrigger>
+          <TabsTrigger value="trial"><BookOpen className="h-3 w-3 mr-1" />{t("trial_balance")}</TabsTrigger>
+          <TabsTrigger value="ledger"><Landmark className="h-3 w-3 mr-1" />{t("ledger")}</TabsTrigger>
         </TabsList>
 
         {/* Revenue by Customer */}
         <TabsContent value="revenue" className="mt-4 space-y-4">
           {revenueDetailLoading ? (
             <Skeleton className="h-20" />
-          ) : revenueDetail && (
+          ) : revenueDetail ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">Total Revenue</p>
+                  <p className="text-xs text-slate-500">{t("total_revenue_1_1_1")}</p>
                   <p className="text-lg font-bold text-indigo-700">{formatMoney(revenueDetail.summary.totalRevenue)}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">Commission</p>
+                  <p className="text-xs text-slate-500">{t("commission")}</p>
                   <p className="text-lg font-bold">{formatMoney(revenueDetail.summary.totalCommission)}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">Collected</p>
+                  <p className="text-xs text-slate-500">{t("collected")}</p>
                   <p className="text-lg font-bold text-emerald-700">{formatMoney(revenueDetail.summary.totalPaid)}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">Confirmed Tickets</p>
+                  <p className="text-xs text-slate-500">{t("confirmed_tickets")}</p>
                   <p className="text-lg font-bold">{revenueDetail.summary.totalTickets}</p>
                 </CardContent>
               </Card>
             </div>
-          )}
+          ) : null}
 
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="outline" onClick={() => {
@@ -220,13 +223,13 @@ export default function ReportsPage() {
                   r.paymentStatus,
                 ]),
               );
-            }}><Download className="h-3 w-3 mr-1" /> Detail CSV</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("detail_csv")}</Button>
             <Button size="sm" variant="outline" onClick={() => {
               if (!revenueData) return;
               const headers = ["Customer", "Tickets", "Revenue", "Commission"];
               const rows = revenueData.map(r => [r.customerName || "Walk-in", r.totalTickets, r.totalRevenue, r.totalCommission]);
               downloadCSV("revenue_by_customer.csv", headers, rows);
-            }}><Download className="h-3 w-3 mr-1" /> Summary CSV</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("summary_csv")}</Button>
             <Button size="sm" variant="outline" onClick={() => {
               if (!revenueDetail) return;
               exportToPDF(
@@ -242,13 +245,13 @@ export default function ReportsPage() {
                   formatMoney(r.paidAmount),
                 ]),
               );
-            }}><FileText className="h-3 w-3 mr-1" /> PDF</Button>
+            }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1")}</Button>
           </div>
 
           {revenueLoading ? <Skeleton className="h-64" /> : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Revenue by Customer</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">{t("revenue_by_customer")}</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={revenueData?.slice(0, 10) || []}>
@@ -265,10 +268,10 @@ export default function ReportsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Tickets</TableHead>
-                      <TableHead>Revenue</TableHead>
-                      <TableHead>Commission</TableHead>
+                      <TableHead>{t("customer_1_1_1_1")}</TableHead>
+                      <TableHead>{t("tickets")}</TableHead>
+                      <TableHead>{t("revenue_1_1_1_1")}</TableHead>
+                      <TableHead>{t("commission_1")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -288,7 +291,7 @@ export default function ReportsPage() {
 
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 border-b">
-              <CardTitle className="text-sm">Revenue Detail — Confirmed Ticket Sales</CardTitle>
+              <CardTitle className="text-sm">{t("revenue_detail_confirmed_ticket_sales")}</CardTitle>
               <p className="text-xs text-slate-500">{fromDate} to {toDate}</p>
             </CardHeader>
             <CardContent className="p-0">
@@ -299,17 +302,17 @@ export default function ReportsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Ticket #</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Airline</TableHead>
-                        <TableHead className="text-right">Base</TableHead>
-                        <TableHead className="text-right">Tax</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Commission</TableHead>
-                        <TableHead className="text-right">Paid</TableHead>
-                        <TableHead>Payment</TableHead>
+                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("ticket_1_2")}</TableHead>
+                        <TableHead>{t("customer_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("route_1")}</TableHead>
+                        <TableHead>{t("airline")}</TableHead>
+                        <TableHead className="text-right">{t("base")}</TableHead>
+                        <TableHead className="text-right">{t("tax_1_1")}</TableHead>
+                        <TableHead className="text-right">{t("total_1_1_1_1_1")}</TableHead>
+                        <TableHead className="text-right">{t("commission_1_1")}</TableHead>
+                        <TableHead className="text-right">{t("paid_1_1_1_1")}</TableHead>
+                        <TableHead>{t("payment_1_2")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -330,9 +333,7 @@ export default function ReportsPage() {
                       ))}
                       {(!revenueDetail?.items || revenueDetail.items.length === 0) && (
                         <TableRow>
-                          <TableCell colSpan={11} className="text-center text-sm text-slate-400 py-8">
-                            No confirmed ticket revenue in this period.
-                          </TableCell>
+                          <TableCell colSpan={11} className="text-center text-sm text-slate-400 py-8">{t("no_confirmed_ticket_revenue_in_this_period")}</TableCell>
                         </TableRow>
                       )}
                     </TableBody>
@@ -347,28 +348,28 @@ export default function ReportsPage() {
         <TabsContent value="expenses" className="mt-4 space-y-4">
           {expenseDetailLoading ? (
             <Skeleton className="h-20" />
-          ) : expenseDetail && (
+          ) : expenseDetail ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">Total Expenses</p>
+                  <p className="text-xs text-slate-500">{t("total_expenses_1")}</p>
                   <p className="text-lg font-bold text-rose-700">{formatMoney(expenseDetail.summary.totalAmount)}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">Approved Records</p>
+                  <p className="text-xs text-slate-500">{t("approved_records")}</p>
                   <p className="text-lg font-bold">{expenseDetail.summary.count}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">Categories</p>
+                  <p className="text-xs text-slate-500">{t("categories")}</p>
                   <p className="text-lg font-bold">{expenseDetail.byCategory.length}</p>
                 </CardContent>
               </Card>
             </div>
-          )}
+          ) : null}
 
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="outline" onClick={() => {
@@ -387,11 +388,11 @@ export default function ReportsPage() {
                   r.status,
                 ]),
               );
-            }}><Download className="h-3 w-3 mr-1" /> Detail CSV</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("detail_csv_1")}</Button>
             <Button size="sm" variant="outline" onClick={() => {
               if (!expenseData) return;
               downloadCSV("expense_breakdown.csv", ["Vendor", "Count", "Total"], expenseData.map(r => [r.vendor || "Uncategorized", r.count, r.total]));
-            }}><Download className="h-3 w-3 mr-1" /> Summary CSV</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("summary_csv_1")}</Button>
             <Button size="sm" variant="outline" onClick={() => {
               if (!expenseDetail) return;
               exportToPDF(
@@ -406,13 +407,13 @@ export default function ReportsPage() {
                   r.paymentMethod,
                 ]),
               );
-            }}><FileText className="h-3 w-3 mr-1" /> PDF</Button>
+            }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1_1")}</Button>
           </div>
 
           {expenseLoading ? <Skeleton className="h-64" /> : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Expense by Vendor</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">{t("expense_by_vendor")}</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
@@ -427,7 +428,7 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow><TableHead>Vendor</TableHead><TableHead>Count</TableHead><TableHead>Total</TableHead></TableRow>
+                    <TableRow><TableHead>{t("vendor_1_1")}</TableHead><TableHead>{t("count")}</TableHead><TableHead>{t("total_1_1_1_1_1_1")}</TableHead></TableRow>
                   </TableHeader>
                   <TableBody>
                     {(expenseData || []).map(r => (
@@ -446,16 +447,16 @@ export default function ReportsPage() {
           {expenseDetail && expenseDetail.byCategory.length > 0 && (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2 border-b">
-                <CardTitle className="text-sm">Expense by Category</CardTitle>
+                <CardTitle className="text-sm">{t("expense_by_category")}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Count</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead>{t("category_1_1_1")}</TableHead>
+                        <TableHead>{t("count_1")}</TableHead>
+                        <TableHead className="text-right">{t("total_1_1_1_1_1_1_1")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -475,7 +476,7 @@ export default function ReportsPage() {
 
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 border-b">
-              <CardTitle className="text-sm">Expense Detail — Approved Records</CardTitle>
+              <CardTitle className="text-sm">{t("expense_detail_approved_records")}</CardTitle>
               <p className="text-xs text-slate-500">{fromDate} to {toDate}</p>
             </CardHeader>
             <CardContent className="p-0">
@@ -486,14 +487,14 @@ export default function ReportsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Vendor</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead>Payment</TableHead>
-                        <TableHead>Receipt #</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("title_1")}</TableHead>
+                        <TableHead>{t("category_1_1_1_1")}</TableHead>
+                        <TableHead>{t("vendor_1_1_1")}</TableHead>
+                        <TableHead className="text-right">{t("amount_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("payment_1_2_1")}</TableHead>
+                        <TableHead>{t("receipt_1_2")}</TableHead>
+                        <TableHead>{t("status_1_1_1_1_1_1_1_1_1_1")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -511,9 +512,7 @@ export default function ReportsPage() {
                       ))}
                       {(!expenseDetail?.items || expenseDetail.items.length === 0) && (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-sm text-slate-400 py-8">
-                            No approved expenses in this period.
-                          </TableCell>
+                          <TableCell colSpan={8} className="text-center text-sm text-slate-400 py-8">{t("no_approved_expenses_in_this_period")}</TableCell>
                         </TableRow>
                       )}
                     </TableBody>
@@ -531,17 +530,17 @@ export default function ReportsPage() {
               if (!payablesData) return;
               downloadCSV("supplier_payables.csv", ["Supplier", "Bills", "Total", "Paid", "Balance"],
                 payablesData.map(r => [r.supplierName || "—", r.totalBills, r.totalAmount, r.totalPaid, r.balanceDue]));
-            }}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("csv")}</Button>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Open Bills</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead>Balance Due</TableHead>
+                  <TableHead>{t("supplier_1_1_1")}</TableHead>
+                  <TableHead>{t("open_bills")}</TableHead>
+                  <TableHead>{t("total_1_1_1_1_1_1_1_1")}</TableHead>
+                  <TableHead>{t("paid_1_1_1_1_1")}</TableHead>
+                  <TableHead>{t("balance_due_1_1")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -582,31 +581,31 @@ export default function ReportsPage() {
         <TabsContent value="income" className="mt-4 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <p className="text-sm text-slate-500">
-              Period: {fromDate} to {toDate}
+              {t("income_period_label", { from: fromDate, to: toDate })}
             </p>
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="outline" disabled={!incomeStatementData} onClick={() => {
                 if (!incomeStatementData) return;
-                const t = incomeStatementData.totals;
+                const totals = incomeStatementData.totals;
                 const line = (label: string, amount: number) => [label, amount];
                 const rows: (string | number)[][] = [
                   ...incomeStatementData.revenues.map((r) => [r.code, r.name, r.amount]),
-                  line("Total Revenue", t.totalRevenue),
+                  line(t("total_revenue_1_1_1"), totals.totalRevenue),
                   ...incomeStatementData.costOfRevenue.map((r) => [r.code, r.name, r.amount]),
-                  line("Gross Profit", t.grossProfit),
+                  line(t("gross_profit"), totals.grossProfit),
                   ...incomeStatementData.operatingExpenses.map((r) => [r.code, r.name, r.amount]),
-                  line("Operating Income", t.operatingIncome),
+                  line(t("operating_income"), totals.operatingIncome),
                   ...incomeStatementData.otherIncome.map((r) => [r.code, r.name, r.amount]),
                   ...incomeStatementData.otherExpenses.map((r) => [r.code, r.name, r.amount]),
-                  line("Income Before Tax", t.incomeBeforeTax),
-                  line("Income Tax Expense", t.totalTaxExpense),
-                  line("Net Income", t.netIncome),
+                  line(t("income_before_tax"), totals.incomeBeforeTax),
+                  line(t("income_tax_expense"), totals.totalTaxExpense),
+                  line(t("net_income"), totals.netIncome),
                 ];
                 downloadCSV("income_statement.csv", ["Code / Line", "Description", "Amount"], rows);
-              }}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+              }}><Download className="h-3 w-3 mr-1" />{t("csv_1")}</Button>
               <Button size="sm" variant="outline" disabled={!incomeStatementData} onClick={() => {
                 if (!incomeStatementData) return;
-                const t = incomeStatementData.totals;
+                const totals = incomeStatementData.totals;
                 const section = (title: string, items: { code: string; name: string; amount: number }[]) => [
                   [title, "", ""],
                   ...items.map((r) => [r.code, r.name, formatMoney(r.amount)]),
@@ -615,76 +614,78 @@ export default function ReportsPage() {
                   `Income Statement (${fromDate} to ${toDate})`,
                   ["Code", "Account", "Amount"],
                   [
-                    ...section("Revenue", incomeStatementData.revenues),
-                    ["", "Total Revenue", formatMoney(t.totalRevenue)],
-                    ...section("Cost of Revenue", incomeStatementData.costOfRevenue),
-                    ["", "Gross Profit", formatMoney(t.grossProfit)],
-                    ...section("Operating Expenses", incomeStatementData.operatingExpenses),
-                    ["", "Operating Income", formatMoney(t.operatingIncome)],
-                    ...section("Other Income", incomeStatementData.otherIncome),
-                    ...section("Other Expenses", incomeStatementData.otherExpenses),
-                    ["", "Income Before Tax", formatMoney(t.incomeBeforeTax)],
-                    ["", "Income Tax Expense", formatMoney(t.totalTaxExpense)],
-                    ["", "Net Income", formatMoney(t.netIncome)],
+                    ...section(t("revenue_1_1"), incomeStatementData.revenues),
+                    ["", t("total_revenue_1_1_1"), formatMoney(totals.totalRevenue)],
+                    ...section(t("cost_of_revenue"), incomeStatementData.costOfRevenue),
+                    ["", t("gross_profit"), formatMoney(totals.grossProfit)],
+                    ...section(t("operating_expenses"), incomeStatementData.operatingExpenses),
+                    ["", t("operating_income"), formatMoney(totals.operatingIncome)],
+                    ...section(t("other_income"), incomeStatementData.otherIncome),
+                    ...section(t("other_expenses"), incomeStatementData.otherExpenses),
+                    ["", t("income_before_tax"), formatMoney(totals.incomeBeforeTax)],
+                    ["", t("income_tax_expense"), formatMoney(totals.totalTaxExpense)],
+                    ["", t("net_income"), formatMoney(totals.netIncome)],
                   ],
                 );
-              }}><FileText className="h-3 w-3 mr-1" /> PDF</Button>
+              }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1_1_1")}</Button>
             </div>
           </div>
 
-          {incomeLoading ? <Skeleton className="h-96" /> : incomeStatementData && (
+          {incomeLoading ? (
+            <Skeleton className="h-96" />
+          ) : incomeStatementData ? (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2 border-b">
-                <CardTitle className="text-base">Income Statement</CardTitle>
-                <p className="text-xs text-slate-500">For the period {fromDate} through {toDate}</p>
+                <CardTitle className="text-base">{t("income_statement_1")}</CardTitle>
+                <p className="text-xs text-slate-500">{t("income_period_for", { from: fromDate, to: toDate })}</p>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Account</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>{t("code_1")}</TableHead>
+                        <TableHead>{t("account_1_1_1")}</TableHead>
+                        <TableHead className="text-right">{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <IncomeSection title="Revenue" lines={incomeStatementData.revenues} />
-                      <SummaryRow label="Total Revenue" amount={incomeStatementData.totals.totalRevenue} emphasis />
+                      <IncomeSection title={t("revenue_1_1")} lines={incomeStatementData.revenues} />
+                      <SummaryRow label={t("total_revenue_1_1_1")} amount={incomeStatementData.totals.totalRevenue} emphasis />
                       {incomeStatementData.costOfRevenue.length > 0 && (
                         <>
-                          <IncomeSection title="Cost of Revenue" lines={incomeStatementData.costOfRevenue} />
-                          <SummaryRow label="Total Cost of Revenue" amount={incomeStatementData.totals.totalCostOfRevenue} />
+                          <IncomeSection title={t("cost_of_revenue")} lines={incomeStatementData.costOfRevenue} />
+                          <SummaryRow label={t("total_cost_of_revenue")} amount={incomeStatementData.totals.totalCostOfRevenue} />
                         </>
                       )}
-                      <SummaryRow label="Gross Profit" amount={incomeStatementData.totals.grossProfit} emphasis />
-                      <IncomeSection title="Operating Expenses" lines={incomeStatementData.operatingExpenses} />
-                      <SummaryRow label="Total Operating Expenses" amount={incomeStatementData.totals.totalOperatingExpenses} />
-                      <SummaryRow label="Operating Income" amount={incomeStatementData.totals.operatingIncome} emphasis />
+                      <SummaryRow label={t("gross_profit")} amount={incomeStatementData.totals.grossProfit} emphasis />
+                      <IncomeSection title={t("operating_expenses")} lines={incomeStatementData.operatingExpenses} />
+                      <SummaryRow label={t("total_operating_expenses")} amount={incomeStatementData.totals.totalOperatingExpenses} />
+                      <SummaryRow label={t("operating_income")} amount={incomeStatementData.totals.operatingIncome} emphasis />
                       {incomeStatementData.otherIncome.length > 0 && (
-                        <IncomeSection title="Other Income" lines={incomeStatementData.otherIncome} />
+                        <IncomeSection title={t("other_income")} lines={incomeStatementData.otherIncome} />
                       )}
                       {incomeStatementData.otherExpenses.length > 0 && (
-                        <IncomeSection title="Other Expenses" lines={incomeStatementData.otherExpenses} />
+                        <IncomeSection title={t("other_expenses")} lines={incomeStatementData.otherExpenses} />
                       )}
-                      <SummaryRow label="Income Before Tax" amount={incomeStatementData.totals.incomeBeforeTax} emphasis />
+                      <SummaryRow label={t("income_before_tax")} amount={incomeStatementData.totals.incomeBeforeTax} emphasis />
                       {incomeStatementData.taxExpenses.length > 0 && (
-                        <IncomeSection title="Income Tax" lines={incomeStatementData.taxExpenses} />
+                        <IncomeSection title={t("income_tax")} lines={incomeStatementData.taxExpenses} />
                       )}
                       {incomeStatementData.totals.estimatedTaxProvision > 0 && (
                         <SummaryRow
-                          label={`Estimated Tax Provision (${incomeStatementData.totals.taxProvisionRate}%)`}
+                          label={t("estimated_tax_provision", { rate: incomeStatementData.totals.taxProvisionRate })}
                           amount={incomeStatementData.totals.estimatedTaxProvision}
                         />
                       )}
-                      <SummaryRow label="Total Income Tax Expense" amount={incomeStatementData.totals.totalTaxExpense} />
-                      <SummaryRow label="Net Income" amount={incomeStatementData.totals.netIncome} emphasis highlight />
+                      <SummaryRow label={t("income_tax_expense")} amount={incomeStatementData.totals.totalTaxExpense} />
+                      <SummaryRow label={t("net_income")} amount={incomeStatementData.totals.netIncome} emphasis highlight />
                     </TableBody>
                   </Table>
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : null}
         </TabsContent>
 
         {/* Trial Balance */}
@@ -697,7 +698,7 @@ export default function ReportsPage() {
                   : "bg-amber-100 text-amber-800"
               }`}>
                 {trialBalanceData.isBalanced
-                  ? <><CheckCircle2 className="h-3.5 w-3.5" /> Books are balanced</>
+                  ? <><CheckCircle2 className="h-3.5 w-3.5" />{t("books_are_balanced")}</>
                   : <><AlertCircle className="h-3.5 w-3.5" /> Out of balance by {formatMoney(trialBalanceData.difference)}</>}
               </div>
             )}
@@ -706,7 +707,7 @@ export default function ReportsPage() {
                 if (!trialBalanceData) return;
                 downloadCSV("trial_balance.csv", ["Code", "Account", "Type", "Debit Balance", "Credit Balance"],
                   trialRows.map(r => [r.code, r.name, r.type, r.debitBalance, r.creditBalance]));
-              }}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+              }}><Download className="h-3 w-3 mr-1" />{t("csv_1_1")}</Button>
               <Button size="sm" variant="outline" onClick={() => {
                 if (!trialBalanceData) return;
                 exportToPDF(`Trial Balance (as of ${toDate})`, ["Code", "Account", "Type", "Debit Balance", "Credit Balance"],
@@ -714,18 +715,18 @@ export default function ReportsPage() {
                     ...trialRows.map(r => [r.code, r.name, r.type, formatMoney(r.debitBalance), formatMoney(r.creditBalance)]),
                     ["", "Totals", "", formatMoney(trialBalanceData.totalDebit), formatMoney(trialBalanceData.totalCredit)],
                   ]);
-              }}><FileText className="h-3 w-3 mr-1" /> PDF</Button>
+              }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1_1_1_1")}</Button>
             </div>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Debit Balance</TableHead>
-                  <TableHead className="text-right">Credit Balance</TableHead>
+                  <TableHead>{t("code_1_1")}</TableHead>
+                  <TableHead>{t("account_1_1_1_1")}</TableHead>
+                  <TableHead>{t("type_1_1_1")}</TableHead>
+                  <TableHead className="text-right">{t("debit_balance")}</TableHead>
+                  <TableHead className="text-right">{t("credit_balance")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -740,7 +741,7 @@ export default function ReportsPage() {
                 ))}
                 {trialBalanceData && (
                   <TableRow className="bg-slate-50 dark:bg-slate-800 font-semibold">
-                    <TableCell colSpan={3} className="text-xs">Totals</TableCell>
+                    <TableCell colSpan={3} className="text-xs">{t("totals")}</TableCell>
                     <TableCell className="text-xs text-right">{formatMoney(trialBalanceData.totalDebit)}</TableCell>
                     <TableCell className="text-xs text-right">{formatMoney(trialBalanceData.totalCredit)}</TableCell>
                   </TableRow>
@@ -757,18 +758,18 @@ export default function ReportsPage() {
               if (!ledgerData) return;
               downloadCSV("general_ledger.csv", ["Date", "Account", "Description", "Debit", "Credit", "Balance"],
                 ledgerData.items.map(r => [String(r.date), (r as any).account?.name || "—", r.description || "", r.debit, r.credit, r.balance]));
-            }}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("csv_1_1_1")}</Button>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Debit</TableHead>
-                  <TableHead>Credit</TableHead>
-                  <TableHead>Balance</TableHead>
+                  <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                  <TableHead>{t("account_1_1_1_1_1")}</TableHead>
+                  <TableHead>{t("description_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                  <TableHead>{t("debit_1_1_1")}</TableHead>
+                  <TableHead>{t("credit_1_1_1")}</TableHead>
+                  <TableHead>{t("balance_1_1_1_1_1")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -789,4 +790,8 @@ export default function ReportsPage() {
       </Tabs>
     </div>
   );
+  } catch (err) {
+    console.error("Reports render error:", err);
+    return <div className="p-6 text-red-600">An error occurred rendering Reports. See console for details.</div>;
+  }
 }

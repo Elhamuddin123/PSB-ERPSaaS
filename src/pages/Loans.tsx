@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { alertServerError } from "@/lib/i18n-ui";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, DollarSign, HandCoins, Trash2 } from "lucide-react";
+import { Plus, DollarSign, HandCoins, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
+import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
 
 const statusColors: Record<string, string> = {
   active: "bg-amber-100 text-amber-800",
@@ -21,8 +23,10 @@ const statusColors: Record<string, string> = {
 export default function LoansPage() {
   const { user } = useAuth();
   const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
+  const canEdit = isAgencyAdmin(user?.role);
   const [createOpen, setCreateOpen] = useState(false);
   const [repayLoanId, setRepayLoanId] = useState<number | null>(null);
+  const [editLoan, setEditLoan] = useState<{ id: number; description: string; notes: string; dueDate: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "repaid" | "written_off">("all");
   const [form, setForm] = useState({
     customerId: "",
@@ -35,6 +39,7 @@ export default function LoansPage() {
   const [repayForm, setRepayForm] = useState({ amount: "", notes: "" });
 
   const utils = trpc.useUtils();
+  const { t, t: tc } = useTranslation("common");
   const { data, isLoading, refetch } = trpc.loan.list.useQuery({ status: statusFilter, limit: 50 });
   const { data: stats } = trpc.loan.stats.useQuery();
   const { data: customersData } = trpc.crm.customers.useQuery({ limit: 1000 });
@@ -48,7 +53,7 @@ export default function LoansPage() {
       setForm({ customerId: "", amount: "", loanDate: new Date().toISOString().slice(0, 10), dueDate: "", description: "", notes: "" });
       refetch();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const recordRepayment = trpc.loan.recordRepayment.useMutation({
@@ -59,7 +64,7 @@ export default function LoansPage() {
       setRepayForm({ amount: "", notes: "" });
       refetch();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
   });
 
   const deleteLoan = trpc.loan.delete.useMutation({
@@ -68,29 +73,37 @@ export default function LoansPage() {
       await utils.loan.stats.invalidate();
       refetch();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(t, err),
+  });
+  const updateLoan = trpc.loan.update.useMutation({
+    onSuccess: async () => {
+      await utils.loan.list.invalidate();
+      setEditLoan(null);
+      refetch();
+      alert(t("alerts.loanUpdated"));
+    },
+    onError: (err) => alertServerError(t, err),
   });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Cash Loans</h1>
-          <p className="text-slate-500 text-sm">Track cash loans given to customers with accounts</p>
+          <h1 className="text-2xl font-bold">{t("cashLoans")}</h1>
+          <p className="text-slate-500 text-sm">{t("trackCashLoans")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="h-4 w-4 mr-2" /> New Loan
-            </Button>
+              <Plus className="h-4 w-4 mr-2" />{t("new_loan")}</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Issue Cash Loan</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("issue_cash_loan")}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
               <div>
-                <Label>Customer <span className="text-red-500">*</span></Label>
+                <Label>{t("customer_1_1")}<span className="text-red-500">*</span></Label>
                 <Select value={form.customerId} onValueChange={(v) => setForm((s) => ({ ...s, customerId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("select_customer")} /></SelectTrigger>
                   <SelectContent>
                     {customers.map((c) => (
                       <SelectItem key={c.id} value={c.id.toString()}>
@@ -101,22 +114,22 @@ export default function LoansPage() {
                 </Select>
               </div>
               <div>
-                <Label>Amount <span className="text-red-500">*</span></Label>
+                <Label>{t("amount_1_1_1_1_1_1_1")}<span className="text-red-500">*</span></Label>
                 <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Loan Date</Label>
+                  <Label>{t("loan_date")}</Label>
                   <Input type="date" value={form.loanDate} onChange={(e) => setForm((s) => ({ ...s, loanDate: e.target.value }))} />
                 </div>
                 <div>
-                  <Label>Due Date</Label>
+                  <Label>{t("due_date_1")}</Label>
                   <Input type="date" value={form.dueDate} onChange={(e) => setForm((s) => ({ ...s, dueDate: e.target.value }))} />
                 </div>
               </div>
               <div>
-                <Label>Description</Label>
-                <Input value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} placeholder="Purpose of loan" />
+                <Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label>
+                <Input value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} placeholder={t("purpose_of_loan")} />
               </div>
               <Button
                 className="w-full bg-indigo-600"
@@ -130,7 +143,7 @@ export default function LoansPage() {
                   notes: form.notes || undefined,
                 })}
               >
-                {createLoan.isPending ? "Creating..." : "Issue Loan"}
+                {createLoan.isPending ? tc("actions.creating") : tc("actions.issueLoan")}
               </Button>
             </div>
           </DialogContent>
@@ -142,7 +155,7 @@ export default function LoansPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <HandCoins className="h-8 w-8 text-amber-600" />
             <div>
-              <p className="text-xs text-slate-500">Active Loans</p>
+              <p className="text-xs text-slate-500">{t("active_loans")}</p>
               <p className="text-2xl font-bold">{stats?.activeLoans ?? 0}</p>
             </div>
           </CardContent>
@@ -151,7 +164,7 @@ export default function LoansPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <DollarSign className="h-8 w-8 text-red-600" />
             <div>
-              <p className="text-xs text-slate-500">Outstanding Balance</p>
+              <p className="text-xs text-slate-500">{t("outstanding_balance")}</p>
               <p className="text-2xl font-bold">${Number(stats?.outstandingBalance ?? 0).toLocaleString()}</p>
             </div>
           </CardContent>
@@ -161,10 +174,10 @@ export default function LoansPage() {
       <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
         <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Loans</SelectItem>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="repaid">Repaid</SelectItem>
-          <SelectItem value="written_off">Written Off</SelectItem>
+          <SelectItem value="all">{t("all_loans")}</SelectItem>
+          <SelectItem value="active">{t("active_1")}</SelectItem>
+          <SelectItem value="repaid">{t("repaid")}</SelectItem>
+          <SelectItem value="written_off">{t("written_off")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -172,33 +185,24 @@ export default function LoansPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Loan #</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Principal</TableHead>
-              <TableHead>Repaid</TableHead>
-              <TableHead>Balance</TableHead>
-              <TableHead>Loan Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("loanNumber")}</TableHead>
+              <TableHead>{t("customer")}</TableHead>
+              <TableHead>{t("principal")}</TableHead>
+              <TableHead>{t("repaid")}</TableHead>
+              <TableHead>{t("balance")}</TableHead>
+              <TableHead>{t("loanDate")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
+              <TableHead className="text-right">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-500">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-500">{t("loading")}</TableCell></TableRow>
             )}
             {!isLoading && (data?.items?.length ?? 0) === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-500">No loans found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-500">{t("noData")}</TableCell></TableRow>
             )}
-            {data?.items?.map((loan: {
-              id: number;
-              loanNumber: string;
-              customer?: { firstName: string; lastName: string } | null;
-              principalAmount: string;
-              repaidAmount: string;
-              balanceAmount: string;
-              loanDate: string;
-              status: string;
-            }) => (
+            {data?.items?.map((loan) => (
               <TableRow key={loan.id}>
                 <TableCell className="font-medium">{loan.loanNumber}</TableCell>
                 <TableCell>{loan.customer ? `${loan.customer.firstName} ${loan.customer.lastName}` : "—"}</TableCell>
@@ -208,20 +212,34 @@ export default function LoansPage() {
                 <TableCell>{new Date(loan.loanDate).toLocaleDateString()}</TableCell>
                 <TableCell><Badge className={statusColors[loan.status] || ""}>{loan.status}</Badge></TableCell>
                 <TableCell className="text-right space-x-1">
-                  {loan.status === "active" && Number(loan.balanceAmount) > 0 && (
-                    <Button size="sm" variant="outline" onClick={() => { setRepayLoanId(loan.id); setRepayForm({ amount: String(loan.balanceAmount), notes: "" }); }}>
-                      Record Repayment
+                  {canEdit && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      title={t("edit_loan")}
+                      onClick={() => setEditLoan({
+                        id: loan.id,
+                        description: loan.description || "",
+                        notes: loan.notes || "",
+                        dueDate: loan.dueDate ? String(loan.dueDate).slice(0, 10) : "",
+                      })}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
+                  )}
+                  {loan.status === "active" && Number(loan.balanceAmount) > 0 && (
+                    <Button size="sm" variant="outline" onClick={() => { setRepayLoanId(loan.id); setRepayForm({ amount: String(loan.balanceAmount), notes: "" }); }}>{t("record_repayment")}</Button>
                   )}
                   {canManage && Number(loan.balanceAmount) === 0 && (
                     <Button
                       size="sm"
                       variant="ghost"
                       className="text-red-500 h-8 w-8 p-0"
-                      title="Delete loan (reverses accounting)"
+                      title={t("delete_loan_reverses_accounting")}
                       disabled={deleteLoan.isPending}
                       onClick={() => {
-                        if (confirm(`Delete loan ${loan.loanNumber}?`)) {
+                        if (confirm(tc("confirm.deleteLoan", { name: loan.loanNumber }))) {
                           deleteLoan.mutate({ id: loan.id });
                         }
                       }}
@@ -238,14 +256,14 @@ export default function LoansPage() {
 
       <Dialog open={!!repayLoanId} onOpenChange={() => setRepayLoanId(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Record Loan Repayment</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("record_loan_repayment")}</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
             <div>
-              <Label>Amount</Label>
+              <Label>{t("amount_1_1_1_1_1_1_1_1")}</Label>
               <Input type="number" step="0.01" value={repayForm.amount} onChange={(e) => setRepayForm((s) => ({ ...s, amount: e.target.value }))} />
             </div>
             <div>
-              <Label>Notes</Label>
+              <Label>{t("notes_1_1_1")}</Label>
               <Input value={repayForm.notes} onChange={(e) => setRepayForm((s) => ({ ...s, notes: e.target.value }))} />
             </div>
             <Button
@@ -257,9 +275,43 @@ export default function LoansPage() {
                 notes: repayForm.notes || undefined,
               })}
             >
-              {recordRepayment.isPending ? "Processing..." : "Confirm Repayment"}
+              {recordRepayment.isPending ? tc("actions.processing") : tc("actions.confirmRepayment")}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editLoan} onOpenChange={() => setEditLoan(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("edit_loan")}</DialogTitle></DialogHeader>
+          {editLoan && (
+            <div className="space-y-3 pt-2">
+              <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">{t("loan_fields_locked")}</p>
+              <div>
+                <Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label>
+                <Input value={editLoan.description} onChange={(e) => setEditLoan({ ...editLoan, description: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t("due_date_1")}</Label>
+                <Input type="date" value={editLoan.dueDate} onChange={(e) => setEditLoan({ ...editLoan, dueDate: e.target.value })} />
+              </div>
+              <div>
+                <Label>{t("notes_1_1_1")}</Label>
+                <Input value={editLoan.notes} onChange={(e) => setEditLoan({ ...editLoan, notes: e.target.value })} />
+              </div>
+              <Button
+                className="w-full bg-indigo-600"
+                disabled={updateLoan.isPending}
+                onClick={() => updateLoan.mutate({
+                  id: editLoan.id,
+                  description: editLoan.description || undefined,
+                  notes: editLoan.notes || undefined,
+                  dueDate: editLoan.dueDate || undefined,
+                })}
+              >
+                {updateLoan.isPending ? tc("actions.saving") : t("save_changes")}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

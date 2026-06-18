@@ -27,7 +27,6 @@ import {
   XCircle,
   Shield,
   Filter,
-  Building2,
   Mail,
   Phone,
   MapPin,
@@ -168,11 +167,6 @@ export default function AdminPage() {
     });
   };
 
-  const canResetAgency = (status?: string) =>
-    status === "active" ||
-    status === "suspended" ||
-    status === "trial";
-
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
       pending:
@@ -270,25 +264,20 @@ export default function AdminPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center">
-              Loading...
-            </div>
-          ) : items.length === 0 ? (
-            <div className="p-8 text-center">
-              <Building2 className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-              No requests
+              {tc('loading')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Agency</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Token</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('agencyName')}</TableHead>
+                    <TableHead>{t('contact')}</TableHead>
+                    <TableHead>{t('plan')}</TableHead>
+                    <TableHead>{t('token')}</TableHead>
+                    <TableHead>{tc('status')}</TableHead>
                     <TableHead className="text-right">
-                      Actions
+                      {t('actions')}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -350,42 +339,43 @@ export default function AdminPage() {
                       <TableCell className="text-right">
                         {item.status ===
                         "pending" ? (
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                openDialog(
-                                  "approve",
-                                  item
-                                )
-                              }
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
+                          <>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  openDialog(
+                                    "approve",
+                                    item
+                                  )
+                                }
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
 
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  openDialog(
+                                    "reject",
+                                    item
+                                  )
+                                }
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
                             <Button
                               size="sm"
+                              variant="destructive"
                               onClick={() =>
-                                openDialog(
-                                  "reject",
-                                  item
-                                )
+                                openResetDialog(item)
                               }
                             >
-                              <XCircle className="h-4 w-4" />
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              {t("resetData")}
                             </Button>
-                          </div>
-                        ) : canResetAgency(item.status) ? (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() =>
-                              openResetDialog(item)
-                            }
-                          >
-                            <RotateCcw className="h-4 w-4 mr-1" />
-                            {t("resetData")}
-                          </Button>
+                          </>
                         ) : (
                           <span>—</span>
                         )}
@@ -434,9 +424,7 @@ export default function AdminPage() {
               onClick={() =>
                 setDialogOpen(false)
               }
-            >
-              Cancel
-            </Button>
+            >{t("cancel_1")}</Button>
 
             <Button onClick={handleConfirm}>
               {dialogAction ===

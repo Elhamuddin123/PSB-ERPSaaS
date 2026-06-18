@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, agentQuery, supervisoryQuery } from "./middleware";
+import { createRouter, authedQuery, agentQuery, supervisoryQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { expenses, expenseCategories, chartOfAccounts, journalEntries, journalEntryLines, notifications } from "@db/schema";
 import { eq, desc, sql, and, isNull } from "drizzle-orm";
@@ -169,13 +169,40 @@ export const expenseRouter = createRouter({
       }
       const where = conditions.length > 1 ? and(...conditions) : conditions[0];
 
-      const items = await db.query.expenses.findMany({
-        where,
-        limit: input?.limit ?? 20,
-        offset: ((input?.page ?? 1) - 1) * (input?.limit ?? 20),
-        orderBy: [desc(expenses.createdAt)],
-        with: { category: true },
-      });
+      const rows = await db
+        .select({
+          expense: expenses,
+          categoryId: expenseCategories.id,
+          categoryName: expenseCategories.name,
+          categoryDescription: expenseCategories.description,
+          categoryColor: expenseCategories.color,
+          categoryIcon: expenseCategories.icon,
+          categoryParentId: expenseCategories.parentId,
+          categoryIsSystem: expenseCategories.isSystem,
+          categoryCreatedAt: expenseCategories.createdAt,
+        })
+        .from(expenses)
+        .leftJoin(expenseCategories, eq(expenseCategories.id, expenses.categoryId))
+        .where(where)
+        .orderBy(desc(expenses.createdAt))
+        .limit(input?.limit ?? 20)
+        .offset(((input?.page ?? 1) - 1) * (input?.limit ?? 20));
+
+      const items = rows.map((row) => ({
+        ...row.expense,
+        category: row.categoryId
+          ? {
+              id: row.categoryId,
+              name: row.categoryName,
+              description: row.categoryDescription,
+              color: row.categoryColor,
+              icon: row.categoryIcon,
+              parentId: row.categoryParentId,
+              isSystem: row.categoryIsSystem,
+              createdAt: row.categoryCreatedAt,
+            }
+          : null,
+      }));
 
       const countResult = await db.select({ count: sql<number>`count(*)` }).from(expenses).where(where);
       return { items, total: countResult[0]?.count ?? 0 };
@@ -187,10 +214,41 @@ export const expenseRouter = createRouter({
       const db = getDb();
       const tenantId = ensureExpenseTenant(ctx, "get");
       console.log("[Expense query] get input:", input);
-      return db.query.expenses.findFirst({
-        where: and(eq(expenses.id, input.id), eq(expenses.tenantId, tenantId)),
-        with: { category: true },
-      });
+
+      const rows = await db
+        .select({
+          expense: expenses,
+          categoryId: expenseCategories.id,
+          categoryName: expenseCategories.name,
+          categoryDescription: expenseCategories.description,
+          categoryColor: expenseCategories.color,
+          categoryIcon: expenseCategories.icon,
+          categoryParentId: expenseCategories.parentId,
+          categoryIsSystem: expenseCategories.isSystem,
+          categoryCreatedAt: expenseCategories.createdAt,
+        })
+        .from(expenses)
+        .leftJoin(expenseCategories, eq(expenseCategories.id, expenses.categoryId))
+        .where(and(eq(expenses.id, input.id), eq(expenses.tenantId, tenantId)))
+        .limit(1);
+
+      if (!rows[0]) return null;
+
+      return {
+        ...rows[0].expense,
+        category: rows[0].categoryId
+          ? {
+              id: rows[0].categoryId,
+              name: rows[0].categoryName,
+              description: rows[0].categoryDescription,
+              color: rows[0].categoryColor,
+              icon: rows[0].categoryIcon,
+              parentId: rows[0].categoryParentId,
+              isSystem: rows[0].categoryIsSystem,
+              createdAt: rows[0].categoryCreatedAt,
+            }
+          : null,
+      };
     }),
 
   create: agentQuery
@@ -228,24 +286,24 @@ export const expenseRouter = createRouter({
           tenantId,
           categoryId: input.categoryId,
           title: input.title,
-          description: input.description,
+          description: input.description ?? null,
           amount: Number(input.amount),
           currency: "USD",
           expenseDate: formatToSqlDate(input.expenseDate),
           paymentMethod: input.paymentMethod,
-          vendor: input.vendor,
-          receiptNumber: input.receiptNumber,
+          vendor: input.vendor ?? null,
+          receiptNumber: input.receiptNumber ?? null,
           receiptImage: null,
           status: "pending",
           approvedBy: null,
           submittedBy: ctx.user!.id,
-          notes: input.notes,
-          metadata: JSON.stringify({}),
+          notes: input.notes ?? null,
+          metadata: {},
           createdAt: new Date(),
           updatedAt: new Date(),
           deletedAt: null,
           deletedBy: null,
-        });
+        } as any);
       } catch (dbError: any) {
         console.error("[Expense create] DB INSERT FAILED:", dbError.message, "| CODE:", dbError.code, "| SQL:", dbError.sql);
         throw new TRPCError({
@@ -277,6 +335,97 @@ export const expenseRouter = createRouter({
       } catch { /* non-critical */ }
 
       return { id: Number(result[0].insertId) };
+    }),
+
+  // Agency-admin edit: pending allows full edit; approved/posted records are metadata-only.
+  update: agencyAdminQuery
+    .input(z.object({
+      id: z.number(),
+      categoryId: z.number().optional(),
+      title: z.string().min(1).optional(),
+      description: z.string().optional(),
+      amount: z.string().optional(),
+      expenseDate: z.string().optional(),
+      paymentMethod: z.enum(["cash", "card", "bank_transfer", "cheque", "wallet", "other"]).optional(),
+      vendor: z.string().optional(),
+      receiptNumber: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ensureExpenseTenant(ctx, "update");
+      const { id, ...fields } = input;
+
+      const existing = await db.query.expenses.findFirst({
+        where: and(eq(expenses.id, id), eq(expenses.tenantId, tenantId), isNull(expenses.deletedAt)),
+      });
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Expense not found" });
+
+      const isPending = existing.status === "pending";
+      const updateData: Record<string, unknown> = {};
+
+      if (fields.title !== undefined) updateData.title = fields.title.trim();
+      if (fields.description !== undefined) updateData.description = fields.description.trim() || null;
+      if (fields.vendor !== undefined) updateData.vendor = fields.vendor.trim() || null;
+      if (fields.receiptNumber !== undefined) updateData.receiptNumber = fields.receiptNumber.trim() || null;
+      if (fields.notes !== undefined) updateData.notes = fields.notes.trim() || null;
+
+      if (isPending) {
+        if (fields.categoryId !== undefined) {
+          const category = await db.query.expenseCategories.findFirst({
+            where: and(eq(expenseCategories.id, fields.categoryId), eq(expenseCategories.tenantId, tenantId)),
+          });
+          if (!category) throw new TRPCError({ code: "BAD_REQUEST", message: "Expense category not found" });
+          updateData.categoryId = fields.categoryId;
+        }
+        if (fields.amount !== undefined) {
+          const amount = Number(fields.amount);
+          if (isNaN(amount) || amount < 0) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be a valid non-negative number" });
+          }
+          updateData.amount = amount;
+        }
+        if (fields.expenseDate !== undefined) {
+          if (isNaN(new Date(fields.expenseDate).getTime())) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Valid expense date is required" });
+          }
+          updateData.expenseDate = formatToSqlDate(fields.expenseDate);
+        }
+        if (fields.paymentMethod !== undefined) updateData.paymentMethod = fields.paymentMethod;
+      } else if (
+        fields.categoryId !== undefined ||
+        fields.amount !== undefined ||
+        fields.expenseDate !== undefined ||
+        fields.paymentMethod !== undefined
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Approved or posted expenses only allow metadata edits (title, description, vendor, receipt, notes)",
+        });
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
+      }
+
+      await db.update(expenses).set(updateData).where(and(eq(expenses.id, id), eq(expenses.tenantId, tenantId)));
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "expense",
+        entityId: id,
+        oldValues: {
+          title: existing.title,
+          status: existing.status,
+          amount: existing.amount,
+          categoryId: existing.categoryId,
+          expenseDate: existing.expenseDate,
+        },
+        newValues: updateData,
+      });
+
+      return { success: true };
     }),
 
   updateStatus: supervisoryQuery

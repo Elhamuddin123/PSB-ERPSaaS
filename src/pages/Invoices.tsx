@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { alertServerError } from "@/lib/i18n-ui";
+import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function InvoicesPage() {
+  const { t } = useTranslation("invoices");
+  const { t: tc } = useTranslation("common");
   const { user } = useAuth();
   const canManage = hasAnyRole(user?.role, SUPERVISORY_ROLES);
   const [search, setSearch] = useState("");
@@ -55,7 +59,7 @@ export default function InvoicesPage() {
       refetch();
       setSelectedId(null);
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(tc, err),
   });
 
   const deleteInvoice = trpc.invoice.delete.useMutation({
@@ -63,7 +67,7 @@ export default function InvoicesPage() {
       await utils.invoice.list.invalidate();
       refetch();
     },
-    onError: (err) => alert(err.message),
+    onError: (err) => alertServerError(tc, err),
   });
 
   const [paymentForm, setPaymentForm] = useState({ amount: "" });
@@ -71,14 +75,14 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Invoices</h1>
+        <h1 className="text-2xl font-bold">{t("invoices")}</h1>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search invoices..."
+            placeholder={t("search")}
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -89,12 +93,12 @@ export default function InvoicesPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="">All Statuses</option>
-          <option value="draft">Draft</option>
-          <option value="sent">Sent</option>
-          <option value="paid">Paid</option>
-          <option value="overdue">Overdue</option>
-          <option value="cancelled">Cancelled</option>
+          <option value="">{t("allStatuses")}</option>
+          <option value="draft">{t("draft")}</option>
+          <option value="sent">{t("sent")}</option>
+          <option value="paid">{t("paid_1")}</option>
+          <option value="overdue">{t("overdue")}</option>
+          <option value="cancelled">{t("cancelled")}</option>
         </select>
       </div>
 
@@ -106,28 +110,28 @@ export default function InvoicesPage() {
         </div>
       ) : error ? (
         <div className="text-center py-12 border rounded-lg">
-          <p className="text-red-500 mb-2">Failed to load invoices</p>
-          <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+          <p className="text-red-500 mb-2">{t("failed_to_load_invoices")}</p>
+          <Button variant="outline" onClick={() => refetch()}>{t("retry_1_1_1")}</Button>
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Paid</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("invoiceNumber")}</TableHead>
+                <TableHead>{t("customer")}</TableHead>
+                <TableHead>{t("issueDate")}</TableHead>
+                <TableHead>{t("amount")}</TableHead>
+                <TableHead>{t("paid")}</TableHead>
+                <TableHead>{t("status")}</TableHead>
+                <TableHead className="text-right">{t("actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data?.items?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    No invoices found.
+                    {t("noData")}
                   </TableCell>
                 </TableRow>
               )}
@@ -153,10 +157,10 @@ export default function InvoicesPage() {
                           size="sm"
                           variant="ghost"
                           className="text-red-500"
-                          title="Delete invoice"
+                          title={t("delete_invoice")}
                           disabled={deleteInvoice.isPending}
                           onClick={() => {
-                            if (confirm(`Delete invoice ${inv.invoiceNumber}?`)) {
+                            if (confirm(tc("confirm.deleteInvoice", { name: inv.invoiceNumber }))) {
                               deleteInvoice.mutate({ id: inv.id });
                             }
                           }}
@@ -178,18 +182,18 @@ export default function InvoicesPage() {
                             <div className="space-y-4">
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                  <p className="text-gray-500">Customer</p>
+                                  <p className="text-gray-500">{t("customer_1")}</p>
                                   <p className="font-medium">
                                     {invoiceDetail.customer?.firstName} {invoiceDetail.customer?.lastName}
                                   </p>
                                   <p>{invoiceDetail.customer?.email}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-gray-500">Issue Date</p>
+                                  <p className="text-gray-500">{t("issue_date_1")}</p>
                                   <p>{new Date(invoiceDetail.issueDate).toLocaleDateString()}</p>
                                   {invoiceDetail.dueDate && (
                                     <>
-                                      <p className="text-gray-500 mt-1">Due Date</p>
+                                      <p className="text-gray-500 mt-1">{t("due_date")}</p>
                                       <p>{new Date(invoiceDetail.dueDate).toLocaleDateString()}</p>
                                     </>
                                   )}
@@ -199,10 +203,10 @@ export default function InvoicesPage() {
                               <Table>
                                 <TableHeader>
                                   <TableRow>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Qty</TableHead>
-                                    <TableHead>Unit Price</TableHead>
-                                    <TableHead>Total</TableHead>
+                                    <TableHead>{t("description_1_1_1_1_1_1_1_1")}</TableHead>
+                                    <TableHead>{t("qty")}</TableHead>
+                                    <TableHead>{t("unit_price")}</TableHead>
+                                    <TableHead>{t("total_1_1_1")}</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -220,24 +224,24 @@ export default function InvoicesPage() {
                               <div className="flex justify-end space-y-1 text-sm">
                                 <div className="w-48">
                                   <div className="flex justify-between">
-                                    <span className="text-gray-500">Subtotal</span>
+                                    <span className="text-gray-500">{t("subtotal")}</span>
                                     <span>${Number(invoiceDetail.subtotal).toLocaleString()}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-gray-500">Tax</span>
+                                    <span className="text-gray-500">{t("tax")}</span>
                                     <span>${Number(invoiceDetail.taxAmount).toLocaleString()}</span>
                                   </div>
                                   <div className="flex justify-between font-semibold text-base mt-1 pt-1 border-t">
-                                    <span>Total</span>
+                                    <span>{t("total_1_1_1_1")}</span>
                                     <span>${Number(invoiceDetail.totalAmount).toLocaleString()}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-gray-500">Paid</span>
+                                    <span className="text-gray-500">{t("paid_1_1")}</span>
                                     <span>${Number(invoiceDetail.paidAmount).toLocaleString()}</span>
                                   </div>
                                   {balance > 0 && (
                                     <div className="flex justify-between text-red-600 font-medium">
-                                      <span>Balance</span>
+                                      <span>{t("balance_1_1")}</span>
                                       <span>${balance.toLocaleString()}</span>
                                     </div>
                                   )}
@@ -246,7 +250,7 @@ export default function InvoicesPage() {
 
                               {invoiceDetail.notes && (
                                 <div className="text-sm bg-gray-50 p-3 rounded">
-                                  <p className="text-gray-500 mb-1">Notes</p>
+                                  <p className="text-gray-500 mb-1">{t("notes_1_1")}</p>
                                   <p>{invoiceDetail.notes}</p>
                                 </div>
                               )}
@@ -257,26 +261,24 @@ export default function InvoicesPage() {
                                   size="sm"
                                   onClick={() => generateInvoicePDF(invoiceDetail)}
                                 >
-                                  <Download className="h-4 w-4 mr-1" /> Download PDF
-                                </Button>
-                                {balance > 0 && invoiceDetail.status !== "cancelled" && (
-                                  <Dialog>
+                                  <Download className="h-4 w-4 mr-1" />{t("download_pdf")}</Button>
+                                {balance > 0 && (
+                                    <Dialog>
                                     <DialogTrigger asChild>
                                       <Button size="sm">
-                                        <DollarSign className="h-4 w-4 mr-1" /> Record Payment
-                                      </Button>
+                                        <DollarSign className="h-4 w-4 mr-1" />{t("record_payment")}</Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                       <DialogHeader>
-                                        <DialogTitle>Record Payment</DialogTitle>
+                                        <DialogTitle>{t("record_payment_1")}</DialogTitle>
                                       </DialogHeader>
                                       <div className="space-y-3">
                                         <div>
-                                          <label className="text-sm text-gray-500">Balance Due</label>
+                                          <label className="text-sm text-gray-500">{t("balance_due_1")}</label>
                                           <p className="text-lg font-semibold">${balance.toLocaleString()}</p>
                                         </div>
                                         <div>
-                                          <label className="text-sm text-gray-500">Payment Amount</label>
+                                          <label className="text-sm text-gray-500">{t("payment_amount")}</label>
                                           <Input
                                             type="number"
                                             step="0.01"
@@ -295,7 +297,7 @@ export default function InvoicesPage() {
                                             })
                                           }
                                         >
-                                          {recordPayment.isPending ? "Processing..." : "Confirm Payment"}
+                                          {recordPayment.isPending ? tc("actions.processing") : tc("actions.confirmPayment")}
                                         </Button>
                                       </div>
                                     </DialogContent>

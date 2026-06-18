@@ -159,7 +159,7 @@ export async function createPendingTicket(
     });
 
     const admins = await db.select({ id: users.id }).from(users).where(
-      and(eq(users.tenantId, tenantId), inArray(users.role, ["admin", "accountant", "super_admin"])),
+      and(eq(users.tenantId, tenantId), inArray(users.role, ["admin", "super_admin"])),
     );
     if (admins.length > 0) {
       await db.insert(notifications).values(

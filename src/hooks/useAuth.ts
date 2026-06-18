@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { trpc } from "@/providers/trpc";
 import { getLocalUser, logoutLocal } from "@/lib/localAuth";
 
@@ -10,7 +11,7 @@ export interface AuthUser {
   phone?: string | null;
   avatar: string | null;
   role: string;
-  department?: string;
+  department?: string | null;
   tenantId?: number | null;
   subscription?: {
     status: "pending" | "active" | "expired" | "cancelled";
@@ -42,7 +43,7 @@ export function useAuth() {
     refetchOnWindowFocus: false,
   });
 
-  const user = trpcUser.data || localUser;
+  const user: AuthUser | null = (trpcUser.data as AuthUser | null) || localUser;
   const loading = trpcUser.isLoading;
   console.log(
     "[useAuth]",
@@ -53,39 +54,73 @@ export function useAuth() {
     }
   );
 
+  const navigate = useNavigate();
   const utils = trpc.useContext();
   const logoutMutation = trpc.auth.logout.useMutation();
 
   const logout = async () => {
+    // Prefer to inform the server first (in case it relies on cookies/session),
+    // then clear local state and redirect.
     try {
-      await logoutMutation.mutateAsync();
-    } catch (e) {
-      // proceed with local cleanup even if server call fails
-      console.warn("logout mutation failed", e);
-    }
+      if (logoutMutation && typeof (logoutMutation as any).mutateAsync === "function") {
+        try {
+          await (logoutMutation as any).mutateAsync(undefined);
+        } catch (err) {
+          console.warn("logout mutation failed", err);
+        }
+      }
 
-    try {
-      // Invalidate auth.me and clear react-query cache
-      await utils.auth.me.invalidate();
+      try {
+        // Invalidate client-side auth cache
+        await utils.auth.me.invalidate();
+      } catch (e) {
+        // ignore
+      }
       try {
         (utils as any).queryClient?.clear();
       } catch {}
-    } catch (e) {
-      console.warn("failed to invalidate auth cache", e);
-    }
 
-    // Clear local dev auth helpers and storage
-    try {
-      logoutLocal();
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (e) {
-      console.warn("failed to clear storage during logout", e);
-    }
+      try {
+        if (typeof utils.auth.me.setData === "function") {
+          utils.auth.me.setData(undefined, () => undefined);
+        }
+      } catch {}
 
-    setLocalUser(null);
-    // Hard redirect to ensure server cookie is removed and app resets
-    window.location.href = "/login";
+      // Now clear local/demo auth and storages
+      try {
+        logoutLocal();
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.warn("failed to clear storage during logout", e);
+      }
+
+      setLocalUser(null);
+
+      // Finally redirect to public home page
+      try {
+        if (typeof window !== "undefined") {
+          window.location.replace("/");
+        } else {
+          navigate("/", { replace: true });
+        }
+      } catch (e) {
+        console.warn("navigate failed during logout", e);
+      }
+    } catch (e) {
+      console.warn("unexpected error during logout", e);
+      // Best-effort fallback: clear local and redirect
+      try {
+        logoutLocal();
+        localStorage.clear();
+        sessionStorage.clear();
+        setLocalUser(null);
+      } catch {}
+      try {
+        if (typeof window !== "undefined") window.location.replace("/");
+        else navigate("/", { replace: true });
+      } catch {}
+    }
   };
 
   return { user, loading, isLoggedIn: !!user, logout };

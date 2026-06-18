@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { getSubscriptionStatusLabel } from "@/lib/subscription";
 import { Building2, MapPin, Phone, Mail, MessageCircle, Clock, ArrowRight } from "lucide-react";
 
 export default function PaymentActivation() {
+  const { t } = useTranslation("common");
   const { user } = useAuth();
   const subscription = user?.subscription;
   const status = subscription?.status ?? "pending";
@@ -25,42 +27,42 @@ export default function PaymentActivation() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Payment Activation</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">{t("paymentActivation.title")}</h1>
         <p className="text-sm text-slate-500 mt-2">
-          Complete your subscription payment to unlock the full ERP dashboard.
+          {t("paymentActivation.subtitle")}
         </p>
       </div>
 
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Subscription Status</CardTitle>
+          <CardTitle className="text-base">{t("paymentActivation.subscriptionStatus")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-500">Current status</span>
-            <Badge className={statusBadgeClass}>{getSubscriptionStatusLabel(status)}</Badge>
+            <span className="text-slate-500">{t("paymentActivation.currentStatus")}</span>
+            <Badge className={statusBadgeClass}>{getSubscriptionStatusLabel(status, t)}</Badge>
           </div>
           {subscription?.plan && (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">Selected plan</span>
+              <span className="text-slate-500">{t("paymentActivation.selectedPlan")}</span>
               <span className="font-medium capitalize">{formatPlanLabel(subscription.plan)}</span>
             </div>
           )}
           {subscription?.durationMonths && (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">Duration</span>
-              <span className="font-medium">{subscription.durationMonths} month{subscription.durationMonths === 1 ? "" : "s"}</span>
+              <span className="text-slate-500">{t("paymentActivation.duration")}</span>
+              <span className="font-medium">{subscription.durationMonths} {t("months")}</span>
             </div>
           )}
           {user?.registrationToken && (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">Registration code</span>
+              <span className="text-slate-500">{t("paymentActivation.registrationCode")}</span>
               <span className="font-mono font-semibold text-indigo-600">{user.registrationToken}</span>
             </div>
           )}
           {subscription?.expiresAt && status === "active" && (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">Expires</span>
+              <span className="text-slate-500">{t("paymentActivation.expires")}</span>
               <span className="font-medium">{new Date(subscription.expiresAt).toLocaleDateString()}</span>
             </div>
           )}
@@ -71,7 +73,7 @@ export default function PaymentActivation() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Building2 className="h-4 w-4 text-indigo-600" />
-            Office Payment Information
+            {t("paymentActivation.officePaymentInfo")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
@@ -99,16 +101,16 @@ export default function PaymentActivation() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-indigo-600" />
-            Activation Steps
+            {t("paymentActivation.activationSteps")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-            <li>Visit our office or contact us using the details above.</li>
-            <li>Complete payment for your selected package and duration.</li>
-            <li>Share your registration code and payment proof.</li>
-            <li>Wait for super-admin approval (usually within 1 business day).</li>
-            <li>Log in again — your dashboard unlocks automatically once activated.</li>
+            <li>{t("paymentActivation.step1")}</li>
+            <li>{t("paymentActivation.step2")}</li>
+            <li>{t("paymentActivation.step3")}</li>
+            <li>{t("paymentActivation.step4")}</li>
+            <li>{t("paymentActivation.step5")}</li>
           </ol>
         </CardContent>
       </Card>
@@ -116,12 +118,12 @@ export default function PaymentActivation() {
       {status === "active" ? (
         <Link to="/dashboard">
           <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
-            Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+            {t("paymentActivation.goToDashboard")} <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </Link>
       ) : (
         <p className="text-xs text-slate-500 text-center">
-          Need help? Email {PLATFORM_PAYMENT_CONTACT.email} with your registration code.
+          {t("paymentActivation.needHelp", { email: PLATFORM_PAYMENT_CONTACT.email })}
         </p>
       )}
     </div>

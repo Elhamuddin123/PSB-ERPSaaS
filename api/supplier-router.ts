@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
+import { createRouter, authedQuery, supervisoryQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { suppliers, supplierContacts, bills, supplierPayments } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
@@ -197,7 +197,7 @@ export const supplierRouter = createRouter({
     }),
 
   // ─── UPDATE SUPPLIER ───────────────────────────────────────────────────────
-  update: authedQuery
+  update: agencyAdminQuery
     .input(z.object({
       id: z.number(),
       companyName: z.string().min(1).optional(),

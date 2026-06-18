@@ -1,7 +1,6 @@
 ﻿-- Seed data for PSB-ERP
 -- Default seeded login credentials:
 --   admin@psb-erp.com / admin123
---   manager@psb-erp.com / manager123
 --   agent@psb-erp.com / agent123
 -- Existing users use the same default hash value for the test_password placeholder.
 -- Tenants
@@ -12,20 +11,17 @@ INSERT INTO tenants (name, slug, domain, plan, status, settings) VALUES
 -- Users
 INSERT INTO users (unionId, tenant_id, name, email, password_hash, role, status, department, phone, last_sign_in_at) VALUES
 ('admin-001', 1, 'Alexandra Chen', 'alex.chen@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'admin', 'active', 'Management', '+1-555-0101', NOW()),
-('manager-001', 1, 'Marcus Johnson', 'marcus.j@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'manager', 'active', 'Operations', '+1-555-0102', NOW()),
-('accountant-001', 1, 'Sarah Williams', 'sarah.w@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'accountant', 'active', 'Finance', '+1-555-0103', NOW()),
+('manager-001', 1, 'Marcus Johnson', 'marcus.j@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'agent', 'active', 'Operations', '+1-555-0102', NOW()),
+('accountant-001', 1, 'Sarah Williams', 'sarah.w@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'agent', 'active', 'Finance', '+1-555-0103', NOW()),
 ('agent-001', 1, 'David Kim', 'david.kim@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'agent', 'active', 'Sales', '+1-555-0104', NOW()),
 ('agent-002', 1, 'Emily Rodriguez', 'emily.r@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'agent', 'active', 'Sales', '+1-555-0105', NOW()),
 ('viewer-001', 1, 'James Taylor', 'james.t@pioneer-travel.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'viewer', 'active', 'Support', '+1-555-0106', NOW()),
 ('admin-002', 1, 'PSB Admin', 'admin@psb-erp.com', 'e1cf970df88976b548889855648182a27bea5bbdc0a7da319f80da856151d060:6198e732dabf995c52c2cd0faef8aef475518aba89b8df502194288dd0706e9acb0929b54cd986a324b01ca9409283c0cdd55448e52d32379977e4e5f60943d8', 'admin', 'active', 'Management', '+1-555-0201', NOW()),
-('manager-002', 1, 'PSB Manager', 'manager@psb-erp.com', '016fea8e6f940d893bac768be404e71e9bdde6ea2b3e0fd1dfc198b4abec14ec:56a357c10a8711cbf0820abd06e1aeb971041db8fcc01c8fd634588f7882a435f2717472efe6bebadde30bf8bb0b71bf1a951166eb45f9670ab5b01dfd893790', 'manager', 'active', 'Operations', '+1-555-0202', NOW()),
 ('agent-003', 1, 'PSB Agent', 'agent@psb-erp.com', '0fee4e7fe9373c767c60764f98bfa54709bc8fe35feed86dd3f30ce500179166:7f23633db0741c840b8fa4d4731f4870c29a074b654b2653438cef31185e8253cf340c43e6711197cc55eaed5d9aad8a50808aa2fe39071ee892a4781a6b649f', 'agent', 'active', 'Sales', '+1-555-0203', NOW());
 
 -- Roles
 INSERT INTO roles (tenant_id, name, slug, description, permissions, is_system) VALUES
 (1, 'Administrator', 'admin', 'Full system access', '["*"]', true),
-(1, 'Manager', 'manager', 'Manage operations and teams', '["dashboard:read","tickets:*","crm:*","expenses:*","accounting:read","reports:*","wallet:*"]', true),
-(1, 'Accountant', 'accountant', 'Financial operations', '["dashboard:read","accounting:*","expenses:*","wallet:*","reports:read"]', true),
 (1, 'Travel Agent', 'agent', 'Ticket sales and CRM', '["dashboard:read","tickets:*","crm:*","expenses:create"]', true);
 
 -- Wallets

@@ -5,8 +5,6 @@ export {
   type AppRole,
   OPERATIONAL_ROLES,
   SUPERVISORY_ROLES,
-  MANAGER_ROLES,
-  ACCOUNTANT_ROLES,
   hasAnyRole,
   isAgencyAdmin,
   isSuperAdmin,

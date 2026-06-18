@@ -30,6 +30,7 @@ import RegisterSuccess from "./pages/RegisterSuccess";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "@/hooks/useAuth";
+import LoadingPage from "@/components/LoadingPage";
 import RequireRouteAccess from "@/components/auth/RequireRouteAccess";
 import { hasActiveSubscription } from "@/lib/subscription";
 
@@ -44,7 +45,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [navigate, location.pathname, loading, isLoggedIn]);
 
-  if (loading || !isLoggedIn) return null;
+  if (loading) return <LoadingPage />;
+  if (!isLoggedIn) return null;
   return <>{children}</>;
 }
 
@@ -63,7 +65,8 @@ function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
     }
   }, [navigate, location.pathname, loading, isLoggedIn, user]);
 
-  if (loading || !isLoggedIn || user?.role !== "super_admin") return null;
+  if (loading) return <LoadingPage />;
+  if (!isLoggedIn || user?.role !== "super_admin") return null;
   return <>{children}</>;
 }
 
@@ -77,13 +80,14 @@ function RedirectIfAuth({ children }: { children: React.ReactNode }) {
     }
   }, [navigate, loading, isLoggedIn, user]);
 
-  if (loading || isLoggedIn) return null;
+  if (loading) return <LoadingPage />;
+  if (isLoggedIn) return null;
   return <>{children}</>;
 }
 
 function RequireActiveSubscription({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <LoadingPage />;
   if (!hasActiveSubscription(user)) {
     return <Navigate to="/payment-activation" replace />;
   }

@@ -1,8 +1,6 @@
 export const ROLES = {
   SUPER_ADMIN: "super_admin",
   AGENCY_ADMIN: "admin",
-  MANAGER: "manager",
-  ACCOUNTANT: "accountant",
   AGENT: "agent",
   VIEWER: "viewer",
 } as const;
@@ -13,28 +11,12 @@ export type AppRole = (typeof ROLES)[keyof typeof ROLES];
 export const OPERATIONAL_ROLES = [
   ROLES.AGENCY_ADMIN,
   ROLES.AGENT,
-  ROLES.ACCOUNTANT,
-  ROLES.MANAGER,
   ROLES.SUPER_ADMIN,
 ] as const;
 
 /** Approval and oversight actions within a tenant. */
 export const SUPERVISORY_ROLES = [
   ROLES.AGENCY_ADMIN,
-  ROLES.MANAGER,
-  ROLES.ACCOUNTANT,
-  ROLES.SUPER_ADMIN,
-] as const;
-
-export const MANAGER_ROLES = [
-  ROLES.AGENCY_ADMIN,
-  ROLES.MANAGER,
-  ROLES.SUPER_ADMIN,
-] as const;
-
-export const ACCOUNTANT_ROLES = [
-  ROLES.AGENCY_ADMIN,
-  ROLES.ACCOUNTANT,
   ROLES.SUPER_ADMIN,
 ] as const;
 

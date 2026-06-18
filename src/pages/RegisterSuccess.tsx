@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PLATFORM_PAYMENT_CONTACT } from "@contracts/plans";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import i18n, { isRTL } from "@/lib/i18n";
 
 interface LocationState {
   token: string;
@@ -63,10 +65,13 @@ export default function RegisterSuccessPage() {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    const dir = isRTL(i18n.language) ? "rtl" : "ltr";
+    const pt = (key: string) => i18n.t(key, { ns: "register" });
+
     printWindow.document.write(`
-      <html dir="rtl">
+      <html dir="${dir}">
       <head>
-        <title>PSB-ERP Registration Token</title>
+        <title>${pt("psb_erp_registration_token")}</title>
         <style>
           body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
           .header { text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 20px; margin-bottom: 30px; }
@@ -81,22 +86,22 @@ export default function RegisterSuccessPage() {
       </head>
       <body>
         <div class="header">
-          <h1 style="color: #4f46e5; margin: 0;">PSB-ERP</h1>
-          <p style="color: #64748b; margin: 8px 0 0;">Registration Confirmation</p>
+          <h1 style="color: #4f46e5; margin: 0;">${pt("appName")}</h1>
+          <p style="color: #64748b; margin: 8px 0 0;">${pt("registration_confirmation")}</p>
         </div>
         <div class="token-box">
-          <p style="color: #64748b; margin-bottom: 12px;">Your Registration Code</p>
+          <p style="color: #64748b; margin-bottom: 12px;">${pt("your_registration_code")}</p>
           <div class="token">${token}</div>
         </div>
         <div>
-          <div class="info-row"><span class="label">Agency</span><span class="value">${agencyName}</span></div>
-          <div class="info-row"><span class="label">Plan</span><span class="value">${plan}</span></div>
-          <div class="info-row"><span class="label">Duration</span><span class="value">${durationMonths} months</span></div>
-          ${pricing ? `<div class="info-row"><span class="label">Amount Due</span><span class="value">${pricing.contactSales ? "Contact Sales" : `${pricing.totalAmount!.toFixed(0)} ${pricing.currency}`}</span></div>` : ""}
-          <div class="info-row"><span class="label">Status</span><span><span class="status">Pending Payment Verification</span></span></div>
+          <div class="info-row"><span class="label">${pt("agency")}</span><span class="value">${agencyName}</span></div>
+          <div class="info-row"><span class="label">${pt("plan")}</span><span class="value">${plan}</span></div>
+          <div class="info-row"><span class="label">${pt("duration")}</span><span class="value">${durationMonths} months</span></div>
+          ${pricing ? `<div class="info-row"><span class="label">${pt("amount_due")}</span><span class="value">${pricing.contactSales ? "Contact Sales" : `${pricing.totalAmount!.toFixed(0)} ${pricing.currency}`}</span></div>` : ""}
+          <div class="info-row"><span class="label">${pt("status_1_1_1_1_1_1_1_1_1")}</span><span><span class="status">${pt("pending_payment_verification")}</span></span></div>
         </div>
         <div style="margin-top: 30px; background: #f8fafc; padding: 20px; border-radius: 8px;">
-          <p style="font-weight: 600; margin-bottom: 8px;">Office Information</p>
+          <p style="font-weight: 600; margin-bottom: 8px;">${pt("office_information")}</p>
           <p style="color: #64748b; font-size: 13px; line-height: 1.6;">
             ${PLATFORM_PAYMENT_CONTACT.agencyName}<br>
             ${PLATFORM_PAYMENT_CONTACT.address}<br>
@@ -105,7 +110,7 @@ export default function RegisterSuccessPage() {
           </p>
         </div>
         <div class="footer">
-          <p>Please bring this document to our office to complete payment verification and activate your account.</p>
+          <p>${pt("please_bring_this_document_to_our_office_to_complete_payment_verification_and_ac")}</p>
           <p style="margin-top: 8px;">© ${new Date().getFullYear()} PSB-ERP. All rights reserved.</p>
         </div>
       </body>
@@ -123,7 +128,10 @@ export default function RegisterSuccessPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 end-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-6">

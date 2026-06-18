@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, authedQuery } from "./middleware";
+import { createRouter, authedQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { exchangeRates } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
-import { fetchExchangeRates } from "./services/exchange-service";
+import { fetchExchangeRates, isExchangeApiConfigured } from "./services/exchange-service";
+import { auditLog } from "./lib/audit";
 
 export const exchangeRateRouter = createRouter({
   list: authedQuery
@@ -76,6 +77,57 @@ export const exchangeRateRouter = createRouter({
       return { id: Number(result[0].insertId) };
     }),
 
+  // Agency-admin edit: rates are not posted to GL; rate value and date may be corrected.
+  update: agencyAdminQuery
+    .input(z.object({
+      id: z.number(),
+      rate: z.number().positive().optional(),
+      effectiveDate: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const { id, rate, effectiveDate } = input;
+
+      const existing = await db.query.exchangeRates.findFirst({
+        where: and(eq(exchangeRates.id, id), eq(exchangeRates.tenantId, tenantId)),
+      });
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Exchange rate not found" });
+
+      const updateData: Record<string, unknown> = {};
+      if (rate !== undefined) updateData.rate = rate.toFixed(6);
+      if (effectiveDate !== undefined) {
+        const parsed = new Date(effectiveDate);
+        if (isNaN(parsed.getTime())) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Valid effective date is required" });
+        }
+        updateData.effectiveDate = parsed;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
+      }
+
+      await db.update(exchangeRates).set(updateData).where(and(eq(exchangeRates.id, id), eq(exchangeRates.tenantId, tenantId)));
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "exchange_rate",
+        entityId: id,
+        oldValues: {
+          fromCurrency: existing.fromCurrency,
+          toCurrency: existing.toCurrency,
+          rate: existing.rate,
+          effectiveDate: existing.effectiveDate,
+          source: existing.source,
+        },
+        newValues: updateData,
+      });
+
+      return { success: true };
+    }),
+
   delete: authedQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
@@ -86,6 +138,10 @@ export const exchangeRateRouter = createRouter({
       return { success: true };
     }),
 liveRates: authedQuery.query(async () => {
+  if (!isExchangeApiConfigured()) {
+    console.warn("Exchange API is not configured; returning empty liveRates list.");
+    return [];
+  }
   return await fetchExchangeRates();
 }),
 
