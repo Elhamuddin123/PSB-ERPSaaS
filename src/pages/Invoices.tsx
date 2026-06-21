@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -19,12 +19,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Eye, DollarSign, Download, Trash2 } from "lucide-react";
 import { generateInvoicePDF } from "@/lib/invoicePdf";
 import { useAuth } from "@/hooks/useAuth";
 import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
+import { useClientTable } from "@/lib/client-table";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -71,6 +73,26 @@ export default function InvoicesPage() {
   });
 
   const [paymentForm, setPaymentForm] = useState({ amount: "" });
+
+  const getSortValue = useCallback((inv: NonNullable<typeof data>["items"][number], key: string) => {
+    switch (key) {
+      case "invoiceNumber": return inv.invoiceNumber;
+      case "customer": return inv.customer ? `${inv.customer.firstName || ""} ${inv.customer.lastName || ""}`.trim() : "";
+      case "issueDate": return new Date(inv.issueDate).getTime();
+      case "amount": return Number(inv.totalAmount);
+      case "paid": return Number(inv.paidAmount);
+      case "status": return inv.status;
+      default: return "";
+    }
+  }, []);
+
+  const { rows: invoiceRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: data?.items ?? [],
+    search: "",
+    getSearchText: () => "",
+    defaultSortKey: "issueDate",
+    getSortValue,
+  });
 
   return (
     <div className="space-y-6">
@@ -119,24 +141,24 @@ export default function InvoicesPage() {
           <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
-                <TableHead>{t("invoiceNumber")}</TableHead>
-                <TableHead>{t("customer")}</TableHead>
-                <TableHead>{t("issueDate")}</TableHead>
-                <TableHead>{t("amount")}</TableHead>
-                <TableHead>{t("paid")}</TableHead>
-                <TableHead>{t("status")}</TableHead>
+                <SortableTableHead label={t("invoiceNumber")} sortKey="invoiceNumber" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("customer")} sortKey="customer" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("issueDate")} sortKey="issueDate" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("amount")} sortKey="amount" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("paid")} sortKey="paid" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("status")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <TableHead className="text-right">{t("actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.items?.length === 0 && (
+              {invoiceRows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     {t("noData")}
                   </TableCell>
                 </TableRow>
               )}
-              {data?.items?.map((inv: any) => {
+              {invoiceRows.map((inv: any) => {
                 const balance = Number(inv.totalAmount) - Number(inv.paidAmount);
                 return (
                   <TableRow key={inv.id}>

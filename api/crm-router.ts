@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createRouter, authedQuery, agentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { customers, leads, interactions, tickets, invoices, customerTransactions } from "@db/schema";
+import { customers, leads, interactions, tickets, invoices, customerTransactions, customerLoans } from "@db/schema";
 import { eq, desc, sql, and, isNull } from "drizzle-orm";
 
 const optionalEmail = z.preprocess(
@@ -92,6 +92,16 @@ export const crmRouter = createRouter({
         .orderBy(desc(interactions.createdAt))
         .limit(10);
 
+      // Recent loans
+      const recentLoans = await db.select().from(customerLoans)
+        .where(and(
+          eq(customerLoans.tenantId, tenantId),
+          eq(customerLoans.customerId, input.id),
+          isNull(customerLoans.deletedAt),
+        ))
+        .orderBy(desc(customerLoans.createdAt))
+        .limit(20);
+
       // Calculate balance due from transactions
       const txSum = await db.select({
         receivable: sql<number>`COALESCE(SUM(CASE WHEN type = 'receivable' THEN amount ELSE 0 END), 0)`,
@@ -119,11 +129,16 @@ export const crmRouter = createRouter({
         recentInvoices,
         recentTransactions,
         recentInteractions,
+        recentLoans,
         stats: {
           totalBookings: customer.totalBookings,
           totalRevenue: Number(customer.totalRevenue),
           totalPaid: Number(totalPaid[0]?.total ?? 0),
           balanceDue,
+          activeLoans: recentLoans.filter((l) => l.status === "active").length,
+          loanBalance: recentLoans
+            .filter((l) => l.status === "active")
+            .reduce((sum, l) => sum + Number(l.balanceAmount), 0),
         },
       };
     }),

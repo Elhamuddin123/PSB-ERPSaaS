@@ -35,6 +35,7 @@
   "totalTickets": "ټول ټکټونه",
   "type": "ډول",
   "vip": "VIP",
+  "customer_code": "کوډ",
   "crm": {
     "title": "د پیرودونکو مدیریت",
     "subtitle": "خپل پیرودونکي اداره کړئ",
@@ -112,5 +113,20 @@
   "description_1_1_1_1_1_1_1": "توضیحات",
   "no_transactions_found": "هیڅ معامله ونه موندل شوه.",
   "recent_interactions": "وروستي تعاملات",
-  "no_interactions_found": "هیڅ تعامل ونه موندل شو."
+  "no_interactions_found": "هیڅ تعامل ونه موندل شو.",
+  "loans": "پورونه",
+  "recent_loans": "پورونه",
+  "loan_number": "د پور شمېره",
+  "loan_balance": "پاتې",
+  "loan_date": "د پور نیټه",
+  "due_date": "د پور وخت",
+  "no_loans_found": "هیڅ پور ونه موندل شو.",
+  "record_payment": "تادیه ثبت کړئ",
+  "record_repayment": "بیا تادیه ثبت کړئ",
+  "payment_amount": "د تادیې مبلغ",
+  "balance_due_label": "پاتې پور",
+  "partial_payment_hint": "تر پاتې پور پورې هر مبلغ ولیکئ.",
+  "ledger_pass": "د لجر تیرول",
+  "active_loans_count": "فعال پورونه",
+  "outstanding_loan_balance": "پاتې د پور مبلغ"
 }

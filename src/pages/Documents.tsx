@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { alertServerError } from "@/lib/i18n-ui";
 import { trpc } from "@/providers/trpc";
@@ -15,7 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { FileText, Trash2, FileCheck, Pencil } from "lucide-react";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { FileText, Trash2, FileCheck, Pencil, Search } from "lucide-react";
+import { useClientTable } from "@/lib/client-table";
 
 const statusColors: Record<string, string> = {
   draft: "bg-slate-100 text-slate-800",
@@ -46,6 +48,7 @@ const entityLabels: Record<string, string> = {
 export default function DocumentsPage() {
   const [entityType, setEntityType] = useState("__all__");
   const [documentType, setDocumentType] = useState("__all__");
+  const [search, setSearch] = useState("");
   const { t } = useTranslation("common");
   const { user } = useAuth();
   const canEdit = isAgencyAdmin(user?.role);
@@ -62,8 +65,9 @@ export default function DocumentsPage() {
   const { data: docsData, isLoading, error } = trpc.document.list.useQuery({
     entityType: entityType !== "__all__" ? entityType : undefined,
     documentType: documentType !== "__all__" ? documentType : undefined,
+    search: search || undefined,
+    limit: 100,
   });
-  console.log("[Documents] docsData:", docsData, "isLoading:", isLoading, "error:", error);
 
   const deleteDoc = trpc.document.delete.useMutation({
     onSuccess: async () => {
@@ -79,6 +83,25 @@ export default function DocumentsPage() {
       alert(t("alerts.documentUpdated"));
     },
     onError: (err) => alertServerError(t, err),
+  });
+
+  const getSortValue = useCallback((doc: NonNullable<typeof docsData>["items"][number], key: string) => {
+    switch (key) {
+      case "document": return doc.fileName || doc.documentNumber || "";
+      case "type": return doc.documentType;
+      case "entity": return `${doc.entityType}-${doc.entityId}`;
+      case "generated": return doc.generatedAt ? new Date(doc.generatedAt).getTime() : 0;
+      case "status": return doc.status;
+      default: return "";
+    }
+  }, []);
+
+  const { rows: docRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: docsData?.items ?? [],
+    search: "",
+    getSearchText: () => "",
+    defaultSortKey: "generated",
+    getSortValue,
   });
 
   if (isLoading) return <div className="py-8 text-center text-slate-500">{t("loading")}</div>;
@@ -117,6 +140,15 @@ export default function DocumentsPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            className="pl-9"
+            placeholder={t("searchDocuments")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <Select value={entityType} onValueChange={setEntityType}>
           <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder={t("entity_type")} /></SelectTrigger>
           <SelectContent>
@@ -150,16 +182,16 @@ export default function DocumentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("document")}</TableHead>
-                <TableHead>{t("type")}</TableHead>
-                <TableHead>{t("entity")}</TableHead>
-                <TableHead>{t("generated")}</TableHead>
-                <TableHead>{t("status")}</TableHead>
+                <SortableTableHead label={t("document")} sortKey="document" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("type")} sortKey="type" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("entity")} sortKey="entity" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("generated")} sortKey="generated" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("statusColumn")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <TableHead className="text-right">{t("action")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(docsData?.items || []).map(doc => (
+              {docRows.map(doc => (
                 <TableRow key={doc.id}>
                   <TableCell className="text-xs font-medium">{doc.fileName || doc.documentNumber || "—"}</TableCell>
                   <TableCell className="text-xs">{typeLabels[doc.documentType] || doc.documentType}</TableCell>
@@ -196,7 +228,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {docsData?.items?.length === 0 && !isLoading && (
+      {docRows.length === 0 && !isLoading && (
         <div className="text-center py-12 text-slate-500">
           <FileCheck className="h-12 w-12 mx-auto mb-3 text-slate-300" />
           <p className="text-lg font-medium">{t("noDocumentsYet")}</p>
@@ -222,7 +254,7 @@ export default function DocumentsPage() {
                 <Input value={editDoc.fileName} onChange={(e) => setEditDoc({ ...editDoc, fileName: e.target.value })} />
               </div>
               <div>
-                <Label>{t("status")}</Label>
+                <Label>{t("statusColumn")}</Label>
                 <Select value={editDoc.status} onValueChange={(v) => setEditDoc({ ...editDoc, status: v as typeof editDoc.status })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>

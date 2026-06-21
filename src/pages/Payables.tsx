@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -21,6 +21,8 @@ import {
 import { generatePaymentVoucherPDF } from "@/lib/pdf-generator";
 import { useAuth } from "@/hooks/useAuth";
 import { SUPERVISORY_ROLES, hasAnyRole } from "@/lib/roles";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useClientTable } from "@/lib/client-table";
 
 const billStatusColors: Record<string, string> = {
   draft: "bg-slate-100 text-slate-800",
@@ -172,6 +174,28 @@ export default function PayablesPage() {
     setPaymentForm(prev => ({ ...prev, amount: bill.balanceDue }));
     setPaymentOpen(true);
   };
+
+  const getSortValue = useCallback((bill: NonNullable<typeof billsData>["items"][number], key: string) => {
+    switch (key) {
+      case "billNumber": return bill.billNumber;
+      case "supplier": return (bill as any).supplier?.companyName || "";
+      case "date": return String(bill.issueDate);
+      case "due": return String(bill.dueDate);
+      case "total": return Number(bill.totalAmount);
+      case "paid": return Number(bill.amountPaid);
+      case "balance": return Number(bill.balanceDue);
+      case "status": return bill.status;
+      default: return "";
+    }
+  }, []);
+
+  const { rows: billRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: billsData?.items ?? [],
+    search: "",
+    getSearchText: () => "",
+    defaultSortKey: "due",
+    getSortValue,
+  });
 
   return (
     <div className="space-y-6">
@@ -363,19 +387,19 @@ export default function PayablesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("billNumber")}</TableHead>
-                    <TableHead>{t("supplier")}</TableHead>
-                    <TableHead>{t("date")}</TableHead>
-                    <TableHead>{t("due")}</TableHead>
-                    <TableHead>{t("total")}</TableHead>
-                    <TableHead>{t("paid")}</TableHead>
-                    <TableHead>{t("balance")}</TableHead>
-                    <TableHead>{t("status")}</TableHead>
+                    <SortableTableHead label={t("billNumber")} sortKey="billNumber" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableTableHead label={t("supplier")} sortKey="supplier" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableTableHead label={t("date")} sortKey="date" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableTableHead label={t("due")} sortKey="due" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableTableHead label={t("total")} sortKey="total" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableTableHead label={t("paid")} sortKey="paid" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableTableHead label={t("balance")} sortKey="balance" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableTableHead label={t("statusColumn")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                     <TableHead className="text-right">{t("action")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(billsData?.items || []).map(bill => (
+                  {billRows.map(bill => (
                     <TableRow key={bill.id}>
                       <TableCell className="font-medium text-xs">{bill.billNumber}</TableCell>
                       <TableCell className="text-xs">{(bill as any).supplier?.companyName || "—"}</TableCell>

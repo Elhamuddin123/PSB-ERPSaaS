@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { alertServerError } from "@/lib/i18n-ui";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Receipt, Search, Plus, CheckCircle, XCircle, Clock, DollarSign, BookOpen, Trash2, Pencil } from "lucide-react";
+import { Receipt, Search, Plus, CheckCircle, XCircle, Clock, DollarSign, BookOpen, Trash2, Pencil, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useClientTable } from "@/lib/client-table";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
   approved: { color: "bg-emerald-100 text-emerald-800", icon: CheckCircle },
@@ -43,6 +44,9 @@ export default function ExpensesPage() {
     receiptNumber: string;
     notes: string;
   } | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editCategory, setEditCategory] = useState<{ id: number; name: string; description: string; color: string } | null>(null);
+  const [newCategory, setNewCategory] = useState({ name: "", description: "", color: "#6366f1" });
 
   const utils = trpc.useUtils();
   const { data: expensesData, refetch } = trpc.expense.list.useQuery({ search, status: statusFilter });
@@ -89,6 +93,27 @@ export default function ExpensesPage() {
     },
     onError: (err) => alertServerError(t, err),
   });
+  const createCategory = trpc.expense.createCategory.useMutation({
+    onSuccess: async () => {
+      await utils.expense.categories.invalidate();
+      setCategoryDialogOpen(false);
+      setNewCategory({ name: "", description: "", color: "#6366f1" });
+    },
+    onError: (err) => alertServerError(t, err),
+  });
+  const updateCategory = trpc.expense.updateCategory.useMutation({
+    onSuccess: async () => {
+      await utils.expense.categories.invalidate();
+      setEditCategory(null);
+    },
+    onError: (err) => alertServerError(t, err),
+  });
+  const deleteCategory = trpc.expense.deleteCategory.useMutation({
+    onSuccess: async () => {
+      await utils.expense.categories.invalidate();
+    },
+    onError: (err) => alertServerError(t, err),
+  });
 
   const [newExpense, setNewExpense] = useState<{
     categoryId: number; title: string; description: string; amount: string; expenseDate: string;
@@ -101,6 +126,35 @@ export default function ExpensesPage() {
   const statusCounts: Record<string, { count: number; total: number }> = {};
   (stats?.statusCounts || []).forEach(s => statusCounts[s.status] = { count: s.count, total: s.total });
   const totalAll = Object.values(statusCounts).reduce((sum, s) => sum + s.total, 0);
+
+  const getSortValue = useCallback((expense: NonNullable<typeof expensesData>["items"][number], key: string) => {
+    switch (key) {
+      case "title": return expense.title;
+      case "category": return expense.category?.name || "";
+      case "vendor": return expense.vendor || "";
+      case "expenseDate": return expense.expenseDate ? new Date(expense.expenseDate).getTime() : 0;
+      case "amount": return Number(expense.amount);
+      case "status": return expense.status;
+      default: return "";
+    }
+  }, []);
+
+  const { rows: expenseRows, toggleSort: toggleExpenseSort, sortKey: activeSortKey, sortDir: activeSortDir } = useClientTable({
+    items: expensesData?.items ?? [],
+    search: "",
+    getSearchText: () => "",
+    defaultSortKey: "expenseDate",
+    getSortValue,
+  });
+
+  const toggleSort = (key: string) => {
+    toggleExpenseSort(key);
+  };
+
+  const sortIndicator = (key: string) => {
+    if (activeSortKey !== key) return " ↕";
+    return activeSortDir === "asc" ? " ↑" : " ↓";
+  };
 
   return (
     <div className="space-y-6">
@@ -151,6 +205,63 @@ export default function ExpensesPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {canEdit && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Tag className="h-4 w-4" />{t("expenseCategories")}
+              </CardTitle>
+              <p className="text-xs text-slate-500 mt-1">{t("manageExpenseCategories")}</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setCategoryDialogOpen(true)}>
+              <Plus className="h-3 w-3 mr-1" />{t("addCategory")}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {(categories || []).map((cat) => (
+                <div key={cat.id} className="flex items-center gap-2 border rounded-lg px-3 py-2 text-sm">
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color || "#6366f1" }} />
+                  <span>{cat.name}</span>
+                  {cat.isSystem && <Badge variant="secondary" className="text-[10px]">{t("systemCategory")}</Badge>}
+                  {!cat.isSystem && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setEditCategory({
+                          id: cat.id,
+                          name: cat.name,
+                          description: cat.description || "",
+                          color: cat.color || "#6366f1",
+                        })}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-red-500"
+                        disabled={deleteCategory.isPending}
+                        onClick={() => {
+                          if (confirm(t("confirmDeleteCategory", { name: cat.name }))) {
+                            deleteCategory.mutate({ id: cat.id });
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats - FIXED: 2 cols on mobile */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
@@ -207,16 +318,16 @@ export default function ExpensesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("expense_1_1")}</th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("category_1")}</th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("vendor_1")}</th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("date_1_1_1_1_1_1_1")}</th>
-                <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("amount_1_1_1_1_1_1")}</th>
-                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("status_1_1_1_1_1_1_1")}</th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("title")}>{t("expense_1_1")}{sortIndicator("title")}</button></th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("category")}>{t("category_1")}{sortIndicator("category")}</button></th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("vendor")}>{t("vendor_1")}{sortIndicator("vendor")}</button></th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("expenseDate")}>{t("date_1_1_1_1_1_1_1")}{sortIndicator("expenseDate")}</button></th>
+                <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("amount")}>{t("amount_1_1_1_1_1_1")}{sortIndicator("amount")}</button></th>
+                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("status")}>{t("status_1_1_1_1_1_1_1")}{sortIndicator("status")}</button></th>
                 <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("actions_1")}</th>
               </tr></thead>
               <tbody>
-                {(expensesData?.items || []).map((expense) => (
+                {expenseRows.map((expense) => (
                   <tr key={expense.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
                     <td className="p-2 sm:p-3">
                       <p className="font-medium text-xs sm:text-sm">{expense.title}</p>
@@ -361,6 +472,34 @@ export default function ExpensesPage() {
                 })}
               >
                 {updateExpense.isPending ? t("actions.saving") : t("save_changes")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>{t("addCategory")}</DialogTitle></DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div><Label>{t("categoryName")}</Label><Input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} /></div>
+            <div><Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label><Input value={newCategory.description} onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })} /></div>
+            <div><Label>{t("categoryColor")}</Label><Input type="color" value={newCategory.color} onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })} /></div>
+            <Button className="w-full bg-indigo-600" disabled={!newCategory.name || createCategory.isPending} onClick={() => createCategory.mutate(newCategory)}>
+              {createCategory.isPending ? t("actions.creating") : t("addCategory")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editCategory} onOpenChange={() => setEditCategory(null)}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>{t("editCategory")}</DialogTitle></DialogHeader>
+          {editCategory && (
+            <div className="space-y-3 pt-2">
+              <div><Label>{t("categoryName")}</Label><Input value={editCategory.name} onChange={(e) => setEditCategory({ ...editCategory, name: e.target.value })} /></div>
+              <div><Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label><Input value={editCategory.description} onChange={(e) => setEditCategory({ ...editCategory, description: e.target.value })} /></div>
+              <div><Label>{t("categoryColor")}</Label><Input type="color" value={editCategory.color} onChange={(e) => setEditCategory({ ...editCategory, color: e.target.value })} /></div>
+              <Button className="w-full bg-indigo-600" disabled={!editCategory.name || updateCategory.isPending} onClick={() => updateCategory.mutate(editCategory)}>
+                {updateCategory.isPending ? t("actions.saving") : t("save_changes")}
               </Button>
             </div>
           )}

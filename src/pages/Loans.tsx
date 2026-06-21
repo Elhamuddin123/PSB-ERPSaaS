@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -10,9 +10,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, DollarSign, HandCoins, Trash2, Pencil, ArrowLeftRight } from "lucide-react";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { Plus, DollarSign, HandCoins, Trash2, Pencil, ArrowLeftRight, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
+import { useClientTable } from "@/lib/client-table";
 
 const statusColors: Record<string, string> = {
   active: "bg-amber-100 text-amber-800",
@@ -28,6 +30,7 @@ export default function LoansPage() {
   const [repayLoanId, setRepayLoanId] = useState<number | null>(null);
   const [editLoan, setEditLoan] = useState<{ id: number; description: string; notes: string; dueDate: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "repaid" | "written_off">("all");
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     customerId: "",
     amount: "",
@@ -42,10 +45,35 @@ export default function LoansPage() {
 
   const utils = trpc.useUtils();
   const { t, t: tc } = useTranslation("common");
-  const { data, isLoading, refetch } = trpc.loan.list.useQuery({ status: statusFilter, limit: 50 });
+  const { data, isLoading, refetch } = trpc.loan.list.useQuery({
+    status: statusFilter,
+    search: search || undefined,
+    limit: 50,
+  });
   const { data: stats } = trpc.loan.stats.useQuery();
   const { data: customersData } = trpc.crm.customers.useQuery({ limit: 1000 });
   const customers = customersData?.items ?? [];
+
+  const getSortValue = useCallback((loan: NonNullable<typeof data>["items"][number], key: string) => {
+    switch (key) {
+      case "loanNumber": return loan.loanNumber;
+      case "customer": return loan.customer ? `${loan.customer.firstName} ${loan.customer.lastName}` : "";
+      case "principal": return Number(loan.principalAmount);
+      case "repaid": return Number(loan.repaidAmount);
+      case "balance": return Number(loan.balanceAmount);
+      case "loanDate": return new Date(loan.loanDate).getTime();
+      case "status": return loan.status;
+      default: return "";
+    }
+  }, []);
+
+  const { rows: loanRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: data?.items ?? [],
+    search: "",
+    getSearchText: () => "",
+    defaultSortKey: "loanDate",
+    getSortValue,
+  });
 
   const createLoan = trpc.loan.create.useMutation({
     onSuccess: async () => {
@@ -195,17 +223,27 @@ export default function LoansPage() {
         </SelectContent>
       </Select>
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          className="pl-9"
+          placeholder={t("searchLoans")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <div className="border rounded-lg overflow-x-auto">
         <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
-              <TableHead>{t("loanNumber")}</TableHead>
-              <TableHead>{t("customer")}</TableHead>
-              <TableHead>{t("principal")}</TableHead>
-              <TableHead>{t("repaid")}</TableHead>
-              <TableHead>{t("balance")}</TableHead>
-              <TableHead>{t("loanDate")}</TableHead>
-              <TableHead>{t("status")}</TableHead>
+              <SortableTableHead label={t("loanNumber")} sortKey="loanNumber" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTableHead label={t("customer")} sortKey="customer" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTableHead label={t("principal")} sortKey="principal" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTableHead label={t("repaid")} sortKey="repaid" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTableHead label={t("balance")} sortKey="balance" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTableHead label={t("loanDate")} sortKey="loanDate" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTableHead label={t("statusColumn")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <TableHead className="text-right">{t("actionsLabel")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -213,10 +251,10 @@ export default function LoansPage() {
             {isLoading && (
               <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-500">{t("loading")}</TableCell></TableRow>
             )}
-            {!isLoading && (data?.items?.length ?? 0) === 0 && (
+            {!isLoading && loanRows.length === 0 && (
               <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-500">{t("noData")}</TableCell></TableRow>
             )}
-            {data?.items?.map((loan) => (
+            {loanRows.map((loan) => (
               <TableRow key={loan.id}>
                 <TableCell className="font-medium">{loan.loanNumber}</TableCell>
                 <TableCell>{loan.customer ? `${loan.customer.firstName} ${loan.customer.lastName}` : "—"}</TableCell>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -10,8 +10,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Search, Plus, Phone, Mail, Building2, Star, DollarSign, UserPlus, ArrowRight } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { Users, Search, Plus, Phone, Mail, Star, DollarSign, UserPlus, ArrowRight } from "lucide-react";
 import { Link } from "react-router";
+import { useClientTable } from "@/lib/client-table";
 
 const statusColors: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-800",
@@ -80,6 +90,26 @@ export default function CRMPage() {
 
   const [newCustomer, setNewCustomer] = useState<{ firstName: string; lastName: string; email: string; phone: string; company: string; customerType: "individual" | "corporate" | "agent"; notes: string }>({ firstName: "", lastName: "", email: "", phone: "", company: "", customerType: "individual", notes: "" });
   const [newLead, setNewLead] = useState({ firstName: "", lastName: "", email: "", phone: "", company: "", source: "", priority: "medium" as const, estimatedValue: "", notes: "" });
+
+  const getCustomerSortValue = useCallback((customer: NonNullable<typeof customersData>["items"][number], key: string) => {
+    switch (key) {
+      case "name": return `${customer.firstName} ${customer.lastName}`;
+      case "company": return customer.company || "";
+      case "code": return customer.customerCode;
+      case "status": return customer.status;
+      case "bookings": return Number(customer.totalBookings);
+      case "revenue": return Number(customer.totalRevenue);
+      default: return "";
+    }
+  }, []);
+
+  const { rows: customerRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: customersData?.items ?? [],
+    search: "",
+    getSearchText: () => "",
+    defaultSortKey: "name",
+    getSortValue: getCustomerSortValue,
+  });
 
   return (
     <div className="space-y-6">
@@ -198,41 +228,60 @@ export default function CRMPage() {
         </TabsList>
 
         <TabsContent value="customers" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            {(customersData?.items || []).map((customer) => (
-              <Card key={customer.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-3 sm:p-4">
-                  <Link to={`/crm/customers/${customer.id}`} className="block">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs sm:text-sm flex-shrink-0">
-                          {customer.firstName?.[0] ?? "?"}{customer.lastName?.[0] ?? "?"}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-slate-900 dark:text-white text-sm truncate">{customer.firstName} {customer.lastName}</h3>
-                          <p className="text-[10px] sm:text-xs text-slate-500">{customer.customerCode}</p>
-                        </div>
-                      </div>
-                      <Badge className={`text-[10px] sm:text-xs flex-shrink-0 ${statusColors[customer.status] || ""}`}>{customer.status}</Badge>
-                    </div>
-                    <div className="mt-2 space-y-0.5 text-xs sm:text-sm text-slate-600">
-                      {customer.company && <p className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3 flex-shrink-0" /> {customer.company}</p>}
-                      {customer.email && <p className="flex items-center gap-1 truncate"><Mail className="h-3 w-3 flex-shrink-0" /> {customer.email}</p>}
-                      {customer.phone && <p className="flex items-center gap-1 truncate"><Phone className="h-3 w-3 flex-shrink-0" /> {customer.phone}</p>}
-                    </div>
-                    <div className="mt-2 pt-2 border-t flex justify-between text-xs sm:text-sm">
-                      <span className="text-slate-500">{customer.totalBookings} bookings</span>
-                      <span className="font-semibold">${Number(customer.totalRevenue).toLocaleString()}</span>
-                    </div>
-                    <div className="mt-2 text-right">
-                      <span className="text-[10px] text-indigo-600 flex items-center justify-end gap-1">{t("view_details")}<ArrowRight className="h-3 w-3" />
-                      </span>
-                    </div>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[800px]">
+                  <TableHeader>
+                    <TableRow>
+                      <SortableTableHead label={t("name_1_1")} sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                      <SortableTableHead label={t("company_1")} sortKey="company" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                      <SortableTableHead label={t("customer_code")} sortKey="code" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                      <TableHead>{tc("contact")}</TableHead>
+                      <SortableTableHead label={t("status_1_1_1_1")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                      <SortableTableHead label={t("totalBookings")} sortKey="bookings" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="text-right" />
+                      <SortableTableHead label={t("total_revenue_1")} sortKey="revenue" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="text-right" />
+                      <TableHead className="text-right">{t("actions")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customerRows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-slate-500">{t("noCustomers")}</TableCell>
+                      </TableRow>
+                    )}
+                    {customerRows.map((customer) => (
+                      <TableRow key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                        <TableCell>
+                          <p className="font-medium text-sm">{customer.firstName} {customer.lastName}</p>
+                        </TableCell>
+                        <TableCell className="text-sm">{customer.company || "—"}</TableCell>
+                        <TableCell className="text-xs text-slate-500">{customer.customerCode}</TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5 text-xs text-slate-600">
+                            {customer.email && <p className="flex items-center gap-1"><Mail className="h-3 w-3" /> {customer.email}</p>}
+                            {customer.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3" /> {customer.phone}</p>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`text-[10px] ${statusColors[customer.status] || ""}`}>{customer.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-sm">{customer.totalBookings}</TableCell>
+                        <TableCell className="text-right font-semibold text-sm">${Number(customer.totalRevenue).toLocaleString()}</TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" asChild>
+                            <Link to={`/crm/customers/${customer.id}`}>
+                              {t("view_details")}<ArrowRight className="h-3 w-3 ml-1 inline" />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="leads" className="mt-4">

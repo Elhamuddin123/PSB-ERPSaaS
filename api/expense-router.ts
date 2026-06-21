@@ -502,6 +502,131 @@ export const expenseRouter = createRouter({
     });
   }),
 
+  createCategory: agencyAdminQuery
+    .input(z.object({
+      name: z.string().min(1).max(100),
+      description: z.string().optional(),
+      color: z.string().max(20).optional(),
+      icon: z.string().max(50).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const existing = await db.query.expenseCategories.findFirst({
+        where: and(eq(expenseCategories.tenantId, tenantId), eq(expenseCategories.name, input.name)),
+      });
+      if (existing) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Category name already exists" });
+      }
+
+      const result = await db.insert(expenseCategories).values({
+        tenantId,
+        name: input.name,
+        description: input.description,
+        color: input.color ?? "#6366f1",
+        icon: input.icon,
+        isSystem: false,
+      });
+
+      await auditLog({
+        ctx,
+        action: "create",
+        entityType: "expense_category",
+        entityId: Number(result[0].insertId),
+        newValues: { name: input.name },
+      });
+
+      return { id: Number(result[0].insertId) };
+    }),
+
+  updateCategory: agencyAdminQuery
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(1).max(100).optional(),
+      description: z.string().optional(),
+      color: z.string().max(20).optional(),
+      icon: z.string().max(50).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const category = await db.query.expenseCategories.findFirst({
+        where: and(eq(expenseCategories.id, input.id), eq(expenseCategories.tenantId, tenantId)),
+      });
+      if (!category) throw new TRPCError({ code: "NOT_FOUND", message: "Expense category not found" });
+      if (category.isSystem) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "System categories cannot be modified" });
+      }
+
+      if (input.name && input.name !== category.name) {
+        const duplicate = await db.query.expenseCategories.findFirst({
+          where: and(eq(expenseCategories.tenantId, tenantId), eq(expenseCategories.name, input.name)),
+        });
+        if (duplicate) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Category name already exists" });
+        }
+      }
+
+      const updateData: Partial<typeof expenseCategories.$inferInsert> = {};
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.description !== undefined) updateData.description = input.description;
+      if (input.color !== undefined) updateData.color = input.color;
+      if (input.icon !== undefined) updateData.icon = input.icon;
+
+      await db.update(expenseCategories).set(updateData).where(eq(expenseCategories.id, input.id));
+
+      await auditLog({
+        ctx,
+        action: "update",
+        entityType: "expense_category",
+        entityId: input.id,
+        oldValues: { name: category.name, description: category.description, color: category.color },
+        newValues: updateData,
+      });
+
+      return { success: true };
+    }),
+
+  deleteCategory: agencyAdminQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const category = await db.query.expenseCategories.findFirst({
+        where: and(eq(expenseCategories.id, input.id), eq(expenseCategories.tenantId, tenantId)),
+      });
+      if (!category) throw new TRPCError({ code: "NOT_FOUND", message: "Expense category not found" });
+      if (category.isSystem) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "System categories cannot be deleted" });
+      }
+
+      const inUse = await db.query.expenses.findFirst({
+        where: and(
+          eq(expenses.categoryId, input.id),
+          eq(expenses.tenantId, tenantId),
+          isNull(expenses.deletedAt),
+        ),
+      });
+      if (inUse) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Category is in use by expenses and cannot be deleted" });
+      }
+
+      await db.delete(expenseCategories).where(eq(expenseCategories.id, input.id));
+
+      await auditLog({
+        ctx,
+        action: "delete",
+        entityType: "expense_category",
+        entityId: input.id,
+        oldValues: { name: category.name },
+      });
+
+      return { success: true };
+    }),
+
   stats: authedQuery.query(async ({ ctx }) => {
     const db = getDb();
     const tenantId = ctx.user!.tenantId as number;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -26,6 +26,8 @@ import {
 import { Search, Plus, CheckCircle, XCircle, Clock, DollarSign, Download, Trash2, Pencil, ArrowLeftRight } from "lucide-react";
 import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
 import { generateDepositReceiptPDF } from "@/lib/pdf-generator";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useClientTable } from "@/lib/client-table";
 
 const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
   pending: { color: "bg-amber-100 text-amber-700", icon: Clock, label: "Pending" },
@@ -126,13 +128,32 @@ export default function DepositsPage() {
   const statusCounts: Record<string, { count: number; total: number }> = {};
   (stats?.statusCounts || []).forEach((s: any) => statusCounts[s.status] = { count: s.count, total: s.total });
 
-  const filtered = search
-    ? data?.items?.filter((d: any) =>
-        d.depositCode.toLowerCase().includes(search.toLowerCase()) ||
-        (d.customer?.firstName || "").toLowerCase().includes(search.toLowerCase()) ||
-        (d.customer?.lastName || "").toLowerCase().includes(search.toLowerCase())
-      )
-    : data?.items;
+  const getSearchText = useCallback((d: NonNullable<typeof data>["items"][number]) => {
+    return [
+      d.depositCode,
+      d.customer?.firstName,
+      d.customer?.lastName,
+    ].filter(Boolean).join(" ");
+  }, []);
+
+  const getSortValue = useCallback((d: NonNullable<typeof data>["items"][number], key: string) => {
+    switch (key) {
+      case "depositCode": return d.depositCode;
+      case "amount": return Number(d.amount);
+      case "method": return d.paymentMethod;
+      case "wallet": return d.wallet?.name || "";
+      case "status": return d.status;
+      default: return "";
+    }
+  }, []);
+
+  const { rows: depositRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: data?.items ?? [],
+    search,
+    getSearchText,
+    defaultSortKey: "depositCode",
+    getSortValue,
+  });
 
   return (
     <div className="space-y-6">
@@ -255,21 +276,21 @@ export default function DepositsPage() {
           <Table className="min-w-[720px]">
             <TableHeader>
               <TableRow>
-                <TableHead>{t("depositCode")}</TableHead>
-                <TableHead>{t("amount")}</TableHead>
-                <TableHead>{t("depositMethod")}</TableHead>
-                <TableHead>{t("wallet")}</TableHead>
-                <TableHead>{t("status")}</TableHead>
+                <SortableTableHead label={t("depositCode")} sortKey="depositCode" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("amount")} sortKey="amount" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("depositMethod")} sortKey="method" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("wallet")} sortKey="wallet" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("statusColumn")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <TableHead className="text-right">{t("actionsLabel")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered?.length === 0 && (
+              {depositRows?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-slate-500">{t("noData")}</TableCell>
                 </TableRow>
               )}
-              {filtered?.map((d: any) => {
+              {depositRows?.map((d: any) => {
                 const cfg = statusConfig[d.status] || statusConfig.pending;
                 const Icon = cfg.icon;
                 return (

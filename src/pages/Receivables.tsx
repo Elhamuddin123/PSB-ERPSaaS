@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { alertServerError } from "@/lib/i18n-ui";
 
@@ -49,6 +49,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { Search, DollarSign, FileText, TrendingUp, ArrowLeftRight } from "lucide-react";
+
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+
+import { useClientTable } from "@/lib/client-table";
 
 
 
@@ -230,27 +234,33 @@ export default function ReceivablesPage() {
 
   const totalReceivable = agingBuckets.reduce((sum, g) => sum + Number(g.amount), 0);
 
+  const getSearchText = useCallback((tx: NonNullable<typeof data>["items"][number]) => {
+    return [
+      tx.customer?.firstName,
+      tx.customer?.lastName,
+      tx.description,
+    ].filter(Boolean).join(" ");
+  }, []);
 
+  const getSortValue = useCallback((tx: NonNullable<typeof data>["items"][number], key: string) => {
+    switch (key) {
+      case "customer": return `${tx.customer?.firstName || ""} ${tx.customer?.lastName || ""}`.trim();
+      case "type": return tx.type;
+      case "amount": return Number(tx.amount);
+      case "balance": return Number(tx.balance);
+      case "date": return new Date(tx.createdAt).getTime();
+      case "description": return tx.description || "";
+      default: return "";
+    }
+  }, []);
 
-  const filteredItems = search
-
-    ? data?.items?.filter((tx: any) => {
-
-        const customerName = `${tx.customer?.firstName || ""} ${tx.customer?.lastName || ""}`.toLowerCase();
-
-        return (
-
-          customerName.includes(search.toLowerCase()) ||
-
-          (tx.description || "").toLowerCase().includes(search.toLowerCase())
-
-        );
-
-      })
-
-    : data?.items;
-
-
+  const { rows: receivableRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: data?.items ?? [],
+    search,
+    getSearchText,
+    defaultSortKey: "date",
+    getSortValue,
+  });
 
   const openDepositSettlement = (deposit: { id: number; depositCode: string; walletId: number; remaining: number }) => {
 
@@ -466,17 +476,17 @@ export default function ReceivablesPage() {
 
               <TableRow>
 
-                <TableHead>{t("customer")}</TableHead>
+                <SortableTableHead label={t("customer")} sortKey="customer" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
 
-                <TableHead>{t("type")}</TableHead>
+                <SortableTableHead label={t("type")} sortKey="type" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
 
-                <TableHead>{t("amount")}</TableHead>
+                <SortableTableHead label={t("amount")} sortKey="amount" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
 
-                <TableHead>{t("balance")}</TableHead>
+                <SortableTableHead label={t("balance")} sortKey="balance" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
 
-                <TableHead>{t("date")}</TableHead>
+                <SortableTableHead label={t("date")} sortKey="date" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
 
-                <TableHead>{t("description")}</TableHead>
+                <SortableTableHead label={t("description")} sortKey="description" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
 
                 <TableHead className="text-right">{t("actionsLabel")}</TableHead>
 
@@ -486,7 +496,7 @@ export default function ReceivablesPage() {
 
             <TableBody>
 
-              {filteredItems?.length === 0 && (
+              {receivableRows.length === 0 && (
 
                 <TableRow>
 
@@ -500,7 +510,7 @@ export default function ReceivablesPage() {
 
               )}
 
-              {filteredItems?.map((tx: any) => (
+              {receivableRows.map((tx: any) => (
 
                 <TableRow key={tx.id}>
 

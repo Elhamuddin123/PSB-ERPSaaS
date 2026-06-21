@@ -27,6 +27,7 @@ export const documentRouter = createRouter({
     .input(z.object({
       entityType: z.string().optional(),
       documentType: z.string().optional(),
+      search: z.string().optional(),
       page: z.number().default(1),
       limit: z.number().default(20),
     }).optional())
@@ -38,6 +39,9 @@ export const documentRouter = createRouter({
 
       if (input?.entityType) conditions.push(eq(documents.entityType, input.entityType as any));
       if (input?.documentType) conditions.push(eq(documents.documentType, input.documentType as any));
+      if (input?.search) {
+        conditions.push(sql`(${documents.fileName} LIKE ${`%${input.search}%`} OR ${documents.documentNumber} LIKE ${`%${input.search}%`})`);
+      }
 
       const where = and(...conditions);
 

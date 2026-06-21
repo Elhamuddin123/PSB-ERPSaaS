@@ -45,6 +45,7 @@ export const loanRouter = createRouter({
     .input(z.object({
       customerId: z.number().optional(),
       status: z.enum(["active", "repaid", "written_off", "all"]).default("all"),
+      search: z.string().optional(),
       page: z.number().default(1),
       limit: z.number().default(20),
     }).optional())
@@ -54,6 +55,9 @@ export const loanRouter = createRouter({
       const conditions = [eq(customerLoans.tenantId, tenantId), isNull(customerLoans.deletedAt)];
       if (input?.customerId) conditions.push(eq(customerLoans.customerId, input.customerId));
       if (input?.status && input.status !== "all") conditions.push(eq(customerLoans.status, input.status));
+      if (input?.search) {
+        conditions.push(sql`(${customerLoans.loanNumber} LIKE ${`%${input.search}%`} OR ${customerLoans.description} LIKE ${`%${input.search}%`})`);
+      }
       const where = and(...conditions);
 
       const items = await db.select().from(customerLoans).where(where)

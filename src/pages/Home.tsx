@@ -705,7 +705,7 @@ export default function HomePage() {
           <div className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-slate-500">{t("2026_all_rights_reserved_pouyan_shahr_balkh_tms")}</p>
             <div className="flex items-center gap-2">
-              <LanguageSwitcher />
+              <LanguageSwitcher side="top" />
               <span className="text-sm text-slate-500">{t("global_multi_tenant_secure")}</span>
             </div>
           </div>

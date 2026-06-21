@@ -35,6 +35,7 @@
   "totalTickets": "کل بلیط‌ها",
   "type": "نوع",
   "vip": "VIP",
+  "customer_code": "کد",
   "crm": {
     "title": "مدیریت مشتریان",
     "subtitle": "مشتریان خود را مدیریت کنید",
@@ -112,5 +113,20 @@
   "description_1_1_1_1_1_1_1": "توضیحات",
   "no_transactions_found": "هیچ تراکنشی یافت نشد.",
   "recent_interactions": "تعاملات اخیر",
-  "no_interactions_found": "هیچ تعاملی یافت نشد."
+  "no_interactions_found": "هیچ تعاملی یافت نشد.",
+  "loans": "وام‌ها",
+  "recent_loans": "وام‌ها",
+  "loan_number": "شماره وام",
+  "loan_balance": "مانده",
+  "loan_date": "تاریخ وام",
+  "due_date": "سررسید",
+  "no_loans_found": "وامی یافت نشد.",
+  "record_payment": "ثبت پرداخت",
+  "record_repayment": "ثبت بازپرداخت",
+  "payment_amount": "مبلغ پرداخت",
+  "balance_due_label": "مانده بدهی",
+  "partial_payment_hint": "هر مبلغی تا مانده باقی‌مانده وارد کنید.",
+  "ledger_pass": "ثبت دفتر",
+  "active_loans_count": "وام‌های فعال",
+  "outstanding_loan_balance": "مانده وام"
 }

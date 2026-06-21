@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/providers/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, ArrowUpRight, ArrowDownRight, RefreshCw, Plus, Send, FileText, ShieldAlert, ShieldCheck, Lock, Unlock, Trash2, Pencil } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, RefreshCw, Plus, Send, FileText, ShieldAlert, ShieldCheck, Lock, Unlock, Trash2, Pencil, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
 import { alertServerError } from "@/lib/i18n-ui";
@@ -88,6 +88,30 @@ const createWallet = trpc.wallet.create.useMutation({
     reservedBalance: string;
   } | null>(null);
   const [walletEditError, setWalletEditError] = useState("");
+  const [walletSearch, setWalletSearch] = useState("");
+  const [transactionSearch, setTransactionSearch] = useState("");
+
+  const filteredWallets = useMemo(() => {
+    const q = walletSearch.trim().toLowerCase();
+    if (!q) return wallets || [];
+    return (wallets || []).filter((w) =>
+      w.name.toLowerCase().includes(q)
+      || w.currency.toLowerCase().includes(q)
+      || w.status.toLowerCase().includes(q),
+    );
+  }, [wallets, walletSearch]);
+
+  const filteredTransactions = useMemo(() => {
+    const q = transactionSearch.trim().toLowerCase();
+    const items = allTransactions || [];
+    if (!q) return items.slice(0, 50);
+    return items.filter((tx) =>
+      (tx.description || "").toLowerCase().includes(q)
+      || String(tx.walletId).includes(q)
+      || tx.type.toLowerCase().includes(q)
+      || String(tx.amount).includes(q),
+    ).slice(0, 50);
+  }, [allTransactions, transactionSearch]);
 
   if (walletsLoading) return <div className="py-8 text-center text-slate-500">{t("loading_wallets")}</div>;
   if (walletsError) return <div className="py-8 text-center text-red-600">Error loading wallets: {walletsError.message}</div>;
@@ -229,8 +253,17 @@ const createWallet = trpc.wallet.create.useMutation({
 
         {/* Wallets Tab */}
         <TabsContent value="wallets" className="space-y-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              className="pl-9"
+              placeholder={t("searchWallets")}
+              value={walletSearch}
+              onChange={(e) => setWalletSearch(e.target.value)}
+            />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(wallets || []).map((wallet) => (
+            {filteredWallets.map((wallet) => (
               <Card key={wallet.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-4 sm:p-5">
                   <div className="flex items-center justify-between">
@@ -313,8 +346,20 @@ const createWallet = trpc.wallet.create.useMutation({
               <CardTitle className="text-sm font-medium">{t("recent_transactions")}</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="relative max-w-md mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="pl-9"
+                  placeholder={t("searchTransactions")}
+                  value={transactionSearch}
+                  onChange={(e) => setTransactionSearch(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
-                {(allTransactions || []).slice(0, 20).map((tx) => (
+                {filteredTransactions.length === 0 && (
+                  <p className="text-center py-8 text-sm text-slate-500">{t("no_transactions_found_1")}</p>
+                )}
+                {filteredTransactions.map((tx) => (
                   <div key={tx.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
                     <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       tx.type === "credit" ? "bg-emerald-100" : tx.type === "debit" ? "bg-red-100" : "bg-amber-100"
