@@ -141,7 +141,7 @@ const createWallet = trpc.wallet.create.useMutation({
                 <Input value={newWallet.name} onChange={(e) => setNewWallet({ ...newWallet, name: e.target.value })} placeholder={t("e_g_marketing_budget")} />
               </div>
               <div>
-                <Label>{t("currency_1_1")}</Label>
+                <Label>{t("currency")}</Label>
                 <Select value={newWallet.currency} onValueChange={(v) => setNewWallet({ ...newWallet, currency: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -168,7 +168,7 @@ const createWallet = trpc.wallet.create.useMutation({
     </SelectTrigger>
 
     <SelectContent>
-      <SelectItem value="company">{t("company_wallet_1")}</SelectItem>
+      <SelectItem value="company">{t("company_wallet")}</SelectItem>
 
       {users.map((u) => (
         <SelectItem
@@ -246,9 +246,9 @@ const createWallet = trpc.wallet.create.useMutation({
       <Tabs defaultValue="wallets" className="space-y-4">
         <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto">
           <TabsTrigger value="wallets">{t("wallets")}</TabsTrigger>
-          <TabsTrigger value="transactions">{t("transactions_1_1")}</TabsTrigger>
+          <TabsTrigger value="transactions">{t("transactions")}</TabsTrigger>
           <TabsTrigger value="transfer">{t("transfer")}</TabsTrigger>
-          <TabsTrigger value="statements">{t("statements_1")}</TabsTrigger>
+          <TabsTrigger value="statements">{t("statements")}</TabsTrigger>
         </TabsList>
 
         {/* Wallets Tab */}
@@ -291,7 +291,7 @@ const createWallet = trpc.wallet.create.useMutation({
                       className="flex-1 text-indigo-600 border-indigo-200 hover:bg-indigo-50 text-xs"
                       onClick={() => setStatementWalletId(wallet.id)}
                     >
-                      <FileText className="h-3 w-3 mr-1" />{t("statement_1")}</Button>
+                      <FileText className="h-3 w-3 mr-1" />{t("statement")}</Button>
                     <ReconcileButton walletId={wallet.id} />
                     {canEdit && (
                       <Button
@@ -357,7 +357,7 @@ const createWallet = trpc.wallet.create.useMutation({
               </div>
               <div className="space-y-2">
                 {filteredTransactions.length === 0 && (
-                  <p className="text-center py-8 text-sm text-slate-500">{t("no_transactions_found_1")}</p>
+                  <p className="text-center py-8 text-sm text-slate-500">{t("no_transactions_found")}</p>
                 )}
                 {filteredTransactions.map((tx) => (
                   <div key={tx.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
@@ -400,7 +400,7 @@ const createWallet = trpc.wallet.create.useMutation({
                   <SelectTrigger><SelectValue placeholder={t("select_source_wallet")} /></SelectTrigger>
                   <SelectContent>
                     {(wallets || []).length === 0 ? (
-                      <SelectItem value="__empty__" disabled>{t("no_records_found_1_1_1")}</SelectItem>
+                      <SelectItem value="__empty__" disabled>{t("no_records_found")}</SelectItem>
                     ) : (
                       (wallets || []).map(w => (
                         <SelectItem key={w.id} value={w.id.toString()}>{w.name} (${Number(w.balance).toLocaleString()})</SelectItem>
@@ -415,7 +415,7 @@ const createWallet = trpc.wallet.create.useMutation({
                   <SelectTrigger><SelectValue placeholder={t("select_destination_wallet")} /></SelectTrigger>
                   <SelectContent>
                     {(wallets || []).length === 0 ? (
-                      <SelectItem value="__empty__" disabled>{t("no_records_found_1_1_1_1")}</SelectItem>
+                      <SelectItem value="__empty__" disabled>{t("no_records_found")}</SelectItem>
                     ) : (
                       (wallets || []).map(w => (
                         <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>
@@ -425,11 +425,11 @@ const createWallet = trpc.wallet.create.useMutation({
                 </Select>
               </div>
               <div>
-                <Label>{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("amount")}</Label>
                 <Input type="number" placeholder="0.00" onChange={(e) => setTransferData({ ...transferData, amount: e.target.value })} />
               </div>
               <div>
-                <Label>{t("description_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("description")}</Label>
                 <Input placeholder={t("transfer_description")} onChange={(e) => setTransferData({ ...transferData, description: e.target.value })} />
               </div>
               <Button
@@ -475,7 +475,7 @@ const createWallet = trpc.wallet.create.useMutation({
                 <Input value={editWallet.name} onChange={(e) => setEditWallet({ ...editWallet, name: e.target.value })} />
               </div>
               <div>
-                <Label>{t("currency_1_1")}</Label>
+                <Label>{t("currency")}</Label>
                 <Select value={editWallet.currency} onValueChange={(v) => setEditWallet({ ...editWallet, currency: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -490,7 +490,7 @@ const createWallet = trpc.wallet.create.useMutation({
                 <Select value={editWallet.userId} onValueChange={(v) => setEditWallet({ ...editWallet, userId: v })}>
                   <SelectTrigger><SelectValue placeholder={t("company_wallet")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="company">{t("company_wallet_1")}</SelectItem>
+                    <SelectItem value="company">{t("company_wallet")}</SelectItem>
                     {users.map((u) => (
                       <SelectItem key={u.id} value={u.id.toString()}>{u.name} ({u.role})</SelectItem>
                     ))}
@@ -498,7 +498,7 @@ const createWallet = trpc.wallet.create.useMutation({
                 </Select>
               </div>
               <div>
-                <Label>{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("statusColumn")}</Label>
                 <Select value={editWallet.status} onValueChange={(v) => setEditWallet({ ...editWallet, status: v as "active" | "frozen" | "closed" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -617,7 +617,7 @@ function WalletStatement({ walletId }: { walletId: number }) {
       <div className="bg-indigo-50 p-4 rounded-lg">
         <h3 className="font-semibold text-indigo-900">{data.wallet.name}</h3>
         <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
-          <div><p className="text-indigo-600">{t("balance_1_1_1_1_1_1_1")}</p><p className="font-bold">${Number(data.wallet.balance).toLocaleString()}</p></div>
+          <div><p className="text-indigo-600">{t("balance")}</p><p className="font-bold">${Number(data.wallet.balance).toLocaleString()}</p></div>
           <div><p className="text-indigo-600">{t("reserved")}</p><p className="font-bold">${Number(data.wallet.reservedBalance).toLocaleString()}</p></div>
           <div><p className="text-indigo-600">{t("available")}</p><p className="font-bold">${(Number(data.wallet.balance) - Number(data.wallet.reservedBalance)).toLocaleString()}</p></div>
         </div>
@@ -648,7 +648,7 @@ function WalletStatement({ walletId }: { walletId: number }) {
             </div>
           </div>
         ))}
-        {data.items.length === 0 && <p className="text-center text-sm text-slate-400 py-8">{t("no_transactions_found_1")}</p>}
+        {data.items.length === 0 && <p className="text-center text-sm text-slate-400 py-8">{t("no_transactions_found")}</p>}
       </div>
     </div>
   );

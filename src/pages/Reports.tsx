@@ -160,8 +160,8 @@ export default function ReportsPage() {
 
       <Tabs value={reportTab} onValueChange={setReportTab}>
         <TabsList className="w-full sm:w-auto overflow-x-auto flex-wrap h-auto">
-          <TabsTrigger value="revenue"><TrendingUp className="h-3 w-3 mr-1" />{t("revenue_1_1_1")}</TabsTrigger>
-          <TabsTrigger value="expenses"><Receipt className="h-3 w-3 mr-1" />{t("expenses_1")}</TabsTrigger>
+          <TabsTrigger value="revenue"><TrendingUp className="h-3 w-3 mr-1" />{t("revenue")}</TabsTrigger>
+          <TabsTrigger value="expenses"><Receipt className="h-3 w-3 mr-1" />{t("expenses")}</TabsTrigger>
           <TabsTrigger value="payables"><Users className="h-3 w-3 mr-1" />{t("payables")}</TabsTrigger>
           <TabsTrigger value="cashflow"><Wallet className="h-3 w-3 mr-1" />{t("cash_flow")}</TabsTrigger>
           <TabsTrigger value="income"><Scale className="h-3 w-3 mr-1" />{t("income_statement")}</TabsTrigger>
@@ -177,7 +177,7 @@ export default function ReportsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">{t("total_revenue_1_1_1")}</p>
+                  <p className="text-xs text-slate-500">{t("total_revenue")}</p>
                   <p className="text-lg font-bold text-indigo-700">{formatMoney(revenueDetail.summary.totalRevenue)}</p>
                 </CardContent>
               </Card>
@@ -245,7 +245,7 @@ export default function ReportsPage() {
                   formatMoney(r.paidAmount),
                 ]),
               );
-            }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1")}</Button>
+            }}><FileText className="h-3 w-3 mr-1" />{t("pdf")}</Button>
           </div>
 
           {revenueLoading ? <Skeleton className="h-64" /> : (
@@ -268,10 +268,10 @@ export default function ReportsPage() {
                 <Table className="min-w-[520px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{t("customer_1_1_1_1")}</TableHead>
+                      <TableHead>{t("customer")}</TableHead>
                       <TableHead>{t("tickets")}</TableHead>
-                      <TableHead>{t("revenue_1_1_1_1")}</TableHead>
-                      <TableHead>{t("commission_1")}</TableHead>
+                      <TableHead>{t("revenue")}</TableHead>
+                      <TableHead>{t("commission")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -302,17 +302,17 @@ export default function ReportsPage() {
                   <Table className="min-w-[960px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("ticket_1_2")}</TableHead>
-                        <TableHead>{t("customer_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("route_1")}</TableHead>
+                        <TableHead>{t("date")}</TableHead>
+                        <TableHead>{t("ticket")}</TableHead>
+                        <TableHead>{t("customer")}</TableHead>
+                        <TableHead>{t("route")}</TableHead>
                         <TableHead>{t("airline")}</TableHead>
                         <TableHead className="text-right">{t("base")}</TableHead>
-                        <TableHead className="text-right">{t("tax_1_1")}</TableHead>
-                        <TableHead className="text-right">{t("total_1_1_1_1_1")}</TableHead>
-                        <TableHead className="text-right">{t("commission_1_1")}</TableHead>
-                        <TableHead className="text-right">{t("paid_1_1_1_1")}</TableHead>
-                        <TableHead>{t("payment_1_2")}</TableHead>
+                        <TableHead className="text-right">{t("tax")}</TableHead>
+                        <TableHead className="text-right">{t("total")}</TableHead>
+                        <TableHead className="text-right">{t("commission")}</TableHead>
+                        <TableHead className="text-right">{t("paid")}</TableHead>
+                        <TableHead>{t("payment")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -352,7 +352,7 @@ export default function ReportsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500">{t("total_expenses_1")}</p>
+                  <p className="text-xs text-slate-500">{t("total_expenses")}</p>
                   <p className="text-lg font-bold text-rose-700">{formatMoney(expenseDetail.summary.totalAmount)}</p>
                 </CardContent>
               </Card>
@@ -388,11 +388,11 @@ export default function ReportsPage() {
                   r.status,
                 ]),
               );
-            }}><Download className="h-3 w-3 mr-1" />{t("detail_csv_1")}</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("detail_csv")}</Button>
             <Button size="sm" variant="outline" onClick={() => {
               if (!expenseData) return;
               downloadCSV("expense_breakdown.csv", ["Vendor", "Count", "Total"], expenseData.map(r => [r.vendor || "Uncategorized", r.count, r.total]));
-            }}><Download className="h-3 w-3 mr-1" />{t("summary_csv_1")}</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("summary_csv")}</Button>
             <Button size="sm" variant="outline" onClick={() => {
               if (!expenseDetail) return;
               exportToPDF(
@@ -407,7 +407,7 @@ export default function ReportsPage() {
                   r.paymentMethod,
                 ]),
               );
-            }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1_1")}</Button>
+            }}><FileText className="h-3 w-3 mr-1" />{t("pdf")}</Button>
           </div>
 
           {expenseLoading ? <Skeleton className="h-64" /> : (
@@ -428,7 +428,7 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 <Table className="min-w-[520px]">
                   <TableHeader>
-                    <TableRow><TableHead>{t("vendor_1_1")}</TableHead><TableHead>{t("count")}</TableHead><TableHead>{t("total_1_1_1_1_1_1")}</TableHead></TableRow>
+                    <TableRow><TableHead>{t("vendor")}</TableHead><TableHead>{t("count")}</TableHead><TableHead>{t("total")}</TableHead></TableRow>
                   </TableHeader>
                   <TableBody>
                     {(expenseData || []).map(r => (
@@ -454,9 +454,9 @@ export default function ReportsPage() {
                   <Table className="min-w-[400px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t("category_1_1_1")}</TableHead>
-                        <TableHead>{t("count_1")}</TableHead>
-                        <TableHead className="text-right">{t("total_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("category")}</TableHead>
+                        <TableHead>{t("count")}</TableHead>
+                        <TableHead className="text-right">{t("total")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -487,14 +487,14 @@ export default function ReportsPage() {
                   <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("title_1")}</TableHead>
-                        <TableHead>{t("category_1_1_1_1")}</TableHead>
-                        <TableHead>{t("vendor_1_1_1")}</TableHead>
-                        <TableHead className="text-right">{t("amount_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("payment_1_2_1")}</TableHead>
-                        <TableHead>{t("receipt_1_2")}</TableHead>
-                        <TableHead>{t("status_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("date")}</TableHead>
+                        <TableHead>{t("title")}</TableHead>
+                        <TableHead>{t("category")}</TableHead>
+                        <TableHead>{t("vendor")}</TableHead>
+                        <TableHead className="text-right">{t("amount")}</TableHead>
+                        <TableHead>{t("payment")}</TableHead>
+                        <TableHead>{t("receipt")}</TableHead>
+                        <TableHead>{t("statusColumn")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -536,11 +536,11 @@ export default function ReportsPage() {
             <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("supplier_1_1_1")}</TableHead>
+                  <TableHead>{t("supplier")}</TableHead>
                   <TableHead>{t("open_bills")}</TableHead>
-                  <TableHead>{t("total_1_1_1_1_1_1_1_1")}</TableHead>
-                  <TableHead>{t("paid_1_1_1_1_1")}</TableHead>
-                  <TableHead>{t("balance_due_1_1")}</TableHead>
+                  <TableHead>{t("total")}</TableHead>
+                  <TableHead>{t("paid")}</TableHead>
+                  <TableHead>{t("balance_due")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -590,7 +590,7 @@ export default function ReportsPage() {
                 const line = (label: string, amount: number) => [label, amount];
                 const rows: (string | number)[][] = [
                   ...incomeStatementData.revenues.map((r) => [r.code, r.name, r.amount]),
-                  line(t("total_revenue_1_1_1"), totals.totalRevenue),
+                  line(t("total_revenue"), totals.totalRevenue),
                   ...incomeStatementData.costOfRevenue.map((r) => [r.code, r.name, r.amount]),
                   line(t("gross_profit"), totals.grossProfit),
                   ...incomeStatementData.operatingExpenses.map((r) => [r.code, r.name, r.amount]),
@@ -602,7 +602,7 @@ export default function ReportsPage() {
                   line(t("net_income"), totals.netIncome),
                 ];
                 downloadCSV("income_statement.csv", ["Code / Line", "Description", "Amount"], rows);
-              }}><Download className="h-3 w-3 mr-1" />{t("csv_1")}</Button>
+              }}><Download className="h-3 w-3 mr-1" />{t("csv")}</Button>
               <Button size="sm" variant="outline" disabled={!incomeStatementData} onClick={() => {
                 if (!incomeStatementData) return;
                 const totals = incomeStatementData.totals;
@@ -614,8 +614,8 @@ export default function ReportsPage() {
                   `Income Statement (${fromDate} to ${toDate})`,
                   ["Code", "Account", "Amount"],
                   [
-                    ...section(t("revenue_1_1"), incomeStatementData.revenues),
-                    ["", t("total_revenue_1_1_1"), formatMoney(totals.totalRevenue)],
+                    ...section(t("revenue"), incomeStatementData.revenues),
+                    ["", t("total_revenue"), formatMoney(totals.totalRevenue)],
                     ...section(t("cost_of_revenue"), incomeStatementData.costOfRevenue),
                     ["", t("gross_profit"), formatMoney(totals.grossProfit)],
                     ...section(t("operating_expenses"), incomeStatementData.operatingExpenses),
@@ -627,7 +627,7 @@ export default function ReportsPage() {
                     ["", t("net_income"), formatMoney(totals.netIncome)],
                   ],
                 );
-              }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1_1_1")}</Button>
+              }}><FileText className="h-3 w-3 mr-1" />{t("pdf")}</Button>
             </div>
           </div>
 
@@ -636,7 +636,7 @@ export default function ReportsPage() {
           ) : incomeStatementData ? (
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2 border-b">
-                <CardTitle className="text-base">{t("income_statement_1")}</CardTitle>
+                <CardTitle className="text-base">{t("income_statement")}</CardTitle>
                 <p className="text-xs text-slate-500">{t("income_period_for", { from: fromDate, to: toDate })}</p>
               </CardHeader>
               <CardContent className="p-0">
@@ -644,14 +644,14 @@ export default function ReportsPage() {
                   <Table className="min-w-[480px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t("code_1")}</TableHead>
-                        <TableHead>{t("account_1_1_1")}</TableHead>
-                        <TableHead className="text-right">{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("code")}</TableHead>
+                        <TableHead>{t("account")}</TableHead>
+                        <TableHead className="text-right">{t("amount")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <IncomeSection title={t("revenue_1_1")} lines={incomeStatementData.revenues} />
-                      <SummaryRow label={t("total_revenue_1_1_1")} amount={incomeStatementData.totals.totalRevenue} emphasis />
+                      <IncomeSection title={t("revenue")} lines={incomeStatementData.revenues} />
+                      <SummaryRow label={t("total_revenue")} amount={incomeStatementData.totals.totalRevenue} emphasis />
                       {incomeStatementData.costOfRevenue.length > 0 && (
                         <>
                           <IncomeSection title={t("cost_of_revenue")} lines={incomeStatementData.costOfRevenue} />
@@ -707,7 +707,7 @@ export default function ReportsPage() {
                 if (!trialBalanceData) return;
                 downloadCSV("trial_balance.csv", ["Code", "Account", "Type", "Debit Balance", "Credit Balance"],
                   trialRows.map(r => [r.code, r.name, r.type, r.debitBalance, r.creditBalance]));
-              }}><Download className="h-3 w-3 mr-1" />{t("csv_1_1")}</Button>
+              }}><Download className="h-3 w-3 mr-1" />{t("csv")}</Button>
               <Button size="sm" variant="outline" onClick={() => {
                 if (!trialBalanceData) return;
                 exportToPDF(`Trial Balance (as of ${toDate})`, ["Code", "Account", "Type", "Debit Balance", "Credit Balance"],
@@ -715,16 +715,16 @@ export default function ReportsPage() {
                     ...trialRows.map(r => [r.code, r.name, r.type, formatMoney(r.debitBalance), formatMoney(r.creditBalance)]),
                     ["", "Totals", "", formatMoney(trialBalanceData.totalDebit), formatMoney(trialBalanceData.totalCredit)],
                   ]);
-              }}><FileText className="h-3 w-3 mr-1" />{t("pdf_1_1_1_1")}</Button>
+              }}><FileText className="h-3 w-3 mr-1" />{t("pdf")}</Button>
             </div>
           </div>
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("code_1_1")}</TableHead>
-                  <TableHead>{t("account_1_1_1_1")}</TableHead>
-                  <TableHead>{t("type_1_1_1")}</TableHead>
+                  <TableHead>{t("code")}</TableHead>
+                  <TableHead>{t("account")}</TableHead>
+                  <TableHead>{t("type")}</TableHead>
                   <TableHead className="text-right">{t("debit_balance")}</TableHead>
                   <TableHead className="text-right">{t("credit_balance")}</TableHead>
                 </TableRow>
@@ -758,18 +758,18 @@ export default function ReportsPage() {
               if (!ledgerData) return;
               downloadCSV("general_ledger.csv", ["Date", "Account", "Description", "Debit", "Credit", "Balance"],
                 ledgerData.items.map(r => [String(r.date), (r as any).account?.name || "—", r.description || "", r.debit, r.credit, r.balance]));
-            }}><Download className="h-3 w-3 mr-1" />{t("csv_1_1_1")}</Button>
+            }}><Download className="h-3 w-3 mr-1" />{t("csv")}</Button>
           </div>
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                  <TableHead>{t("account_1_1_1_1_1")}</TableHead>
-                  <TableHead>{t("description_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                  <TableHead>{t("debit_1_1_1")}</TableHead>
-                  <TableHead>{t("credit_1_1_1")}</TableHead>
-                  <TableHead>{t("balance_1_1_1_1_1")}</TableHead>
+                  <TableHead>{t("date")}</TableHead>
+                  <TableHead>{t("account")}</TableHead>
+                  <TableHead>{t("description")}</TableHead>
+                  <TableHead>{t("debit")}</TableHead>
+                  <TableHead>{t("credit")}</TableHead>
+                  <TableHead>{t("balance")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

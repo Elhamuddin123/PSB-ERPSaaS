@@ -184,23 +184,23 @@ export default function ExpensesPage() {
                 </Select>
               </div>
               <div><Label>{t("title")}</Label><Input value={newExpense.title} onChange={e => setNewExpense({...newExpense, title: e.target.value})} placeholder={t("expense_title")} /></div>
-              <div><Label>{t("amount_1_1_1_1_1")}</Label><Input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} placeholder="0.00" /></div>
-              <div><Label>{t("date_1_1_1_1_1_1")}</Label><Input type="date" onChange={e => setNewExpense({...newExpense, expenseDate: e.target.value})} /></div>
+              <div><Label>{t("amount")}</Label><Input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} placeholder="0.00" /></div>
+              <div><Label>{t("date")}</Label><Input type="date" onChange={e => setNewExpense({...newExpense, expenseDate: e.target.value})} /></div>
               <div>
-                <Label>{t("payment_method_1")}</Label>
+                <Label>{t("payment_method")}</Label>
                 <Select value={newExpense.paymentMethod} onValueChange={v => setNewExpense({...newExpense, paymentMethod: v as "cash" | "card" | "bank_transfer" | "cheque" | "wallet" | "other"})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">{t("cash_1")}</SelectItem>
+                    <SelectItem value="cash">{t("cash")}</SelectItem>
                     <SelectItem value="card">{t("card")}</SelectItem>
-                    <SelectItem value="bank_transfer">{t("bank_transfer_1")}</SelectItem>
-                    <SelectItem value="cheque">{t("cheque_1")}</SelectItem>
-                    <SelectItem value="wallet">{t("wallet_1")}</SelectItem>
+                    <SelectItem value="bank_transfer">{t("bank_transfer")}</SelectItem>
+                    <SelectItem value="cheque">{t("cheque")}</SelectItem>
+                    <SelectItem value="wallet">{t("wallet")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div><Label>{t("vendor")}</Label><Input value={newExpense.vendor} onChange={e => setNewExpense({...newExpense, vendor: e.target.value})} placeholder={t("vendor_name")} /></div>
-              <Button className="w-full bg-indigo-600" onClick={() => createExpense.mutate(newExpense)} disabled={!newExpense.title || !newExpense.amount || !newExpense.categoryId || !newExpense.expenseDate || createExpense.isPending}>{t("submit_expense_1")}</Button>
+              <Button className="w-full bg-indigo-600" onClick={() => createExpense.mutate(newExpense)} disabled={!newExpense.title || !newExpense.amount || !newExpense.categoryId || !newExpense.expenseDate || createExpense.isPending}>{t("submit_expense")}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -318,13 +318,13 @@ export default function ExpensesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("title")}>{t("expense_1_1")}{sortIndicator("title")}</button></th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("category")}>{t("category_1")}{sortIndicator("category")}</button></th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("vendor")}>{t("vendor_1")}{sortIndicator("vendor")}</button></th>
-                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("expenseDate")}>{t("date_1_1_1_1_1_1_1")}{sortIndicator("expenseDate")}</button></th>
-                <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("amount")}>{t("amount_1_1_1_1_1_1")}{sortIndicator("amount")}</button></th>
-                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("status")}>{t("status_1_1_1_1_1_1_1")}{sortIndicator("status")}</button></th>
-                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("actions_1")}</th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("title")}>{t("expense")}{sortIndicator("title")}</button></th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("category")}>{t("category")}{sortIndicator("category")}</button></th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("vendor")}>{t("vendor")}{sortIndicator("vendor")}</button></th>
+                <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("expenseDate")}>{t("date")}{sortIndicator("expenseDate")}</button></th>
+                <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("amount")}>{t("amount")}{sortIndicator("amount")}</button></th>
+                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs"><button type="button" onClick={() => toggleSort("status")}>{t("statusColumn")}{sortIndicator("status")}</button></th>
+                <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("actions")}</th>
               </tr></thead>
               <tbody>
                 {expenseRows.map((expense) => (
@@ -373,9 +373,9 @@ export default function ExpensesPage() {
                       {expense.status === "pending" && (
                         <div className="flex justify-center gap-1 flex-wrap">
                           <Button size="sm" variant="ghost" className="text-emerald-600 h-7 text-xs px-2" onClick={() => updateStatus.mutate({ id: expense.id, status: "approved" })}>
-                            <CheckCircle className="h-3 w-3 mr-1" />{t("approve_1")}</Button>
+                            <CheckCircle className="h-3 w-3 mr-1" />{t("approve")}</Button>
                           <Button size="sm" variant="ghost" className="text-red-600 h-7 text-xs px-2" onClick={() => updateStatus.mutate({ id: expense.id, status: "rejected" })}>
-                            <XCircle className="h-3 w-3 mr-1" />{t("reject_1")}</Button>
+                            <XCircle className="h-3 w-3 mr-1" />{t("reject")}</Button>
                         </div>
                       )}
                       {expense.status === "approved" && (
@@ -420,7 +420,7 @@ export default function ExpensesPage() {
                 <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">{t("expense_fields_locked")}</p>
               )}
               <div><Label>{t("title")}</Label><Input value={editExpense.title} onChange={e => setEditExpense({ ...editExpense, title: e.target.value })} /></div>
-              <div><Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label><Input value={editExpense.description} onChange={e => setEditExpense({ ...editExpense, description: e.target.value })} /></div>
+              <div><Label>{t("description")}</Label><Input value={editExpense.description} onChange={e => setEditExpense({ ...editExpense, description: e.target.value })} /></div>
               {editExpense.status === "pending" && (
                 <>
                   <div>
@@ -432,18 +432,18 @@ export default function ExpensesPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div><Label>{t("amount_1_1_1_1_1")}</Label><Input type="number" value={editExpense.amount} onChange={e => setEditExpense({ ...editExpense, amount: e.target.value })} /></div>
-                  <div><Label>{t("date_1_1_1_1_1_1")}</Label><Input type="date" value={editExpense.expenseDate} onChange={e => setEditExpense({ ...editExpense, expenseDate: e.target.value })} /></div>
+                  <div><Label>{t("amount")}</Label><Input type="number" value={editExpense.amount} onChange={e => setEditExpense({ ...editExpense, amount: e.target.value })} /></div>
+                  <div><Label>{t("date")}</Label><Input type="date" value={editExpense.expenseDate} onChange={e => setEditExpense({ ...editExpense, expenseDate: e.target.value })} /></div>
                   <div>
-                    <Label>{t("payment_method_1")}</Label>
+                    <Label>{t("payment_method")}</Label>
                     <Select value={editExpense.paymentMethod} onValueChange={v => setEditExpense({ ...editExpense, paymentMethod: v as typeof editExpense.paymentMethod })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cash">{t("cash_1")}</SelectItem>
+                        <SelectItem value="cash">{t("cash")}</SelectItem>
                         <SelectItem value="card">{t("card")}</SelectItem>
-                        <SelectItem value="bank_transfer">{t("bank_transfer_1")}</SelectItem>
-                        <SelectItem value="cheque">{t("cheque_1")}</SelectItem>
-                        <SelectItem value="wallet">{t("wallet_1")}</SelectItem>
+                        <SelectItem value="bank_transfer">{t("bank_transfer")}</SelectItem>
+                        <SelectItem value="cheque">{t("cheque")}</SelectItem>
+                        <SelectItem value="wallet">{t("wallet")}</SelectItem>
                         <SelectItem value="other">other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -452,7 +452,7 @@ export default function ExpensesPage() {
               )}
               <div><Label>{t("vendor")}</Label><Input value={editExpense.vendor} onChange={e => setEditExpense({ ...editExpense, vendor: e.target.value })} /></div>
               <div><Label>{t("receipt_cheque_number")}</Label><Input value={editExpense.receiptNumber} onChange={e => setEditExpense({ ...editExpense, receiptNumber: e.target.value })} /></div>
-              <div><Label>{t("notes_1")}</Label><Input value={editExpense.notes} onChange={e => setEditExpense({ ...editExpense, notes: e.target.value })} /></div>
+              <div><Label>{t("notes")}</Label><Input value={editExpense.notes} onChange={e => setEditExpense({ ...editExpense, notes: e.target.value })} /></div>
               <Button
                 className="w-full bg-indigo-600"
                 disabled={!editExpense.title || updateExpense.isPending}
@@ -482,7 +482,7 @@ export default function ExpensesPage() {
           <DialogHeader><DialogTitle>{t("addCategory")}</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
             <div><Label>{t("categoryName")}</Label><Input value={newCategory.name} onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })} /></div>
-            <div><Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label><Input value={newCategory.description} onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })} /></div>
+            <div><Label>{t("description")}</Label><Input value={newCategory.description} onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })} /></div>
             <div><Label>{t("categoryColor")}</Label><Input type="color" value={newCategory.color} onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })} /></div>
             <Button className="w-full bg-indigo-600" disabled={!newCategory.name || createCategory.isPending} onClick={() => createCategory.mutate(newCategory)}>
               {createCategory.isPending ? t("actions.creating") : t("addCategory")}
@@ -496,7 +496,7 @@ export default function ExpensesPage() {
           {editCategory && (
             <div className="space-y-3 pt-2">
               <div><Label>{t("categoryName")}</Label><Input value={editCategory.name} onChange={(e) => setEditCategory({ ...editCategory, name: e.target.value })} /></div>
-              <div><Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label><Input value={editCategory.description} onChange={(e) => setEditCategory({ ...editCategory, description: e.target.value })} /></div>
+              <div><Label>{t("description")}</Label><Input value={editCategory.description} onChange={(e) => setEditCategory({ ...editCategory, description: e.target.value })} /></div>
               <div><Label>{t("categoryColor")}</Label><Input type="color" value={editCategory.color} onChange={(e) => setEditCategory({ ...editCategory, color: e.target.value })} /></div>
               <Button className="w-full bg-indigo-600" disabled={!editCategory.name || updateCategory.isPending} onClick={() => updateCategory.mutate(editCategory)}>
                 {updateCategory.isPending ? t("actions.saving") : t("save_changes")}

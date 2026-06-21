@@ -222,7 +222,7 @@ export default function ExchangeRatesPage() {
               <div className="space-y-3">
 
                 <div>
-                  <Label>{t("amount_1_1_1_1")}</Label>
+                  <Label>{t("amount")}</Label>
 
                   <Input
                     type="number"
@@ -416,17 +416,17 @@ export default function ExchangeRatesPage() {
 
               <TableRow>
 
-                <TableHead>{t("from_1")}</TableHead>
+                <TableHead>{t("from")}</TableHead>
 
-                <TableHead>{t("to_1")}</TableHead>
+                <TableHead>{t("to")}</TableHead>
 
                 <TableHead>{t("rate")}</TableHead>
 
-                <TableHead>{t("date_1_1_1_1_1")}</TableHead>
+                <TableHead>{t("date")}</TableHead>
 
-                <TableHead>{t("source_1_1")}</TableHead>
+                <TableHead>{t("source")}</TableHead>
 
-                <TableHead>{t("action_1")}</TableHead>
+                <TableHead>{t("action")}</TableHead>
 
               </TableRow>
 
@@ -515,7 +515,7 @@ export default function ExchangeRatesPage() {
                 <Input type="number" step="0.000001" value={editRate.rate} onChange={(e) => setEditRate({ ...editRate, rate: e.target.value })} />
               </div>
               <div>
-                <Label>{t("date_1_1_1_1_1")}</Label>
+                <Label>{t("date")}</Label>
                 <Input type="date" value={editRate.effectiveDate} onChange={(e) => setEditRate({ ...editRate, effectiveDate: e.target.value })} />
               </div>
               <Button

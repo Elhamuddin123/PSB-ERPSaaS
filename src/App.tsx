@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router";
 import AppLayout from "./components/layout/AppLayout";
+import I18nRouteGuard from "./components/I18nRouteGuard";
 import HomePage from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Wallets from "./pages/Wallets";
@@ -120,7 +121,8 @@ function ProtectedPage({
 
 export default function App() {
   return (
-    <Routes>
+    <I18nRouteGuard>
+      <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<RedirectIfAuth><Login /></RedirectIfAuth>} />
       <Route path="/register" element={<RedirectIfAuth><Register /></RedirectIfAuth>} />
@@ -156,6 +158,7 @@ export default function App() {
         }
       />
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </I18nRouteGuard>
   );
 }

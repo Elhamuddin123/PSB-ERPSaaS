@@ -4,67 +4,169 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 const LANGUAGES: string[] = ["en", "fa", "ps"];
 const NAMESPACES: string[] = [
-  "common", "login", "register", "dashboard", "sidebar", 
+  "common", "login", "register", "dashboard", "sidebar",
   "admin", "tickets", "customers", "reports", "invoices",
 ];
 
-const resourceCache: Record<string, Record<string, any>> = {
+/** Immutable golden copies loaded from JSON — never written by i18next runtime. */
+const pristineBundles: Record<string, Record<string, Record<string, unknown>>> = {
   en: {},
   fa: {},
   ps: {},
 };
 
-// Load resources BEFORE i18n init
-async function loadAllResources(): Promise<void> {
-  const languagesToLoad = [getSavedLanguage()];
-  if (getSavedLanguage() !== "en") {
-    languagesToLoad.push("en");
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function getSavedLanguage(): string {
+  const saved = localStorage.getItem("i18nextLng");
+  if (saved && LANGUAGES.includes(saved)) {
+    return saved;
   }
-  
+  return "en";
+}
+
+function normalizeLanguage(lng: string): string {
+  const base = lng.split("-")[0];
+  return LANGUAGES.includes(base) ? base : "en";
+}
+
+function storePristineBundle(lng: string, ns: string, data: Record<string, unknown>): void {
+  pristineBundles[lng] = pristineBundles[lng] || {};
+  pristineBundles[lng][ns] = deepClone(data);
+}
+
+async function fetchNamespace(lng: string, ns: string): Promise<Record<string, unknown>> {
+  try {
+    const response = await fetch(`/locales/${lng}/${ns}.json`);
+    if (response.ok) {
+      return await response.json();
+    }
+    console.warn(`⚠️ Failed to load /locales/${lng}/${ns}.json`);
+  } catch (error) {
+    console.error(`❌ Error loading /locales/${lng}/${ns}.json`, error);
+  }
+  return {};
+}
+
+function languagesFor(lng: string): string[] {
+  const language = normalizeLanguage(lng);
+  return language === "en" ? ["en"] : [language, "en"];
+}
+
+function notifyI18nSubscribers(lng: string): void {
+  if (!i18n.isInitialized) return;
+  i18n.emit("loaded");
+  i18n.emit("languageChanged", lng);
+}
+
+function applyBundleToStore(lng: string, ns: string, data: Record<string, unknown>): void {
+  if (!i18n.isInitialized) return;
+  i18n.removeResourceBundle(lng, ns);
+  i18n.addResourceBundle(lng, ns, deepClone(data), true, true);
+}
+
+/**
+ * Reset i18next in-memory store from immutable pristine JSON copies.
+ * Call synchronously before rendering app routes so t() reads clean bundles.
+ */
+export function resetI18nToPristine(lng?: string): void {
+  if (!i18n.isInitialized) return;
+
+  const language = normalizeLanguage(lng || i18n.language || getSavedLanguage());
+
+  for (const loadLng of languagesFor(language)) {
+    for (const ns of NAMESPACES) {
+      const pristine = pristineBundles[loadLng]?.[ns];
+      if (!pristine || Object.keys(pristine).length === 0) continue;
+      applyBundleToStore(loadLng, ns, pristine);
+    }
+  }
+
+  notifyI18nSubscribers(language);
+}
+
+async function loadAllResources(): Promise<void> {
+  const languagesToLoad = languagesFor(getSavedLanguage());
+
   for (const lng of languagesToLoad) {
     for (const ns of NAMESPACES) {
-      if (!resourceCache[lng][ns]) {
-        try {
-          const response = await fetch(`/locales/${lng}/${ns}.json`);
-          if (response.ok) {
-            resourceCache[lng][ns] = await response.json();
-            console.log(`✅ Loaded /locales/${lng}/${ns}.json`);
-          } else {
-            console.warn(`⚠️ Failed to load /locales/${lng}/${ns}.json`);
-            resourceCache[lng][ns] = {};
-          }
-        } catch (error) {
-          console.error(`❌ Error loading /locales/${lng}/${ns}.json`, error);
-          resourceCache[lng][ns] = {};
-        }
+      if (pristineBundles[lng]?.[ns]) continue;
+      const data = await fetchNamespace(lng, ns);
+      storePristineBundle(lng, ns, data);
+      if (Object.keys(data).length > 0) {
+        console.log(`✅ Loaded /locales/${lng}/${ns}.json`);
       }
     }
   }
 }
 
-function getSavedLanguage(): string {
-  const saved = localStorage.getItem('i18nextLng');
-  if (saved && LANGUAGES.includes(saved)) {
-    return saved;
+/** Reload namespace bundles from disk into pristine cache and i18n store. */
+export async function reloadLanguageNamespaces(lng?: string): Promise<void> {
+  const language = normalizeLanguage(lng || i18n.language || getSavedLanguage());
+
+  const loaded = await Promise.all(
+    languagesFor(language).flatMap((loadLng) =>
+      NAMESPACES.map(async (ns) => ({
+        loadLng,
+        ns,
+        data: await fetchNamespace(loadLng, ns),
+      })),
+    ),
+  );
+
+  for (const { loadLng, ns, data } of loaded) {
+    storePristineBundle(loadLng, ns, data);
+    applyBundleToStore(loadLng, ns, data);
   }
-  return 'en';
+
+  notifyI18nSubscribers(language);
+}
+
+/** @deprecated Use resetI18nToPristine — kept for compatibility. */
+export function restoreNamespacesFromCache(lng?: string): void {
+  resetI18nToPristine(lng);
+}
+
+export async function ensureNamespacesLoaded(lng?: string): Promise<void> {
+  const language = normalizeLanguage(lng || i18n.language || getSavedLanguage());
+  let needsReload = false;
+
+  for (const checkLng of languagesFor(language)) {
+    for (const ns of NAMESPACES) {
+      const pristine = pristineBundles[checkLng]?.[ns];
+      if (!pristine || Object.keys(pristine).length === 0) {
+        needsReload = true;
+        break;
+      }
+    }
+    if (needsReload) break;
+  }
+
+  if (needsReload) {
+    await reloadLanguageNamespaces(language);
+  } else {
+    resetI18nToPristine(language);
+  }
 }
 
 export async function initI18n(): Promise<void> {
-  // Load all needed resources first
   await loadAllResources();
-  
+
   const savedLanguage = getSavedLanguage();
-  
-  // Build complete resources object
-  const resources: Record<string, any> = {};
-  for (const lng of [savedLanguage, "en"]) {
-    if (resourceCache[lng] && Object.keys(resourceCache[lng]).length > 0) {
-      resources[lng] = resourceCache[lng];
+  const resources: Record<string, Record<string, Record<string, unknown>>> = {};
+
+  for (const lng of languagesFor(savedLanguage)) {
+    resources[lng] = {};
+    for (const ns of NAMESPACES) {
+      const pristine = pristineBundles[lng]?.[ns];
+      if (pristine && Object.keys(pristine).length > 0) {
+        resources[lng][ns] = deepClone(pristine);
+      }
     }
   }
-  
-  // Initialize i18n
+
   await i18n
     .use(LanguageDetector)
     .use(initReactI18next)
@@ -74,6 +176,10 @@ export async function initI18n(): Promise<void> {
       fallbackLng: "en",
       defaultNS: "common",
       ns: NAMESPACES,
+      returnObjects: false,
+      returnNull: false,
+      saveMissing: false,
+      updateMissing: false,
       interpolation: {
         escapeValue: false,
       },
@@ -83,15 +189,31 @@ export async function initI18n(): Promise<void> {
         lookupLocalStorage: "i18nextLng",
       },
       react: {
-        useSuspense: false, // Prevent suspense issues
+        useSuspense: false,
+        bindI18n: "languageChanged loaded",
+        bindI18nStore: "added removed",
       },
     });
-  
-  // Apply RTL settings
+
   applyDocumentDirection(savedLanguage);
 }
 
 export const RTL_LANGUAGES: string[] = ["fa", "ps"];
+
+export const PUBLIC_ROUTE_PATHS = new Set([
+  "/",
+  "/login",
+  "/register",
+  "/register/success",
+]);
+
+export function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTE_PATHS.has(pathname);
+}
+
+export function isAppRoute(pathname: string): boolean {
+  return !isPublicRoute(pathname);
+}
 
 export function isRTL(lng?: string): boolean {
   return RTL_LANGUAGES.includes(lng || i18n.language);
@@ -106,35 +228,13 @@ export function applyDocumentDirection(lng: string): void {
 }
 
 export async function changeLanguage(lng: string): Promise<void> {
-  if (!LANGUAGES.includes(lng)) return;
-  
-  // Load new language resources if not cached
-  if (!resourceCache[lng] || Object.keys(resourceCache[lng]).length === 0) {
-    for (const ns of NAMESPACES) {
-      try {
-        const response = await fetch(`/locales/${lng}/${ns}.json`);
-        if (response.ok) {
-          const data = await response.json();
-          resourceCache[lng] = resourceCache[lng] || {};
-          resourceCache[lng][ns] = data;
-          i18n.addResourceBundle(lng, ns, data, true, true);
-        }
-      } catch (error) {
-        console.error(`Error loading ${lng}/${ns}.json`, error);
-      }
-    }
-  } else {
-    // Add cached resources
-    for (const ns of NAMESPACES) {
-      if (resourceCache[lng][ns]) {
-        i18n.addResourceBundle(lng, ns, resourceCache[lng][ns], true, true);
-      }
-    }
-  }
-  
-  await i18n.changeLanguage(lng);
-  localStorage.setItem('i18nextLng', lng);
-  applyDocumentDirection(lng);
+  const language = normalizeLanguage(lng);
+  if (!LANGUAGES.includes(language)) return;
+
+  await reloadLanguageNamespaces(language);
+  await i18n.changeLanguage(language);
+  localStorage.setItem("i18nextLng", language);
+  applyDocumentDirection(language);
 }
 
 export default i18n;

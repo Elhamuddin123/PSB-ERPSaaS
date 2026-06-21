@@ -118,7 +118,7 @@ export default function InvoicesPage() {
           <option value="">{t("allStatuses")}</option>
           <option value="draft">{t("draft")}</option>
           <option value="sent">{t("sent")}</option>
-          <option value="paid">{t("paid_1")}</option>
+          <option value="paid">{t("paid")}</option>
           <option value="overdue">{t("overdue")}</option>
           <option value="cancelled">{t("cancelled")}</option>
         </select>
@@ -133,7 +133,7 @@ export default function InvoicesPage() {
       ) : error ? (
         <div className="text-center py-12 border rounded-lg">
           <p className="text-red-500 mb-2">{t("failed_to_load_invoices")}</p>
-          <Button variant="outline" onClick={() => refetch()}>{t("retry_1_1_1")}</Button>
+          <Button variant="outline" onClick={() => refetch()}>{t("retry")}</Button>
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
@@ -146,7 +146,7 @@ export default function InvoicesPage() {
                 <SortableTableHead label={t("issueDate")} sortKey="issueDate" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortableTableHead label={t("amount")} sortKey="amount" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <SortableTableHead label={t("paid")} sortKey="paid" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                <SortableTableHead label={t("status")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTableHead label={t("statusColumn")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <TableHead className="text-right">{t("actions")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -205,14 +205,14 @@ export default function InvoicesPage() {
                             <div className="space-y-4">
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                  <p className="text-gray-500">{t("customer_1")}</p>
+                                  <p className="text-gray-500">{t("customer")}</p>
                                   <p className="font-medium">
                                     {invoiceDetail.customer?.firstName} {invoiceDetail.customer?.lastName}
                                   </p>
                                   <p>{invoiceDetail.customer?.email}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-gray-500">{t("issue_date_1")}</p>
+                                  <p className="text-gray-500">{t("issue_date")}</p>
                                   <p>{new Date(invoiceDetail.issueDate).toLocaleDateString()}</p>
                                   {invoiceDetail.dueDate && (
                                     <>
@@ -226,10 +226,10 @@ export default function InvoicesPage() {
                               <Table>
                                 <TableHeader>
                                   <TableRow>
-                                    <TableHead>{t("description_1_1_1_1_1_1_1_1")}</TableHead>
+                                    <TableHead>{t("description")}</TableHead>
                                     <TableHead>{t("qty")}</TableHead>
                                     <TableHead>{t("unit_price")}</TableHead>
-                                    <TableHead>{t("total_1_1_1")}</TableHead>
+                                    <TableHead>{t("total")}</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -255,16 +255,16 @@ export default function InvoicesPage() {
                                     <span>${Number(invoiceDetail.taxAmount).toLocaleString()}</span>
                                   </div>
                                   <div className="flex justify-between font-semibold text-base mt-1 pt-1 border-t">
-                                    <span>{t("total_1_1_1_1")}</span>
+                                    <span>{t("total")}</span>
                                     <span>${Number(invoiceDetail.totalAmount).toLocaleString()}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-gray-500">{t("paid_1_1")}</span>
+                                    <span className="text-gray-500">{t("paid")}</span>
                                     <span>${Number(invoiceDetail.paidAmount).toLocaleString()}</span>
                                   </div>
                                   {balance > 0 && (
                                     <div className="flex justify-between text-red-600 font-medium">
-                                      <span>{t("balance_1_1")}</span>
+                                      <span>{t("balance")}</span>
                                       <span>${balance.toLocaleString()}</span>
                                     </div>
                                   )}
@@ -273,7 +273,7 @@ export default function InvoicesPage() {
 
                               {invoiceDetail.notes && (
                                 <div className="text-sm bg-gray-50 p-3 rounded">
-                                  <p className="text-gray-500 mb-1">{t("notes_1_1")}</p>
+                                  <p className="text-gray-500 mb-1">{t("notes")}</p>
                                   <p>{invoiceDetail.notes}</p>
                                 </div>
                               )}
@@ -293,11 +293,11 @@ export default function InvoicesPage() {
                                     </DialogTrigger>
                                     <DialogContent>
                                       <DialogHeader>
-                                        <DialogTitle>{t("record_payment_1")}</DialogTitle>
+                                        <DialogTitle>{t("record_payment")}</DialogTitle>
                                       </DialogHeader>
                                       <div className="space-y-3">
                                         <div>
-                                          <label className="text-sm text-gray-500">{t("balance_due_1")}</label>
+                                          <label className="text-sm text-gray-500">{t("balance_due")}</label>
                                           <p className="text-lg font-semibold">${balance.toLocaleString()}</p>
                                         </div>
                                         <div>

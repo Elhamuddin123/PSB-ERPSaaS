@@ -57,9 +57,30 @@ export default function PayablesPage() {
     search: search || undefined,
     status: statusFilter !== "__all__" ? statusFilter : undefined,
   });
-  const { data: aging, error: agingError } = trpc.payable.agingReport.useQuery({});
-  const { data: paymentsData, error: paymentsError } = trpc.payable.payments.useQuery({});
-  console.log("[Payables] billsData:", billsData, "aging:", aging, "payments:", paymentsData, "errors:", { billsError, agingError, paymentsError });
+  const { data: aging } = trpc.payable.agingReport.useQuery({});
+  const { data: paymentsData } = trpc.payable.payments.useQuery({});
+
+  const getSortValue = useCallback((bill: NonNullable<typeof billsData>["items"][number], key: string) => {
+    switch (key) {
+      case "billNumber": return bill.billNumber;
+      case "supplier": return (bill as any).supplier?.companyName || "";
+      case "date": return String(bill.issueDate);
+      case "due": return String(bill.dueDate);
+      case "total": return Number(bill.totalAmount);
+      case "paid": return Number(bill.amountPaid);
+      case "balance": return Number(bill.balanceDue);
+      case "status": return bill.status;
+      default: return "";
+    }
+  }, []);
+
+  const { rows: billRows, sortKey, sortDir, toggleSort } = useClientTable({
+    items: billsData?.items ?? [],
+    search: "",
+    getSearchText: () => "",
+    defaultSortKey: "due",
+    getSortValue,
+  });
 
   const createBill = trpc.payable.createBill.useMutation({
     onSuccess: async () => {
@@ -131,10 +152,6 @@ export default function PayablesPage() {
 
   const { data: suppliersData } = trpc.supplier.list.useQuery({ limit: 100 });
 
-  if (isLoading) return <div className="py-8 text-center text-slate-500">{t("loading")}</div>;
-  if (billsError) return <div className="py-8 text-center text-red-600">Error loading bills: {billsError.message}</div>;
-  if (!billsData) return <div className="py-8 text-center text-slate-500">{t("noPayableData")}</div>;
-
   const handleCreateBill = () => {
     if (!billForm.supplierId || !billForm.dueDate || billForm.items.some(i => !i.description || !i.unitPrice)) return;
     const subtotal = billForm.items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
@@ -175,27 +192,9 @@ export default function PayablesPage() {
     setPaymentOpen(true);
   };
 
-  const getSortValue = useCallback((bill: NonNullable<typeof billsData>["items"][number], key: string) => {
-    switch (key) {
-      case "billNumber": return bill.billNumber;
-      case "supplier": return (bill as any).supplier?.companyName || "";
-      case "date": return String(bill.issueDate);
-      case "due": return String(bill.dueDate);
-      case "total": return Number(bill.totalAmount);
-      case "paid": return Number(bill.amountPaid);
-      case "balance": return Number(bill.balanceDue);
-      case "status": return bill.status;
-      default: return "";
-    }
-  }, []);
-
-  const { rows: billRows, sortKey, sortDir, toggleSort } = useClientTable({
-    items: billsData?.items ?? [],
-    search: "",
-    getSearchText: () => "",
-    defaultSortKey: "due",
-    getSortValue,
-  });
+  if (isLoading) return <div className="py-8 text-center text-slate-500">{t("loading")}</div>;
+  if (billsError) return <div className="py-8 text-center text-red-600">Error loading bills: {billsError.message}</div>;
+  if (!billsData) return <div className="py-8 text-center text-slate-500">{t("noPayableData")}</div>;
 
   return (
     <div className="space-y-6">
@@ -229,24 +228,24 @@ export default function PayablesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>{t("issue_date_1_1")}</Label>
+                  <Label>{t("issue_date")}</Label>
                   <Input type="date" value={billForm.issueDate} onChange={e => setBillForm({ ...billForm, issueDate: e.target.value })} />
                 </div>
                 <div>
-                  <Label>{t("due_date_1_2")}</Label>
+                  <Label>{t("due_date_required")}</Label>
                   <Input type="date" value={billForm.dueDate} onChange={e => setBillForm({ ...billForm, dueDate: e.target.value })} />
                 </div>
               </div>
               <div>
-                <Label>{t("reference_1")}</Label>
+                <Label>{t("reference")}</Label>
                 <Input value={billForm.referenceNumber} onChange={e => setBillForm({ ...billForm, referenceNumber: e.target.value })} placeholder={t("supplier_invoice_reference")} />
               </div>
               <div>
-                <Label>{t("category_1_1")}</Label>
+                <Label>{t("category")}</Label>
                 <Input value={billForm.category} onChange={e => setBillForm({ ...billForm, category: e.target.value })} placeholder={t("e_g_flight_hotel")} />
               </div>
               <div>
-                <Label>{t("description_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("description")}</Label>
                 <Input value={billForm.description} onChange={e => setBillForm({ ...billForm, description: e.target.value })} />
               </div>
               <div className="space-y-2">
@@ -258,14 +257,14 @@ export default function PayablesPage() {
                         const items = [...billForm.items];
                         items[idx].description = e.target.value;
                         setBillForm({ ...billForm, items });
-                      }} placeholder={t("description_1_1_1_1_1_1_1_1_1_1")} />
+                      }} placeholder={t("description")} />
                     </div>
                     <div className="col-span-2">
                       <Input type="number" value={item.quantity} onChange={e => {
                         const items = [...billForm.items];
                         items[idx].quantity = e.target.value;
                         setBillForm({ ...billForm, items });
-                      }} placeholder={t("qty_1")} />
+                      }} placeholder={t("qty")} />
                     </div>
                     <div className="col-span-3">
                       <Input type="number" value={item.unitPrice} onChange={e => {
@@ -289,7 +288,7 @@ export default function PayablesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>{t("tax_1")}</Label>
+                  <Label>{t("tax")}</Label>
                   <Input type="number" value={billForm.taxAmount} onChange={e => setBillForm({ ...billForm, taxAmount: e.target.value })} />
                 </div>
                 <div>
@@ -334,7 +333,7 @@ export default function PayablesPage() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-red-50"><AlertCircle className="h-4 w-4 text-red-600" /></div>
-              <span className="text-xs text-slate-500">{t("overdue_1")}</span>
+              <span className="text-xs text-slate-500">{t("overdue")}</span>
             </div>
             <p className="text-xl font-bold mt-1">${(stats?.overdueAmount ?? 0).toLocaleString()}</p>
           </CardContent>
@@ -343,7 +342,7 @@ export default function PayablesPage() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-emerald-50"><TrendingUp className="h-4 w-4 text-emerald-600" /></div>
-              <span className="text-xs text-slate-500">{t("total_paid_1")}</span>
+              <span className="text-xs text-slate-500">{t("total_paid")}</span>
             </div>
             <p className="text-xl font-bold mt-1">${(stats?.totalPayments ?? 0).toLocaleString()}</p>
           </CardContent>
@@ -366,14 +365,14 @@ export default function PayablesPage() {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder={t("status_1_1_1_1_1_1_1_1")} />
+                <SelectValue placeholder={t("statusColumn")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">{t("all")}</SelectItem>
                 <SelectItem value="open">{t("open")}</SelectItem>
                 <SelectItem value="partial">{t("partial")}</SelectItem>
-                <SelectItem value="paid">{t("paid_1_1_1")}</SelectItem>
-                <SelectItem value="overdue">{t("overdue_1_1")}</SelectItem>
+                <SelectItem value="paid">{t("paid")}</SelectItem>
+                <SelectItem value="overdue">{t("overdue")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -474,7 +473,7 @@ export default function PayablesPage() {
                   <p className="text-lg font-bold text-orange-700">${(aging?.summary.days61To90 ?? 0).toLocaleString()}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-red-50 text-center">
-                  <p className="text-xs text-slate-500">{t("over_90")}</p>
+                  <p className="text-xs text-slate-500">{t("over")}</p>
                   <p className="text-lg font-bold text-red-700">${(aging?.summary.over90 ?? 0).toLocaleString()}</p>
                 </div>
               </div>
@@ -489,10 +488,10 @@ export default function PayablesPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t("bill")}</TableHead>
-                        <TableHead>{t("supplier_1")}</TableHead>
-                        <TableHead>{t("due_date_1_1")}</TableHead>
+                        <TableHead>{t("supplier")}</TableHead>
+                        <TableHead>{t("due_date")}</TableHead>
                         <TableHead>{t("days_overdue")}</TableHead>
-                        <TableHead>{t("balance_1_1_1")}</TableHead>
+                        <TableHead>{t("balance")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -518,13 +517,13 @@ export default function PayablesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("payment_1")}</TableHead>
-                  <TableHead>{t("supplier_1_1")}</TableHead>
-                  <TableHead>{t("date_1_1_1_1_1_1_1_1")}</TableHead>
-                  <TableHead>{t("amount_1_1_1_1_1_1_1_1_1")}</TableHead>
+                  <TableHead>{t("payment")}</TableHead>
+                  <TableHead>{t("supplier")}</TableHead>
+                  <TableHead>{t("date")}</TableHead>
+                  <TableHead>{t("amount")}</TableHead>
                   <TableHead>{t("method")}</TableHead>
-                  <TableHead>{t("reference_1_2")}</TableHead>
-                  <TableHead className="text-right">{t("action_1_1")}</TableHead>
+                  <TableHead>{t("reference")}</TableHead>
+                  <TableHead className="text-right">{t("action")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -566,19 +565,19 @@ export default function PayablesPage() {
           <DialogHeader><DialogTitle>Record Payment {selectedBill ? `— ${selectedBill.billNumber}` : ""}</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
             <div>
-              <Label>{t("amount_1_2")}</Label>
+              <Label>{t("amount")}</Label>
               <Input type="number" value={paymentForm.amount} onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })} />
             </div>
             <div>
-              <Label>{t("payment_method_1_1")}</Label>
+              <Label>{t("payment_method")}</Label>
               <Select value={paymentForm.paymentMethod} onValueChange={v => setPaymentForm({ ...paymentForm, paymentMethod: v as any })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">{t("cash_1_1")}</SelectItem>
-                  <SelectItem value="bank_transfer">{t("bank_transfer_1_1")}</SelectItem>
-                  <SelectItem value="cheque">{t("cheque_1_1")}</SelectItem>
+                  <SelectItem value="cash">{t("cash")}</SelectItem>
+                  <SelectItem value="bank_transfer">{t("bank_transfer")}</SelectItem>
+                  <SelectItem value="cheque">{t("cheque")}</SelectItem>
                   <SelectItem value="credit_card">{t("credit_card")}</SelectItem>
-                  <SelectItem value="wallet">{t("wallet_1_1")}</SelectItem>
+                  <SelectItem value="wallet">{t("wallet")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -587,11 +586,11 @@ export default function PayablesPage() {
               <Input type="date" value={paymentForm.paymentDate} onChange={e => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })} />
             </div>
             <div>
-              <Label>{t("reference_1_1")}</Label>
+              <Label>{t("reference")}</Label>
               <Input value={paymentForm.referenceNumber} onChange={e => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })} placeholder={t("transaction_reference")} />
             </div>
             <div>
-              <Label>{t("notes_1_1_1_1")}</Label>
+              <Label>{t("notes")}</Label>
               <Input value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} />
             </div>
             <Button onClick={handleCreatePayment} disabled={createPayment.isPending} className="w-full">

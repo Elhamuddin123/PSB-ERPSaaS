@@ -287,14 +287,14 @@ export default function SettingsPage() {
       <Tabs value={tab} onValueChange={setTab}>
         {/* FIXED: scrollable tabs on mobile */}
         <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto flex-nowrap h-auto p-1 gap-1">
-          <TabsTrigger value="profile" className="text-xs sm:text-sm"><UserCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("profile_1")}</TabsTrigger>
+          <TabsTrigger value="profile" className="text-xs sm:text-sm"><UserCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("profile")}</TabsTrigger>
           {!isPlatformAdmin && (
             <TabsTrigger value="subscription" className="text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("subscription")}</TabsTrigger>
           )}
           {canViewSecurity && (
             <TabsTrigger value="sessions" className="text-xs sm:text-sm"><Monitor className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("sessions")}</TabsTrigger>
           )}
-          <TabsTrigger value="notifications" className="text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("notifications_1")}</TabsTrigger>
+          <TabsTrigger value="notifications" className="text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("notifications")}</TabsTrigger>
           {canViewSecurity && (
             <TabsTrigger value="audit" className="text-xs sm:text-sm"><Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />{t("audit_logs")}</TabsTrigger>
           )}
@@ -310,11 +310,11 @@ export default function SettingsPage() {
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("agency_subscription")}</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">{t("plan_1")}</span>
+                  <span className="text-slate-500">{t("plan")}</span>
                   <span className="font-medium capitalize">{formatPlanLabel(user?.subscription?.plan ?? planUsage?.plan ?? "starter")}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">{t("status_1_1_1_1_1_1_1_1_1_1_1")}</span>
+                  <span className="text-slate-500">{t("statusColumn")}</span>
                   <Badge variant="secondary">{getSubscriptionStatusLabel(user?.subscription?.status, t)}</Badge>
                 </div>
                 {user?.billing && user.billing.billingStatus !== "inactive" ? (
@@ -428,15 +428,15 @@ export default function SettingsPage() {
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("update_profile")}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <Label className="text-xs text-slate-500">{t("name_1_1_1_1")}</Label>
+                <Label className="text-xs text-slate-500">{t("name")}</Label>
                 <Input value={profileForm.name} onChange={e => setProfileForm(s => ({ ...s, name: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs text-slate-500">{t("email_1_1")}</Label>
+                <Label className="text-xs text-slate-500">{t("email")}</Label>
                 <Input type="email" value={profileForm.email} onChange={e => setProfileForm(s => ({ ...s, email: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs text-slate-500">{t("phone_1_1_1")}</Label>
+                <Label className="text-xs text-slate-500">{t("phone")}</Label>
                 <Input value={profileForm.phone} onChange={e => setProfileForm(s => ({ ...s, phone: e.target.value }))} />
               </div>
               <div>
@@ -468,13 +468,13 @@ export default function SettingsPage() {
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user")}</th>
                     {isPlatformAdmin && (
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("agency_1")}</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("agency")}</th>
                     )}
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("role_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("role")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("ip_address")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user_agent")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("created")}</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("expires_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("expires")}</th>
                   </tr></thead>
                   <tbody>
                     {sessions.map(s => (
@@ -509,7 +509,7 @@ export default function SettingsPage() {
         <TabsContent value="notifications" className="mt-6">
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">{t("notifications_1_1")}</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("notifications")}</CardTitle>
               {(notifications?.items || []).some(n => !n.isRead) && (
                 <Button size="sm" variant="outline" onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>{t("mark_all_read")}</Button>
               )}
@@ -579,12 +579,12 @@ export default function SettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[500px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("action_1_1_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("action")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("entity")}</th>
                     {isPlatformAdmin && (
-                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("agency_1_1")}</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("agency")}</th>
                     )}
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("ip")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("time")}</th>
                   </tr></thead>
@@ -670,12 +670,12 @@ export default function SettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[640px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user_1_1")}</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("role_1_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("user")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("role")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("dept")}</th>
-                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("status_1_1_1_1_1_1_1_1_1_1_1_1")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("statusColumn")}</th>
                     <th className="text-left px-4 py-3 font-medium text-slate-500 text-xs">{t("last_sign_in")}</th>
-                    {canManageStaff && <th className="text-right px-4 py-3 font-medium text-slate-500 text-xs">{t("actions_1_1")}</th>}
+                    {canManageStaff && <th className="text-right px-4 py-3 font-medium text-slate-500 text-xs">{t("actions")}</th>}
                   </tr></thead>
                   <tbody>
                     {(displayUsers || []).map(u => (
@@ -708,7 +708,7 @@ export default function SettingsPage() {
                                 size="sm" variant="ghost" className="h-7 w-7 p-0"
                                 onClick={() => openEditUser(u)}
                                 disabled={u.role === "admin" || u.role === "super_admin"}
-                                title={t("edit_1")}
+                                title={t("edit")}
                               >
                                 <Pencil className="h-3.5 w-3.5 text-slate-500" />
                               </Button>
@@ -731,7 +731,7 @@ export default function SettingsPage() {
                       </tr>
                     ))}
                     {(!displayUsers || displayUsers.length === 0) && (
-                      <tr><td colSpan={canManageStaff ? 6 : 5} className="p-4 text-center text-sm text-slate-400">{t("no_users_found_1")}</td></tr>
+                      <tr><td colSpan={canManageStaff ? 6 : 5} className="p-4 text-center text-sm text-slate-400">{t("no_users_found")}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -791,7 +791,7 @@ export default function SettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteUser.isPending}>{t("cancel_1_1")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteUser.isPending}>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               disabled={deleteUser.isPending}
@@ -835,7 +835,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <Label className="text-xs">{t("email_1_1_1")}</Label>
+              <Label className="text-xs">{t("email")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -864,7 +864,7 @@ export default function SettingsPage() {
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">{t("role_1_1_1")}</Label>
+                <Label className="text-xs">{t("role")}</Label>
                 <select
                   value={userForm.role}
                   onChange={e => setUserForm(s => ({ ...s, role: e.target.value as any }))}
@@ -876,20 +876,20 @@ export default function SettingsPage() {
                 </select>
               </div>
               <div>
-                <Label className="text-xs">{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label className="text-xs">{t("statusColumn")}</Label>
                 <select
                   value={userForm.status}
                   onChange={e => setUserForm(s => ({ ...s, status: e.target.value as any }))}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
-                  <option value="active">{t("active_1_1")}</option>
-                  <option value="inactive">{t("inactive_1")}</option>
+                  <option value="active">{t("active")}</option>
+                  <option value="inactive">{t("inactive")}</option>
                   <option value="suspended">{t("suspended")}</option>
                 </select>
               </div>
             </div>
             <div>
-              <Label className="text-xs">{t("department_1")}</Label>
+              <Label className="text-xs">{t("department")}</Label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -901,7 +901,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <Label className="text-xs">{t("phone_1_1_1_1")}</Label>
+              <Label className="text-xs">{t("phone")}</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -915,7 +915,7 @@ export default function SettingsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUserDialogOpen(false)}>{t("cancel_1_1_1")}</Button>
+            <Button variant="outline" onClick={() => setUserDialogOpen(false)}>{t("cancel")}</Button>
             <Button
               className="bg-indigo-600 hover:bg-indigo-700"
               onClick={handleSaveUser}
@@ -951,7 +951,7 @@ export default function SettingsPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>{t("cancel_1_1_1")}</Button>
+            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>{t("cancel")}</Button>
             <Button
               variant="destructive"
               disabled={

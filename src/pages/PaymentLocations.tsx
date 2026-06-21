@@ -81,14 +81,14 @@ export default function PaymentLocationsPage() {
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{t("add_payment_location")}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-4">
-              <div><label className="text-sm text-slate-500">{t("name_1_1_1")}</label><Input value={newLoc.name} onChange={e => setNewLoc(s => ({ ...s, name: e.target.value }))} placeholder={t("e_g_balkh_travel_mazar")} /></div>
+              <div><label className="text-sm text-slate-500">{t("name")}</label><Input value={newLoc.name} onChange={e => setNewLoc(s => ({ ...s, name: e.target.value }))} placeholder={t("e_g_balkh_travel_mazar")} /></div>
               <div><label className="text-sm text-slate-500">{t("city")}</label><Input value={newLoc.city} onChange={e => setNewLoc(s => ({ ...s, city: e.target.value }))} placeholder={t("e_g_mazar_i_sharif")} /></div>
               <div><label className="text-sm text-slate-500">{t("address")}</label><Input value={newLoc.address} onChange={e => setNewLoc(s => ({ ...s, address: e.target.value }))} placeholder={t("full_address")} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-sm text-slate-500">{t("phone_1_1")}</label><Input value={newLoc.phone} onChange={e => setNewLoc(s => ({ ...s, phone: e.target.value }))} placeholder={t("phone_1")} /></div>
-                <div><label className="text-sm text-slate-500">{t("email_1")}</label><Input value={newLoc.email} onChange={e => setNewLoc(s => ({ ...s, email: e.target.value }))} placeholder={t("email")} /></div>
+                <div><label className="text-sm text-slate-500">{t("phone")}</label><Input value={newLoc.phone} onChange={e => setNewLoc(s => ({ ...s, phone: e.target.value }))} /></div>
+                <div><label className="text-sm text-slate-500">{t("email")}</label><Input type="email" value={newLoc.email} onChange={e => setNewLoc(s => ({ ...s, email: e.target.value }))} /></div>
               </div>
-              <div><label className="text-sm text-slate-500">{t("opening_hours")}</label><Input value={newLoc.openingHours} onChange={e => setNewLoc(s => ({ ...s, openingHours: e.target.value }))} placeholder={t("e_g_sat_thu_8_00_17_00")} /></div>
+              <div><label className="text-sm text-slate-500">{t("opening_hours")}</label><Input value={newLoc.openingHours} onChange={e => setNewLoc(s => ({ ...s, openingHours: e.target.value }))} placeholder={t("e_g_sat_thu")} /></div>
               <Button className="w-full bg-indigo-600" disabled={!newLoc.name || !newLoc.city || createLocation.isPending} onClick={() => createLocation.mutate(newLoc)}>
                 {createLocation.isPending ? tc("actions.creating") : tc("actions.createLocation")}
               </Button>
@@ -109,7 +109,7 @@ export default function PaymentLocationsPage() {
       ) : error ? (
         <div className="text-center py-12 border rounded-lg">
           <p className="text-red-500 mb-2">{t("failed_to_load_locations")}</p>
-          <Button variant="outline" onClick={() => refetch()}>{t("retry_1_1_1_1")}</Button>
+          <Button variant="outline" onClick={() => refetch()}>{t("retry")}</Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,16 +184,16 @@ export default function PaymentLocationsPage() {
           <DialogHeader><DialogTitle>{t("edit_location")}</DialogTitle></DialogHeader>
           {editLoc && (
             <div className="space-y-3 pt-4">
-              <div><Label className="text-sm text-slate-500">{t("name_1_1_1")}</Label><Input value={editLoc.name} onChange={e => setEditLoc({ ...editLoc, name: e.target.value })} /></div>
+              <div><Label className="text-sm text-slate-500">{t("name")}</Label><Input value={editLoc.name} onChange={e => setEditLoc({ ...editLoc, name: e.target.value })} /></div>
               <div><Label className="text-sm text-slate-500">{t("city")}</Label><Input value={editLoc.city} onChange={e => setEditLoc({ ...editLoc, city: e.target.value })} /></div>
               <div><Label className="text-sm text-slate-500">{t("address")}</Label><Input value={editLoc.address} onChange={e => setEditLoc({ ...editLoc, address: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-sm text-slate-500">{t("phone_1_1")}</Label><Input value={editLoc.phone} onChange={e => setEditLoc({ ...editLoc, phone: e.target.value })} /></div>
-                <div><Label className="text-sm text-slate-500">{t("email_1")}</Label><Input value={editLoc.email} onChange={e => setEditLoc({ ...editLoc, email: e.target.value })} /></div>
+                <div><Label className="text-sm text-slate-500">{t("phone")}</Label><Input value={editLoc.phone} onChange={e => setEditLoc({ ...editLoc, phone: e.target.value })} /></div>
+                <div><Label className="text-sm text-slate-500">{t("email")}</Label><Input value={editLoc.email} onChange={e => setEditLoc({ ...editLoc, email: e.target.value })} /></div>
               </div>
               <div><Label className="text-sm text-slate-500">{t("opening_hours")}</Label><Input value={editLoc.openingHours} onChange={e => setEditLoc({ ...editLoc, openingHours: e.target.value })} /></div>
               <div>
-                <Label className="text-sm text-slate-500">{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label className="text-sm text-slate-500">{t("statusColumn")}</Label>
                 <Select value={editLoc.status} onValueChange={(v) => setEditLoc({ ...editLoc, status: v as "active" | "inactive" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>

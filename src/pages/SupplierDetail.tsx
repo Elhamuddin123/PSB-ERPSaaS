@@ -88,7 +88,7 @@ export default function SupplierDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" asChild>
-          <Link to="/suppliers"><ArrowLeft className="h-4 w-4 mr-1" />{t("back_1_1_1")}</Link>
+          <Link to="/suppliers"><ArrowLeft className="h-4 w-4 mr-1" />{t("back")}</Link>
         </Button>
       </div>
 
@@ -109,7 +109,7 @@ export default function SupplierDetailPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-slate-500">{t("total_bills_1")}</p>
+            <p className="text-xs text-slate-500">{t("total_bills")}</p>
             <p className="text-xl font-bold mt-1">{stats.totalBills}</p>
           </CardContent>
         </Card>
@@ -121,13 +121,13 @@ export default function SupplierDetailPage() {
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-slate-500">{t("balance_due_1_1_1")}</p>
+            <p className="text-xs text-slate-500">{t("balance_due")}</p>
             <p className="text-xl font-bold mt-1 text-amber-600">${stats.totalDue.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-slate-500">{t("overdue_1_1_1")}</p>
+            <p className="text-xs text-slate-500">{t("overdue")}</p>
             <p className="text-xl font-bold mt-1 text-red-600">{stats.overdueBills}</p>
           </CardContent>
         </Card>
@@ -137,8 +137,8 @@ export default function SupplierDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList className="w-full sm:w-auto overflow-x-auto">
           <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
-          <TabsTrigger value="bills">{t("bills_1")}</TabsTrigger>
-          <TabsTrigger value="payments">{t("payments_1")}</TabsTrigger>
+          <TabsTrigger value="bills">{t("bills")}</TabsTrigger>
+          <TabsTrigger value="payments">{t("payments")}</TabsTrigger>
           <TabsTrigger value="contacts">{t("contacts")}</TabsTrigger>
         </TabsList>
 
@@ -172,7 +172,7 @@ export default function SupplierDetailPage() {
           </div>
           {supplier.notes && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("notes_1_1_1_1_1")}</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("notes")}</CardTitle></CardHeader>
               <CardContent className="text-sm text-slate-600">{supplier.notes}</CardContent>
             </Card>
           )}
@@ -190,13 +190,13 @@ export default function SupplierDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t("bill_1")}</TableHead>
-                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("due_date_1_1_1")}</TableHead>
-                        <TableHead>{t("total_1_1_1_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("paid_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("balance_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                        <TableHead>{t("bill")}</TableHead>
+                        <TableHead>{t("date")}</TableHead>
+                        <TableHead>{t("due_date")}</TableHead>
+                        <TableHead>{t("total")}</TableHead>
+                        <TableHead>{t("paid")}</TableHead>
+                        <TableHead>{t("balance")}</TableHead>
+                        <TableHead>{t("statusColumn")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -225,17 +225,17 @@ export default function SupplierDetailPage() {
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_payments")}</CardTitle></CardHeader>
             <CardContent>
               {recentPayments.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4 text-center">{t("no_payments_yet_1")}</p>
+                <p className="text-sm text-slate-500 py-4 text-center">{t("no_payments_yet")}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t("payment_1_1")}</TableHead>
-                        <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
-                        <TableHead>{t("method_1")}</TableHead>
-                        <TableHead>{t("reference_1_2_1")}</TableHead>
+                        <TableHead>{t("payment")}</TableHead>
+                        <TableHead>{t("date")}</TableHead>
+                        <TableHead>{t("amount")}</TableHead>
+                        <TableHead>{t("method")}</TableHead>
+                        <TableHead>{t("reference")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -259,7 +259,7 @@ export default function SupplierDetailPage() {
         {/* Contacts */}
         <TabsContent value="contacts" className="mt-4">
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("contacts_1")}</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("contacts")}</CardTitle></CardHeader>
             <CardContent>
               {contacts.length === 0 ? (
                 <p className="text-sm text-slate-500 py-4 text-center">{t("no_contacts_added")}</p>

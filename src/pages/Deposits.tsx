@@ -196,7 +196,7 @@ export default function DepositsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-slate-500">{t("amount_1_1_1")}</label>
+                <label className="text-sm text-slate-500">{t("amount")}</label>
                 <Input type="number" step="0.01" value={newDeposit.amount} onChange={e => setNewDeposit(s => ({ ...s, amount: e.target.value }))} placeholder="0.00" />
               </div>
               <div>
@@ -211,7 +211,7 @@ export default function DepositsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-slate-500">{t("notes_1")}</label>
+                <label className="text-sm text-slate-500">{t("notes")}</label>
                 <Input value={newDeposit.notes} onChange={e => setNewDeposit(s => ({ ...s, notes: e.target.value }))} placeholder={t("optional_notes")} />
               </div>
               <Button className="w-full bg-indigo-600" disabled={!newDeposit.walletId || !newDeposit.amount || createDeposit.isPending} onClick={() => createDeposit.mutate({
@@ -269,7 +269,7 @@ export default function DepositsPage() {
       ) : error ? (
         <div className="text-center py-12 border rounded-lg">
           <p className="text-red-500 mb-2">{t("failed_to_load_deposits")}</p>
-          <Button variant="outline" onClick={() => refetch()}>{t("retry_1_1")}</Button>
+          <Button variant="outline" onClick={() => refetch()}>{t("retry")}</Button>
         </div>
       ) : (
         <div className="border rounded-lg overflow-x-auto">
@@ -339,7 +339,7 @@ export default function DepositsPage() {
                         </div>
                       )}
                       {d.status === "pending" && !canApprove && (
-                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded">{t("pending_1")}</span>
+                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded">{t("pending")}</span>
                       )}
                       {d.status === "approved" && d.customerId && canApprove && (
                         <Button
@@ -425,7 +425,7 @@ export default function DepositsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-slate-500">{t("amount_1_1_1")}</label>
+                    <label className="text-sm text-slate-500">{t("amount")}</label>
                     <Input type="number" step="0.01" value={editDeposit.amount} onChange={e => setEditDeposit(s => ({ ...s!, amount: e.target.value }))} />
                   </div>
                   <div>
@@ -442,7 +442,7 @@ export default function DepositsPage() {
                 <Input value={editDeposit.referenceNumber} onChange={e => setEditDeposit(s => ({ ...s!, referenceNumber: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm text-slate-500">{t("notes_1")}</label>
+                <label className="text-sm text-slate-500">{t("notes")}</label>
                 <Input value={editDeposit.notes} onChange={e => setEditDeposit(s => ({ ...s!, notes: e.target.value }))} />
               </div>
               <Button
@@ -495,7 +495,7 @@ export default function DepositsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-slate-500">{t("amount_1_1_1")}</label>
+                <label className="text-sm text-slate-500">{t("amount")}</label>
                 <Input
                   type="number"
                   step="0.01"
@@ -508,7 +508,7 @@ export default function DepositsPage() {
                 )}
               </div>
               <div>
-                <label className="text-sm text-slate-500">{t("notes_1")}</label>
+                <label className="text-sm text-slate-500">{t("notes")}</label>
                 <Input value={settleForm.notes} onChange={(e) => setSettleForm((s) => ({ ...s, notes: e.target.value }))} />
               </div>
               <Button

@@ -149,7 +149,7 @@ export default function CustomerDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" asChild>
-          <Link to="/crm"><ArrowLeft className="h-4 w-4 mr-1" />{t("back_1_1")}</Link>
+          <Link to="/crm"><ArrowLeft className="h-4 w-4 mr-1" />{t("back")}</Link>
         </Button>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">
@@ -185,7 +185,7 @@ export default function CustomerDetailPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
-              <Receipt className="h-4 w-4" />{t("total_revenue_1_1")}</div>
+              <Receipt className="h-4 w-4" />{t("total_revenue")}</div>
             <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
           </CardContent>
         </Card>
@@ -223,7 +223,7 @@ export default function CustomerDetailPage() {
 
       <Tabs defaultValue="bookings">
         <TabsList className="bg-white border w-full sm:w-auto overflow-x-auto">
-          <TabsTrigger value="bookings"><Plane className="h-4 w-4 mr-1" />{t("bookings_1")}</TabsTrigger>
+          <TabsTrigger value="bookings"><Plane className="h-4 w-4 mr-1" />{t("bookings")}</TabsTrigger>
           <TabsTrigger value="invoices"><Receipt className="h-4 w-4 mr-1" />{t("invoices")}</TabsTrigger>
           <TabsTrigger value="loans"><HandCoins className="h-4 w-4 mr-1" />{t("loans")}</TabsTrigger>
           <TabsTrigger value="transactions"><DollarSign className="h-4 w-4 mr-1" />{t("transactions")}</TabsTrigger>
@@ -241,8 +241,8 @@ export default function CustomerDetailPage() {
                     <TableHead>{t("ticket")}</TableHead>
                     <TableHead>{t("route")}</TableHead>
                     <TableHead>{t("travel_date")}</TableHead>
-                    <TableHead>{t("amount_1")}</TableHead>
-                    <TableHead>{t("status_1_1_1_1_1")}</TableHead>
+                    <TableHead>{t("amount")}</TableHead>
+                    <TableHead>{t("statusColumn")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,10 +275,10 @@ export default function CustomerDetailPage() {
                   <TableRow>
                     <TableHead>{t("invoice")}</TableHead>
                     <TableHead>{t("issue_date")}</TableHead>
-                    <TableHead>{t("total_1_1")}</TableHead>
+                    <TableHead>{t("total")}</TableHead>
                     <TableHead>{t("paid")}</TableHead>
                     <TableHead>{t("balance_due_label")}</TableHead>
-                    <TableHead>{t("status_1_1_1_1_1_1")}</TableHead>
+                    <TableHead>{t("statusColumn")}</TableHead>
                     {canManage && <TableHead className="text-right">{tc("actionsLabel")}</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -405,10 +405,10 @@ export default function CustomerDetailPage() {
               <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("date_1_1_1_1")}</TableHead>
-                    <TableHead>{t("type_1")}</TableHead>
-                    <TableHead>{t("amount_1_1")}</TableHead>
-                    <TableHead>{t("description_1_1_1_1_1_1_1")}</TableHead>
+                    <TableHead>{t("date")}</TableHead>
+                    <TableHead>{t("type")}</TableHead>
+                    <TableHead>{t("amount")}</TableHead>
+                    <TableHead>{t("description")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -519,7 +519,7 @@ export default function CustomerDetailPage() {
                 <p className="text-xs text-slate-500 mt-1">{t("partial_payment_hint")}</p>
               </div>
               <div>
-                <Label>{tc("notes_1_1_1")}</Label>
+                <Label>{tc("notes")}</Label>
                 <Input value={loanRepaymentForm.notes} onChange={(e) => setLoanRepaymentForm((s) => ({ ...s, notes: e.target.value }))} />
               </div>
               <Button
@@ -550,7 +550,7 @@ export default function CustomerDetailPage() {
             <div className="space-y-3 pt-2">
               <p className="text-sm text-slate-500">{ledgerPassLoan.loanNumber} — ${ledgerPassLoan.balance.toLocaleString()}</p>
               <div>
-                <Label>{tc("amount_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{tc("amount")}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -560,7 +560,7 @@ export default function CustomerDetailPage() {
                 />
               </div>
               <div>
-                <Label>{tc("notes_1_1_1")}</Label>
+                <Label>{tc("notes")}</Label>
                 <Input value={ledgerPassForm.notes} onChange={(e) => setLedgerPassForm((s) => ({ ...s, notes: e.target.value }))} />
               </div>
               <Button

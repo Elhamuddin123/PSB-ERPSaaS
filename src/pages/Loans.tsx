@@ -143,7 +143,7 @@ export default function LoansPage() {
             <DialogHeader><DialogTitle>{t("issue_cash_loan")}</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
               <div>
-                <Label>{t("customer_1_1")}<span className="text-red-500">*</span></Label>
+                <Label>{t("customer")}<span className="text-red-500">*</span></Label>
                 <Select value={form.customerId} onValueChange={(v) => setForm((s) => ({ ...s, customerId: v }))}>
                   <SelectTrigger><SelectValue placeholder={t("select_customer")} /></SelectTrigger>
                   <SelectContent>
@@ -156,7 +156,7 @@ export default function LoansPage() {
                 </Select>
               </div>
               <div>
-                <Label>{t("amount_1_1_1_1_1_1_1")}<span className="text-red-500">*</span></Label>
+                <Label>{t("amount")}<span className="text-red-500">*</span></Label>
                 <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -165,12 +165,12 @@ export default function LoansPage() {
                   <Input type="date" value={form.loanDate} onChange={(e) => setForm((s) => ({ ...s, loanDate: e.target.value }))} />
                 </div>
                 <div>
-                  <Label>{t("due_date_1")}</Label>
+                  <Label>{t("due_date")}</Label>
                   <Input type="date" value={form.dueDate} onChange={(e) => setForm((s) => ({ ...s, dueDate: e.target.value }))} />
                 </div>
               </div>
               <div>
-                <Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("description")}</Label>
                 <Input value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} placeholder={t("purpose_of_loan")} />
               </div>
               <Button
@@ -217,7 +217,7 @@ export default function LoansPage() {
         <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{t("all_loans")}</SelectItem>
-          <SelectItem value="active">{t("active_1")}</SelectItem>
+          <SelectItem value="active">{t("active")}</SelectItem>
           <SelectItem value="repaid">{t("repaid")}</SelectItem>
           <SelectItem value="written_off">{t("written_off")}</SelectItem>
         </SelectContent>
@@ -327,11 +327,11 @@ export default function LoansPage() {
           <DialogHeader><DialogTitle>{t("record_loan_repayment")}</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
             <div>
-              <Label>{t("amount_1_1_1_1_1_1_1_1")}</Label>
+              <Label>{t("amount")}</Label>
               <Input type="number" step="0.01" value={repayForm.amount} onChange={(e) => setRepayForm((s) => ({ ...s, amount: e.target.value }))} />
             </div>
             <div>
-              <Label>{t("notes_1_1_1")}</Label>
+              <Label>{t("notes")}</Label>
               <Input value={repayForm.notes} onChange={(e) => setRepayForm((s) => ({ ...s, notes: e.target.value }))} />
             </div>
             <Button
@@ -355,15 +355,15 @@ export default function LoansPage() {
             <div className="space-y-3 pt-2">
               <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">{t("loan_fields_locked")}</p>
               <div>
-                <Label>{t("description_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("description")}</Label>
                 <Input value={editLoan.description} onChange={(e) => setEditLoan({ ...editLoan, description: e.target.value })} />
               </div>
               <div>
-                <Label>{t("due_date_1")}</Label>
+                <Label>{t("due_date")}</Label>
                 <Input type="date" value={editLoan.dueDate} onChange={(e) => setEditLoan({ ...editLoan, dueDate: e.target.value })} />
               </div>
               <div>
-                <Label>{t("notes_1_1_1")}</Label>
+                <Label>{t("notes")}</Label>
                 <Input value={editLoan.notes} onChange={(e) => setEditLoan({ ...editLoan, notes: e.target.value })} />
               </div>
               <Button
@@ -404,7 +404,7 @@ export default function LoansPage() {
                 </p>
               </div>
               <div>
-                <Label>{t("amount_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("amount")}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -417,7 +417,7 @@ export default function LoansPage() {
                 )}
               </div>
               <div>
-                <Label>{t("notes_1_1_1")}</Label>
+                <Label>{t("notes")}</Label>
                 <Input value={ledgerPassForm.notes} onChange={(e) => setLedgerPassForm((s) => ({ ...s, notes: e.target.value }))} />
               </div>
               <Button

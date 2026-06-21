@@ -350,8 +350,8 @@ export default function TicketsPage() {
               <div className="pt-2">
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t("passenger_information")}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div><RequiredLabel>{t("first_name_1")}</RequiredLabel><Input value={newTicket.passengerFirstName} onChange={e => setNewTicket({...newTicket, passengerFirstName: e.target.value})} placeholder={t("john")} /></div>
-                  <div><RequiredLabel>{t("last_name_1")}</RequiredLabel><Input value={newTicket.passengerLastName} onChange={e => setNewTicket({...newTicket, passengerLastName: e.target.value})} placeholder={t("doe")} /></div>
+                  <div><RequiredLabel>{t("first_name")}</RequiredLabel><Input value={newTicket.passengerFirstName} onChange={e => setNewTicket({...newTicket, passengerFirstName: e.target.value})} placeholder={t("john")} /></div>
+                  <div><RequiredLabel>{t("last_name")}</RequiredLabel><Input value={newTicket.passengerLastName} onChange={e => setNewTicket({...newTicket, passengerLastName: e.target.value})} placeholder={t("doe")} /></div>
                 </div>
               </div>
             )}
@@ -375,15 +375,15 @@ export default function TicketsPage() {
                 <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border">
                   <p className="text-xs font-medium text-slate-500 mb-2">{t("amount_preview")}</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <span className="text-slate-600">{t("ticket_price_1")}</span><span className="text-right font-medium">${computed.ticketPrice.toLocaleString()}</span>
-                    <span className="text-slate-600">{t("tax_1_2")}</span><span className="text-right font-medium">${computed.tax.toLocaleString()}</span>
+                    <span className="text-slate-600">{t("ticket_price")}</span><span className="text-right font-medium">${computed.ticketPrice.toLocaleString()}</span>
+                    <span className="text-slate-600">{t("tax")}</span><span className="text-right font-medium">${computed.tax.toLocaleString()}</span>
                     <span className="text-slate-600">{t("base_fare")}</span><span className="text-right font-medium">${computed.baseFare.toLocaleString()}</span>
                     <span className="text-slate-600">{t("airline_commission")}</span><span className="text-right font-medium">${computed.commission.toLocaleString()}</span>
-                    <span className="text-slate-600">{t("customer_discount_1")}</span><span className="text-right font-medium text-red-600">-${computed.discount.toLocaleString()}</span>
+                    <span className="text-slate-600">{t("customer_discount")}</span><span className="text-right font-medium text-red-600">-${computed.discount.toLocaleString()}</span>
                     <span className="text-slate-600">{t("net_commission")}</span><span className="text-right font-medium">${computed.netCommission.toLocaleString()}</span>
-                    <span className="text-slate-600">{t("paid_1_2")}</span><span className="text-right font-medium">${computed.paidAmount.toLocaleString()}</span>
-                    <span className="text-slate-600 font-bold">{t("wallet_deduction_1")}</span><span className="text-right font-bold">${computed.walletDeduction.toLocaleString()}</span>
-                    <span className="text-slate-600 font-bold text-amber-600">{t("remaining_due_1")}</span><span className="text-right font-bold text-amber-600">${computed.remainingDue.toLocaleString()}</span>
+                    <span className="text-slate-600">{t("paid")}</span><span className="text-right font-medium">${computed.paidAmount.toLocaleString()}</span>
+                    <span className="text-slate-600 font-bold">{t("wallet_deduction")}</span><span className="text-right font-bold">${computed.walletDeduction.toLocaleString()}</span>
+                    <span className="text-slate-600 font-bold text-amber-600">{t("remaining_due")}</span><span className="text-right font-bold text-amber-600">${computed.remainingDue.toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -396,10 +396,10 @@ export default function TicketsPage() {
                 <div>
                   <RequiredLabel>{t("booking_wallet")}</RequiredLabel>
                   <Select onValueChange={(v) => setNewTicket({ ...newTicket, walletId: Number(v) })}>
-                    <SelectTrigger><SelectValue placeholder={t("select_wallet_1")} /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("select_wallet")} /></SelectTrigger>
                     <SelectContent>
                       {(wallets || []).length === 0 ? (
-                        <SelectItem value="__empty__" disabled>{t("no_records_found_1")}</SelectItem>
+                        <SelectItem value="__empty__" disabled>{t("no_records_found")}</SelectItem>
                       ) : (
                         (wallets || []).map((w) => (
                           <SelectItem key={w.id} value={w.id.toString()}>
@@ -417,13 +417,13 @@ export default function TicketsPage() {
             <div className="pt-4 border-t">
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 {createMode === "single" ? t("flight_information") : t("shared_flight_information")}
-                <span className="ml-2 normal-case font-normal text-slate-400">{t("optional_1")}</span>
+                <span className="ml-2 normal-case font-normal text-slate-400">{t("optional")}</span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="sm:col-span-2">
-                  <OptionalLabel>{t("customer_1_1_1_1_1_1")}</OptionalLabel>
+                  <OptionalLabel>{t("customer")}</OptionalLabel>
                   <Select onValueChange={v => setNewTicket({...newTicket, customerId: Number(v) || undefined})}>
-                    <SelectTrigger><SelectValue placeholder={t("select_customer_1")} /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("select_customer")} /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="walkin">{t("walk_in_no_customer")}</SelectItem>
                       {(customers || []).map((c: any) => (
@@ -434,9 +434,9 @@ export default function TicketsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><OptionalLabel>{t("from_1_1")}</OptionalLabel><Input value={newTicket.routeFrom} onChange={e => setNewTicket({...newTicket, routeFrom: e.target.value.toUpperCase()})} placeholder={t("jfk")} maxLength={10} /></div>
-                <div><OptionalLabel>{t("to_1_1")}</OptionalLabel><Input value={newTicket.routeTo} onChange={e => setNewTicket({...newTicket, routeTo: e.target.value.toUpperCase()})} placeholder={t("lhr")} maxLength={10} /></div>
-                <div><OptionalLabel>{t("travel_date_1")}</OptionalLabel><Input type="date" value={newTicket.travelDate} onChange={e => setNewTicket({...newTicket, travelDate: e.target.value})} /></div>
+                <div><OptionalLabel>{t("from")}</OptionalLabel><Input value={newTicket.routeFrom} onChange={e => setNewTicket({...newTicket, routeFrom: e.target.value.toUpperCase()})} placeholder={t("jfk")} maxLength={10} /></div>
+                <div><OptionalLabel>{t("to")}</OptionalLabel><Input value={newTicket.routeTo} onChange={e => setNewTicket({...newTicket, routeTo: e.target.value.toUpperCase()})} placeholder={t("lhr")} maxLength={10} /></div>
+                <div><OptionalLabel>{t("travel_date")}</OptionalLabel><Input type="date" value={newTicket.travelDate} onChange={e => setNewTicket({...newTicket, travelDate: e.target.value})} /></div>
                 <div><OptionalLabel>{t("return_date")}</OptionalLabel><Input type="date" value={newTicket.returnDate} onChange={e => setNewTicket({...newTicket, returnDate: e.target.value})} /></div>
                 <div>
                   <OptionalLabel>{t("trip_type")}</OptionalLabel>
@@ -468,7 +468,7 @@ export default function TicketsPage() {
             <div className="pt-4 border-t">
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 {createMode === "single" ? t("booking_information") : t("shared_booking_details")}
-                <span className="ml-2 normal-case font-normal text-slate-400">{t("optional_1_1")}</span>
+                <span className="ml-2 normal-case font-normal text-slate-400">{t("optional")}</span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {createMode === "single" && (
@@ -478,19 +478,19 @@ export default function TicketsPage() {
                   </>
                 )}
                 <div className={createMode === "multiple" ? "sm:col-span-2" : ""}>
-                  <OptionalLabel>{t("airline_1_1_1")}</OptionalLabel>
+                  <OptionalLabel>{t("airline")}</OptionalLabel>
                   <Select onValueChange={v => setNewTicket({...newTicket, airlineId: Number(v)})}>
                     <SelectTrigger><SelectValue placeholder={t("select_airline")} /></SelectTrigger>
                     <SelectContent>
                       {(airlines || []).length === 0 ? (
-                        <SelectItem value="__empty__" disabled>{t("no_records_found_1_1")}</SelectItem>
+                        <SelectItem value="__empty__" disabled>{t("no_records_found")}</SelectItem>
                       ) : (
                         (airlines || []).map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)
                       )}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="sm:col-span-2"><OptionalLabel>{t("notes_1_1_1_1_1_1_1")}</OptionalLabel><Input value={newTicket.notes} onChange={e => setNewTicket({...newTicket, notes: e.target.value})} placeholder={t("additional_notes")} /></div>
+                <div className="sm:col-span-2"><OptionalLabel>{t("notes")}</OptionalLabel><Input value={newTicket.notes} onChange={e => setNewTicket({...newTicket, notes: e.target.value})} placeholder={t("additional_notes")} /></div>
               </div>
             </div>
 
@@ -510,31 +510,31 @@ export default function TicketsPage() {
                     <div key={entry.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/30">
                       <div className="sm:col-span-1 text-xs font-medium text-slate-500 pb-2">#{index + 1}</div>
                       <div className="sm:col-span-3">
-                        <Label className="text-xs">{t("first_name_1_1")}<span className="text-red-500">*</span></Label>
+                        <Label className="text-xs">{t("first_name")}<span className="text-red-500">*</span></Label>
                         <Input
                           value={entry.passengerFirstName}
                           onChange={(e) => updateBulkEntry(entry.id, "passengerFirstName", e.target.value)}
-                          placeholder={t("john_1")}
+                          placeholder={t("john")}
                         />
                       </div>
                       <div className="sm:col-span-3">
-                        <Label className="text-xs">{t("last_name_1_1")}<span className="text-red-500">*</span></Label>
+                        <Label className="text-xs">{t("last_name")}<span className="text-red-500">*</span></Label>
                         <Input
                           value={entry.passengerLastName}
                           onChange={(e) => updateBulkEntry(entry.id, "passengerLastName", e.target.value)}
-                          placeholder={t("doe_1")}
+                          placeholder={t("doe")}
                         />
                       </div>
                       <div className="sm:col-span-2">
-                        <Label className="text-xs">{t("pnr")}<span className="text-slate-400 font-normal">{t("optional_1_1_1")}</span></Label>
+                        <Label className="text-xs">{t("pnr")}<span className="text-slate-400 font-normal">{t("optional")}</span></Label>
                         <Input
                           value={entry.pnrCode}
                           onChange={(e) => updateBulkEntry(entry.id, "pnrCode", e.target.value)}
-                          placeholder={t("abc123_1")}
+                          placeholder={t("abc123")}
                         />
                       </div>
                       <div className="sm:col-span-2">
-                        <Label className="text-xs">{t("ticket_1_2_1")}<span className="text-slate-400 font-normal">{t("optional_1_1_1_1")}</span></Label>
+                        <Label className="text-xs">{t("ticket")}<span className="text-slate-400 font-normal">{t("optional")}</span></Label>
                         <Input
                           value={entry.ticketNumber}
                           onChange={(e) => updateBulkEntry(entry.id, "ticketNumber", e.target.value)}
@@ -604,7 +604,7 @@ export default function TicketsPage() {
       {/* Tickets Info Under Search */}
       {ticketsData && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 px-1">
-          <span>{t("showing")}<strong>{ticketsData.items.length}</strong>{t("of_1")}<strong>{ticketsData.total}</strong> tickets
+          <span>{t("showing")}<strong>{ticketsData.items.length}</strong>{t("of")}<strong>{ticketsData.total}</strong> tickets
             {status && <span className="ml-1">{t("filtered_by")}<span className="capitalize">{status}</span>)</span>}
           </span>
           <span>Page {ticketsData.page} of {Math.max(1, Math.ceil(ticketsData.total / ticketsData.limit))}</span>
@@ -618,14 +618,14 @@ export default function TicketsPage() {
             <table className="w-full text-sm min-w-[800px]">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b">
                 <tr>
-                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("ticket_1_2_1_1")}</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("ticket")}</th>
                   <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("passenger")}</th>
-                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("route_1_1")}</th>
-                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("airline_1_1_1_1")}</th>
-                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("class_1")}</th>
-                  <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</th>
-                  <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</th>
-                  <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("actions_1_1_1")}</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("route")}</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("airline")}</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("class")}</th>
+                  <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("amount")}</th>
+                  <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("statusColumn")}</th>
+                  <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -680,17 +680,17 @@ export default function TicketsPage() {
                           {ticket.status === "pending" && canApprove && (
                             <>
                               <Button size="sm" variant="ghost" className="text-emerald-600 h-7 text-xs px-2" onClick={() => approveTicket.mutate({ id: ticket.id })} disabled={approveTicket.isPending}>
-                                <CheckCircle className="h-3 w-3 mr-1" />{t("approve_1_1")}</Button>
+                                <CheckCircle className="h-3 w-3 mr-1" />{t("approve")}</Button>
                               <Button size="sm" variant="ghost" className="text-red-600 h-7 text-xs px-2" onClick={() => rejectTicket.mutate({ id: ticket.id })} disabled={rejectTicket.isPending}>
-                                <XCircle className="h-3 w-3 mr-1" />{t("reject_1_1")}</Button>
+                                <XCircle className="h-3 w-3 mr-1" />{t("reject")}</Button>
                             </>
                           )}
                           {ticket.status === "pending" && !canApprove && (
-                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded">{t("pending_1_1")}</span>
+                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded">{t("pending")}</span>
                           )}
                           {ticket.status === "confirmed" && (
                             <span className="inline-flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-2 py-1 rounded" title={t("invoice_auto_generated_on_approval")}>
-                              <FileText className="h-3 w-3 mr-1" />{t("invoice_1_1_1")}</span>
+                              <FileText className="h-3 w-3 mr-1" />{t("invoice")}</span>
                           )}
                           {(ticket.status === "confirmed" || ticket.status === "completed") && (
                             <Button size="sm" variant="ghost" className="text-indigo-600 h-7 text-xs px-2" onClick={async () => {
@@ -700,7 +700,7 @@ export default function TicketsPage() {
                                 doc.save(`voucher-${data.ticket.ticketNumber || ticket.id}.pdf`);
                               }
                             }}>
-                              <Download className="h-3 w-3 mr-1" />{t("voucher_1")}</Button>
+                              <Download className="h-3 w-3 mr-1" />{t("voucher")}</Button>
                           )}
                           {(ticket.status === "confirmed" || ticket.status === "completed") && ticket.customerId && ticket.paymentStatus !== "paid" && canApprove && (
                             <Button
@@ -715,7 +715,7 @@ export default function TicketsPage() {
                                 setPaymentForm({ amount: String(Math.max(0, charge - paid)), description: "" });
                               }}
                             >
-                              <DollarSign className="h-3 w-3 mr-1" />{t("pay_1")}</Button>
+                              <DollarSign className="h-3 w-3 mr-1" />{t("pay")}</Button>
                           )}
                           {ticket.status === "confirmed" && canApprove && (
                             <Button size="sm" variant="ghost" className="text-slate-600 h-7 text-xs px-2" onClick={() => { setRefundTicketId(ticket.id); setRefundForm({ refundAmount: String(ticket.totalAmount), penaltyAmount: "", reason: "" }); }}>
@@ -750,7 +750,7 @@ export default function TicketsPage() {
           {isError && (
             <div className="p-6 text-center">
               <p className="text-sm text-red-500 mb-2">{t("failed_to_load_tickets")}</p>
-              <Button size="sm" variant="outline" onClick={() => (refetch as () => Promise<unknown>)()}>{t("retry_1_1_1_1_1_1")}</Button>
+              <Button size="sm" variant="outline" onClick={() => (refetch as () => Promise<unknown>)()}>{t("retry")}</Button>
             </div>
           )}
           {!isLoading && !isError && (ticketsData?.items || []).length === 0 && (
@@ -760,9 +760,9 @@ export default function TicketsPage() {
           )}
           {ticketsData && ticketsData.total > 10 && (
             <div className="flex justify-center p-3 gap-2">
-              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>{t("previous_1_1")}</Button>
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>{t("previous")}</Button>
               <span className="text-sm text-slate-500 py-2">{t("page_of", { page, total: Math.ceil(ticketsData.total / ticketsData.limit) })}</span>
-              <Button variant="outline" size="sm" disabled={page >= Math.ceil(ticketsData.total / ticketsData.limit)} onClick={() => setPage(p => p + 1)}>{t("next_1_1")}</Button>
+              <Button variant="outline" size="sm" disabled={page >= Math.ceil(ticketsData.total / ticketsData.limit)} onClick={() => setPage(p => p + 1)}>{t("next")}</Button>
             </div>
           )}
         </CardContent>
@@ -783,11 +783,11 @@ export default function TicketsPage() {
           <div className="space-y-3 pt-4">
             <p className="text-xs text-slate-500">{t("payment_is_applied_to_the_ticket_invoice_via_the_unified_ar_path_no_duplicate_jo")}</p>
             <div>
-              <label className="text-sm text-slate-500">{t("amount_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</label>
+              <label className="text-sm text-slate-500">{t("amount")}</label>
               <Input type="number" step="0.01" value={paymentForm.amount} onChange={e => setPaymentForm(s => ({ ...s, amount: e.target.value }))} placeholder="0.00" />
             </div>
             <div>
-              <label className="text-sm text-slate-500">{t("description_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</label>
+              <label className="text-sm text-slate-500">{t("description")}</label>
               <Input value={paymentForm.description} onChange={e => setPaymentForm(s => ({ ...s, description: e.target.value }))} placeholder={t("optional_note")} />
             </div>
             <Button
@@ -1007,22 +1007,22 @@ function TicketEditForm({
         <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded">{tc("financial_fields_locked")}</p>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div><Label className="text-xs text-slate-500">{t("ticket_number_1")}</Label><Input value={form.ticketNumber} onChange={e => setForm({ ...form, ticketNumber: e.target.value })} /></div>
-        <div><Label className="text-xs text-slate-500">{t("pnr_code_1")}</Label><Input value={form.pnrCode} onChange={e => setForm({ ...form, pnrCode: e.target.value })} /></div>
-        <div><Label className="text-xs text-slate-500">{t("route_1_1_1")}</Label>
+        <div><Label className="text-xs text-slate-500">{t("ticket_number")}</Label><Input value={form.ticketNumber} onChange={e => setForm({ ...form, ticketNumber: e.target.value })} /></div>
+        <div><Label className="text-xs text-slate-500">{t("pnr_code")}</Label><Input value={form.pnrCode} onChange={e => setForm({ ...form, pnrCode: e.target.value })} /></div>
+        <div><Label className="text-xs text-slate-500">{t("route")}</Label>
           <div className="flex gap-2">
             <Input value={form.routeFrom} onChange={e => setForm({ ...form, routeFrom: e.target.value })} placeholder={t("from")} />
             <Input value={form.routeTo} onChange={e => setForm({ ...form, routeTo: e.target.value })} placeholder={t("to")} />
           </div>
         </div>
-        <div><Label className="text-xs text-slate-500">{t("travel_date_1_1")}</Label><Input type="date" value={form.travelDate} onChange={e => setForm({ ...form, travelDate: e.target.value })} /></div>
-        <div><Label className="text-xs text-slate-500">{t("airline_1_1_1_1_1")}</Label>
+        <div><Label className="text-xs text-slate-500">{t("travel_date")}</Label><Input type="date" value={form.travelDate} onChange={e => setForm({ ...form, travelDate: e.target.value })} /></div>
+        <div><Label className="text-xs text-slate-500">{t("airline")}</Label>
           <Select value={form.airlineId > 0 ? form.airlineId.toString() : ""} onValueChange={v => setForm({ ...form, airlineId: Number(v) })}>
             <SelectTrigger><SelectValue placeholder={t("select_airline")} /></SelectTrigger>
             <SelectContent>{airlines.map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div><Label className="text-xs text-slate-500">{t("class_1_1")}</Label>
+        <div><Label className="text-xs text-slate-500">{t("class")}</Label>
           <Select value={form.class} onValueChange={v => setForm({ ...form, class: v as typeof form.class })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -1044,7 +1044,7 @@ function TicketEditForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t pt-4">
           <div><Label className="text-xs text-slate-500">{t("booking_wallet")}</Label>
             <Select value={form.walletId > 0 ? form.walletId.toString() : ""} onValueChange={v => setForm({ ...form, walletId: Number(v) })}>
-              <SelectTrigger><SelectValue placeholder={t("select_wallet_1")} /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("select_wallet")} /></SelectTrigger>
               <SelectContent>{wallets.map(w => <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -1058,9 +1058,9 @@ function TicketEditForm({
             </Select>
           </div>
           <div><Label className="text-xs text-slate-500">{t("ticket_price")}</Label><Input type="number" value={form.ticketPrice} onChange={e => setForm({ ...form, ticketPrice: e.target.value })} /></div>
-          <div><Label className="text-xs text-slate-500">{t("tax_1_2_1")}</Label><Input type="number" value={form.taxAmount} onChange={e => setForm({ ...form, taxAmount: e.target.value })} /></div>
-          <div><Label className="text-xs text-slate-500">{t("commission_1_2")}</Label><Input type="number" value={form.commissionAmount} onChange={e => setForm({ ...form, commissionAmount: e.target.value })} /></div>
-          <div><Label className="text-xs text-slate-500">{t("discount_1_2")}</Label><Input type="number" value={form.discountAmount} onChange={e => setForm({ ...form, discountAmount: e.target.value })} /></div>
+          <div><Label className="text-xs text-slate-500">{t("tax")}</Label><Input type="number" value={form.taxAmount} onChange={e => setForm({ ...form, taxAmount: e.target.value })} /></div>
+          <div><Label className="text-xs text-slate-500">{t("commission")}</Label><Input type="number" value={form.commissionAmount} onChange={e => setForm({ ...form, commissionAmount: e.target.value })} /></div>
+          <div><Label className="text-xs text-slate-500">{t("discount")}</Label><Input type="number" value={form.discountAmount} onChange={e => setForm({ ...form, discountAmount: e.target.value })} /></div>
         </div>
       )}
       <Button className="w-full bg-indigo-600" disabled={saving || !form.passengerFirstName.trim() || !form.passengerLastName.trim()} onClick={handleSave}>
@@ -1078,22 +1078,22 @@ function TicketDetails({ id }: { id: number }) {
   return (
     <div className="space-y-4 pt-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div><Label className="text-xs text-slate-500">{t("ticket_number_1")}</Label><p className="font-medium text-sm">{ticket.ticketNumber || "-"}</p></div>
-        <div><Label className="text-xs text-slate-500">{t("pnr_code_1")}</Label><p className="font-medium text-sm">{ticket.pnrCode || "-"}</p></div>
-        <div><Label className="text-xs text-slate-500">{t("route_1_1_1")}</Label><p className="font-medium text-sm">{ticket.routeFrom || "?"} → {ticket.routeTo || "?"}</p></div>
-        <div><Label className="text-xs text-slate-500">{t("airline_1_1_1_1_1")}</Label><p className="font-medium text-sm">{ticket.airline?.name || "-"}</p></div>
-        <div><Label className="text-xs text-slate-500">{t("travel_date_1_1")}</Label><p className="font-medium text-sm">{ticket.travelDate ? new Date(ticket.travelDate).toLocaleDateString() : "-"}</p></div>
-        <div><Label className="text-xs text-slate-500">{t("class_1_1")}</Label><p className="font-medium text-sm capitalize">{ticket.class?.replace("_", " ") || "-"}</p></div>
+        <div><Label className="text-xs text-slate-500">{t("ticket_number")}</Label><p className="font-medium text-sm">{ticket.ticketNumber || "-"}</p></div>
+        <div><Label className="text-xs text-slate-500">{t("pnr_code")}</Label><p className="font-medium text-sm">{ticket.pnrCode || "-"}</p></div>
+        <div><Label className="text-xs text-slate-500">{t("route")}</Label><p className="font-medium text-sm">{ticket.routeFrom || "?"} → {ticket.routeTo || "?"}</p></div>
+        <div><Label className="text-xs text-slate-500">{t("airline")}</Label><p className="font-medium text-sm">{ticket.airline?.name || "-"}</p></div>
+        <div><Label className="text-xs text-slate-500">{t("travel_date")}</Label><p className="font-medium text-sm">{ticket.travelDate ? new Date(ticket.travelDate).toLocaleDateString() : "-"}</p></div>
+        <div><Label className="text-xs text-slate-500">{t("class")}</Label><p className="font-medium text-sm capitalize">{ticket.class?.replace("_", " ") || "-"}</p></div>
       </div>
       <div className="border-t pt-4">
         <Label className="text-xs text-slate-500">{t("financial_breakdown")}</Label>
         <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
           <span className="text-slate-600">{t("due")}</span><span className="text-right font-medium">${Number(ticket.totalAmount).toLocaleString()}</span>
-          <span className="text-slate-600">{t("tax_1_2_1")}</span><span className="text-right font-medium">${Number(ticket.taxAmount).toLocaleString()}</span>
-          <span className="text-slate-600">{t("total_1_2")}</span><span className="text-right font-bold">${Number(ticket.totalAmount).toLocaleString()}</span>
-          <span className="text-slate-600">{t("commission_1_2")}</span><span className="text-right font-medium">${Number(ticket.commissionAmount).toLocaleString()}</span>
-          <span className="text-slate-600">{t("discount_1_2")}</span><span className="text-right font-medium">${Number(ticket.discountAmount ?? 0).toLocaleString()}</span>
-          <span className="text-slate-600">{t("wallet_deduction_1_1")}</span><span className="text-right font-bold">${Number(ticket.netPayable).toLocaleString()}</span>
+          <span className="text-slate-600">{t("tax")}</span><span className="text-right font-medium">${Number(ticket.taxAmount).toLocaleString()}</span>
+          <span className="text-slate-600">{t("total")}</span><span className="text-right font-bold">${Number(ticket.totalAmount).toLocaleString()}</span>
+          <span className="text-slate-600">{t("commission")}</span><span className="text-right font-medium">${Number(ticket.commissionAmount).toLocaleString()}</span>
+          <span className="text-slate-600">{t("discount")}</span><span className="text-right font-medium">${Number(ticket.discountAmount ?? 0).toLocaleString()}</span>
+          <span className="text-slate-600">{t("wallet_deduction")}</span><span className="text-right font-bold">${Number(ticket.netPayable).toLocaleString()}</span>
         </div>
       </div>
       {ticket.passengers && ticket.passengers.length > 0 && (

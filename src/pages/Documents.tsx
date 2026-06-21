@@ -153,23 +153,23 @@ export default function DocumentsPage() {
           <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder={t("entity_type")} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{t("all_entities")}</SelectItem>
-            <SelectItem value="invoice">{t("invoice_1")}</SelectItem>
-            <SelectItem value="ticket">{t("ticket_1")}</SelectItem>
+            <SelectItem value="invoice">{t("invoice")}</SelectItem>
+            <SelectItem value="ticket">{t("ticket")}</SelectItem>
             <SelectItem value="deposit">{t("deposit")}</SelectItem>
             <SelectItem value="supplier_payment">{t("payment")}</SelectItem>
-            <SelectItem value="expense">{t("expense_1")}</SelectItem>
+            <SelectItem value="expense">{t("expense")}</SelectItem>
             <SelectItem value="report">{t("report")}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={documentType} onValueChange={setDocumentType}>
           <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder={t("doc_type")} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">{t("all_types_1")}</SelectItem>
-            <SelectItem value="invoice">{t("invoice_1_1")}</SelectItem>
-            <SelectItem value="receipt">{t("receipt_1")}</SelectItem>
+            <SelectItem value="__all__">{t("all_types")}</SelectItem>
+            <SelectItem value="invoice">{t("invoice")}</SelectItem>
+            <SelectItem value="receipt">{t("receipt")}</SelectItem>
             <SelectItem value="voucher">{t("voucher")}</SelectItem>
             <SelectItem value="statement">{t("statement")}</SelectItem>
-            <SelectItem value="report">{t("report_1")}</SelectItem>
+            <SelectItem value="report">{t("report")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

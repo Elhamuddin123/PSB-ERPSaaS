@@ -215,7 +215,7 @@ export default function SuppliersPage() {
                 <Select value={form.supplierType} onValueChange={v => setForm({ ...form, supplierType: v as any })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="airline">{t("airline_1")}</SelectItem>
+                    <SelectItem value="airline">{t("airline")}</SelectItem>
                     <SelectItem value="hotel">{t("hotel")}</SelectItem>
                     <SelectItem value="tour_operator">{t("tour_operator")}</SelectItem>
                     <SelectItem value="car_rental">{t("car_rental")}</SelectItem>
@@ -227,21 +227,21 @@ export default function SuppliersPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>{t("email_1_1_1_1")}</Label>
+                  <Label>{t("email")}</Label>
                   <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
                 </div>
                 <div>
-                  <Label>{t("phone_1_1_1_1_1")}</Label>
+                  <Label>{t("phone")}</Label>
                   <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
                 </div>
               </div>
               <div>
-                <Label>{t("address_1")}</Label>
+                <Label>{t("address")}</Label>
                 <Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>{t("city_1")}</Label>
+                  <Label>{t("city")}</Label>
                   <Input value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
                 </div>
                 <div>
@@ -269,12 +269,12 @@ export default function SuppliersPage() {
                   <Input type="number" value={form.paymentTerms} onChange={e => setForm({ ...form, paymentTerms: e.target.value })} />
                 </div>
                 <div>
-                  <Label>{t("currency_1")}</Label>
+                  <Label>{t("currency")}</Label>
                   <Input value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} maxLength={3} />
                 </div>
               </div>
               <div>
-                <Label>{t("notes_1_1_1_1_1_1")}</Label>
+                <Label>{t("notes")}</Label>
                 <Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
               </div>
               <Button onClick={handleCreate} disabled={createSupplier.isPending || !form.companyName.trim()} className="w-full">
@@ -300,7 +300,7 @@ export default function SuppliersPage() {
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-emerald-50"><Building2 className="h-4 w-4 text-emerald-600" /></div>
-              <span className="text-xs text-slate-500">{t("active_1_1_1")}</span>
+              <span className="text-xs text-slate-500">{t("active")}</span>
             </div>
             <p className="text-xl font-bold mt-1">{stats?.activeSuppliers ?? 0}</p>
           </CardContent>
@@ -333,27 +333,27 @@ export default function SuppliersPage() {
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder={t("type_1_1_1_1")} />
+            <SelectValue placeholder={t("type")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">{t("all_types_1_1")}</SelectItem>
-            <SelectItem value="airline">{t("airline_1_1")}</SelectItem>
-            <SelectItem value="hotel">{t("hotel_1")}</SelectItem>
-            <SelectItem value="tour_operator">{t("tour_operator_1")}</SelectItem>
-            <SelectItem value="car_rental">{t("car_rental_1")}</SelectItem>
-            <SelectItem value="insurance">{t("insurance_1")}</SelectItem>
-            <SelectItem value="visa_service">{t("visa_service_1")}</SelectItem>
-            <SelectItem value="other">{t("other_1")}</SelectItem>
+            <SelectItem value="__all__">{t("all_types")}</SelectItem>
+            <SelectItem value="airline">{t("airline")}</SelectItem>
+            <SelectItem value="hotel">{t("hotel")}</SelectItem>
+            <SelectItem value="tour_operator">{t("tour_operator")}</SelectItem>
+            <SelectItem value="car_rental">{t("car_rental")}</SelectItem>
+            <SelectItem value="insurance">{t("insurance")}</SelectItem>
+            <SelectItem value="visa_service">{t("visa_service")}</SelectItem>
+            <SelectItem value="other">{t("other")}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder={t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")} />
+            <SelectValue placeholder={t("statusColumn")} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{t("all_status")}</SelectItem>
-            <SelectItem value="active">{t("active_1_1_1_1")}</SelectItem>
-            <SelectItem value="inactive">{t("inactive_1_1")}</SelectItem>
+            <SelectItem value="active">{t("active")}</SelectItem>
+            <SelectItem value="inactive">{t("inactive")}</SelectItem>
             <SelectItem value="blocked">{t("blocked")}</SelectItem>
           </SelectContent>
         </Select>
@@ -427,7 +427,7 @@ export default function SuppliersPage() {
                     <span className="font-semibold">${Number(supplier.balanceDue).toLocaleString()} due</span>
                   </div>
                   <div className="mt-2 text-right">
-                    <span className="text-[10px] text-indigo-600 flex items-center justify-end gap-1">{t("view_details_1")}<ArrowRight className="h-3 w-3" />
+                    <span className="text-[10px] text-indigo-600 flex items-center justify-end gap-1">{t("view_details")}<ArrowRight className="h-3 w-3" />
                     </span>
                   </div>
                 </Link>
@@ -470,7 +470,7 @@ export default function SuppliersPage() {
                 <Select value={editSupplier.supplierType} onValueChange={v => setEditSupplier({ ...editSupplier, supplierType: v as typeof editSupplier.supplierType })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="airline">{t("airline_1")}</SelectItem>
+                    <SelectItem value="airline">{t("airline")}</SelectItem>
                     <SelectItem value="hotel">{t("hotel")}</SelectItem>
                     <SelectItem value="tour_operator">{t("tour_operator")}</SelectItem>
                     <SelectItem value="car_rental">{t("car_rental")}</SelectItem>
@@ -481,33 +481,33 @@ export default function SuppliersPage() {
                 </Select>
               </div>
               <div>
-                <Label>{t("status_1_1_1_1_1_1_1_1_1_1_1_1_1_1_1")}</Label>
+                <Label>{t("statusColumn")}</Label>
                 <Select value={editSupplier.status} onValueChange={v => setEditSupplier({ ...editSupplier, status: v as typeof editSupplier.status })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">{t("active_1_1_1_1")}</SelectItem>
-                    <SelectItem value="inactive">{t("inactive_1_1")}</SelectItem>
+                    <SelectItem value="active">{t("active")}</SelectItem>
+                    <SelectItem value="inactive">{t("inactive")}</SelectItem>
                     <SelectItem value="blocked">{t("blocked")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>{t("email_1_1_1_1")}</Label>
+                  <Label>{t("email")}</Label>
                   <Input type="email" value={editSupplier.email} onChange={e => setEditSupplier({ ...editSupplier, email: e.target.value })} />
                 </div>
                 <div>
-                  <Label>{t("phone_1_1_1_1_1")}</Label>
+                  <Label>{t("phone")}</Label>
                   <Input value={editSupplier.phone} onChange={e => setEditSupplier({ ...editSupplier, phone: e.target.value })} />
                 </div>
               </div>
               <div>
-                <Label>{t("address_1")}</Label>
+                <Label>{t("address")}</Label>
                 <Input value={editSupplier.address} onChange={e => setEditSupplier({ ...editSupplier, address: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>{t("city_1")}</Label>
+                  <Label>{t("city")}</Label>
                   <Input value={editSupplier.city} onChange={e => setEditSupplier({ ...editSupplier, city: e.target.value })} />
                 </div>
                 <div>
@@ -535,12 +535,12 @@ export default function SuppliersPage() {
                   <Input type="number" value={editSupplier.paymentTerms} onChange={e => setEditSupplier({ ...editSupplier, paymentTerms: e.target.value })} />
                 </div>
                 <div>
-                  <Label>{t("currency_1")}</Label>
+                  <Label>{t("currency")}</Label>
                   <Input value={editSupplier.currency} onChange={e => setEditSupplier({ ...editSupplier, currency: e.target.value })} maxLength={3} />
                 </div>
               </div>
               <div>
-                <Label>{t("notes_1_1_1_1_1_1")}</Label>
+                <Label>{t("notes")}</Label>
                 <Input value={editSupplier.notes} onChange={e => setEditSupplier({ ...editSupplier, notes: e.target.value })} />
               </div>
               <Button onClick={handleUpdate} disabled={updateSupplier.isPending || !editSupplier.companyName.trim()} className="w-full">

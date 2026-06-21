@@ -277,7 +277,7 @@ function SidebarTrigger({
       {...props}
     >
       <PanelLeftIcon />
-      <span className="sr-only">{t("toggle_sidebar_1_1")}</span>
+      <span className="sr-only">{t("toggle_sidebar")}</span>
     </Button>
   )
 }
@@ -293,7 +293,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       aria-label={t("toggle_sidebar")}
       tabIndex={-1}
       onClick={toggleSidebar}
-      title={t("toggle_sidebar_1")}
+      title={t("toggle_sidebar")}
       className={cn(
         "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",

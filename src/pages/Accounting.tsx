@@ -99,7 +99,7 @@ export default function AccountingPage() {
               <div className="space-y-3 pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div><Label>{t("account_code")}</Label><Input value={newAccount.code} onChange={e => setNewAccount({...newAccount, code: e.target.value})} placeholder="1000" /></div>
-                  <div><Label>{t("account_name_1")}</Label><Input value={newAccount.name} onChange={e => setNewAccount({...newAccount, name: e.target.value})} placeholder={t("account_name")} /></div>
+                  <div><Label>{t("account_name")}</Label><Input value={newAccount.name} onChange={e => setNewAccount({...newAccount, name: e.target.value})} placeholder={t("account_name")} /></div>
                 </div>
                 <div>
                   <Label>{t("account_type")}</Label>
@@ -114,7 +114,7 @@ export default function AccountingPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>{t("description_1_1")}</Label><Input value={newAccount.description} onChange={e => setNewAccount({...newAccount, description: e.target.value})} /></div>
+                <div><Label>{t("description")}</Label><Input value={newAccount.description} onChange={e => setNewAccount({...newAccount, description: e.target.value})} /></div>
                 <Button className="w-full bg-indigo-600" onClick={() => createAccount.mutate(newAccount)} disabled={!newAccount.code || !newAccount.name || createAccount.isPending}>{t("create_account")}</Button>
               </div>
             </DialogContent>
@@ -126,9 +126,9 @@ export default function AccountingPage() {
               <div className="space-y-3 pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div><Label>{t("entry_number")}</Label><Input value={newJournal.entryNumber} onChange={e => setNewJournal({...newJournal, entryNumber: e.target.value})} placeholder={t("je_2026_xxx")} /></div>
-                  <div><Label>{t("date_1")}</Label><Input type="date" value={newJournal.date} onChange={e => setNewJournal({...newJournal, date: e.target.value})} /></div>
+                  <div><Label>{t("date")}</Label><Input type="date" value={newJournal.date} onChange={e => setNewJournal({...newJournal, date: e.target.value})} /></div>
                 </div>
-                <div><Label>{t("description_1_1_1")}</Label><Input value={newJournal.description} onChange={e => setNewJournal({...newJournal, description: e.target.value})} /></div>
+                <div><Label>{t("description")}</Label><Input value={newJournal.description} onChange={e => setNewJournal({...newJournal, description: e.target.value})} /></div>
                 <div className="border rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between"><Label>{t("journal_lines")}</Label><Badge variant={balanced ? "default" : "destructive"}>{balanced ? "Balanced" : `Diff: $${(totalDebit - totalCredit).toFixed(2)}`}</Badge></div>
                   {newJournal.lines.map((line, i) => (
@@ -139,7 +139,7 @@ export default function AccountingPage() {
                           <SelectContent>{(accounts || []).map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.code} - {a.name}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
-                      <div className="sm:col-span-3"><Input className="text-xs" placeholder={t("description_1")} value={line.description} onChange={e => updateLine(i, "description", e.target.value)} /></div>
+                      <div className="sm:col-span-3"><Input className="text-xs" placeholder={t("description")} value={line.description} onChange={e => updateLine(i, "description", e.target.value)} /></div>
                       <div className="sm:col-span-2"><Input className="text-xs" type="number" placeholder={t("debit")} value={line.debit} onChange={e => updateLine(i, "debit", e.target.value)} /></div>
                       <div className="sm:col-span-2"><Input className="text-xs" type="number" placeholder={t("credit")} value={line.credit} onChange={e => updateLine(i, "credit", e.target.value)} /></div>
                       <div className="sm:col-span-1"><Button size="sm" variant="ghost" className="text-red-600 h-8 w-full" onClick={() => setNewJournal({...newJournal, lines: newJournal.lines.filter((_, idx) => idx !== i)})}>×</Button></div>
@@ -151,7 +151,7 @@ export default function AccountingPage() {
                   </div>
                   <Button size="sm" variant="outline" onClick={addLine}>{t("add_line")}</Button>
                 </div>
-                <Button className="w-full bg-indigo-600" onClick={() => createJournal.mutate(newJournal)} disabled={!balanced || !newJournal.entryNumber || !newJournal.description || !newJournal.date || createJournal.isPending || newJournal.lines.some(l => l.accountId <= 0)}>{t("create_journal_entry_1")}</Button>
+                <Button className="w-full bg-indigo-600" onClick={() => createJournal.mutate(newJournal)} disabled={!balanced || !newJournal.entryNumber || !newJournal.description || !newJournal.date || createJournal.isPending || newJournal.lines.some(l => l.accountId <= 0)}>{t("create_journal_entry")}</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -177,7 +177,7 @@ export default function AccountingPage() {
           <p className="text-lg sm:text-xl font-bold text-blue-600">${(financialSummary?.assets ?? 0).toLocaleString()}</p>
         </CardContent></Card>
         <Card className="border-0 shadow-sm sm:col-span-2 lg:col-span-1"><CardContent className="p-3 sm:p-4">
-          <p className="text-[10px] sm:text-xs text-slate-500">{t("equity_1")}</p>
+          <p className="text-[10px] sm:text-xs text-slate-500">{t("equity")}</p>
           <p className="text-lg sm:text-xl font-bold text-violet-600">${(financialSummary?.equity ?? 0).toLocaleString()}</p>
         </CardContent></Card>
       </div>
@@ -198,8 +198,8 @@ export default function AccountingPage() {
                 <SelectItem value="all">{t("all_types")}</SelectItem>
                 <SelectItem value="asset">{t("assets")}</SelectItem>
                 <SelectItem value="liability">{t("liabilities")}</SelectItem>
-                <SelectItem value="equity">{t("equity_1_1")}</SelectItem>
-                <SelectItem value="revenue">{t("revenue_1")}</SelectItem>
+                <SelectItem value="equity">{t("equity")}</SelectItem>
+                <SelectItem value="revenue">{t("revenue")}</SelectItem>
                 <SelectItem value="expense">{t("expenses")}</SelectItem>
               </SelectContent>
             </Select>
@@ -314,7 +314,7 @@ export default function AccountingPage() {
                                 </tr>
                               );
                             })}
-                            <tr className="border-t font-bold"><td className="py-1 text-[10px] sm:text-xs">{t("total_1")}</td><td className="py-1 text-right text-[10px] sm:text-xs">${Number(entry.totalDebit).toFixed(2)}</td><td className="py-1 text-right text-[10px] sm:text-xs">${Number(entry.totalCredit).toFixed(2)}</td></tr>
+                            <tr className="border-t font-bold"><td className="py-1 text-[10px] sm:text-xs">{t("total")}</td><td className="py-1 text-right text-[10px] sm:text-xs">${Number(entry.totalDebit).toFixed(2)}</td><td className="py-1 text-right text-[10px] sm:text-xs">${Number(entry.totalCredit).toFixed(2)}</td></tr>
                           </tbody>
                         </table>
                       </div>
@@ -333,12 +333,12 @@ export default function AccountingPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[500px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b"><tr>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("date_1_1")}</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("account_1")}</th>
-                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("description_1_1_1_1")}</th>
-                    <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("debit_1")}</th>
-                    <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("credit_1")}</th>
-                    <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("balance_1")}</th>
+                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("date")}</th>
+                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("account")}</th>
+                    <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("description")}</th>
+                    <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("debit")}</th>
+                    <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("credit")}</th>
+                    <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("balance")}</th>
                   </tr></thead>
                   <tbody>
                     {ledgerLoading && Array.from({ length: 5 }).map((_, i) => (
@@ -354,7 +354,7 @@ export default function AccountingPage() {
                     {ledgerError && (
                       <tr><td colSpan={6} className="p-6 text-center">
                         <p className="text-sm text-red-500 mb-2">{t("failed_to_load_ledger")}</p>
-                        <Button size="sm" variant="outline" onClick={() => refetchLedger()}><RotateCcw className="h-3 w-3 mr-1" />{t("retry_1")}</Button>
+                        <Button size="sm" variant="outline" onClick={() => refetchLedger()}><RotateCcw className="h-3 w-3 mr-1" />{t("retry")}</Button>
                       </td></tr>
                     )}
                     {!ledgerLoading && !ledgerError && (ledgerData || []).map(entry => (

@@ -675,7 +675,7 @@ export default function AdminPage() {
               onClick={() =>
                 setDialogOpen(false)
               }
-            >{t("cancel_1")}</Button>
+            >{t("cancel")}</Button>
 
             <Button onClick={handleConfirm}>
               {dialogAction === "approve"

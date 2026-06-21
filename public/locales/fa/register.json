@@ -34,9 +34,15 @@
   "print": "چاپ",
   "professionalPlan": "حرفه‌ای",
   "progressTimeline": {
-    "0": { "label": "ثبت‌نام ارسال شد" },
-    "1": { "label": "تأیید پرداخت" },
-    "2": { "label": "فعال‌سازی حساب" }
+    "0": {
+      "label": "ثبت‌نام ارسال شد"
+    },
+    "1": {
+      "label": "تأیید پرداخت"
+    },
+    "2": {
+      "label": "فعال‌سازی حساب"
+    }
   },
   "registrationCode": "کد ثبت نام",
   "selectedDuration": "مدت",

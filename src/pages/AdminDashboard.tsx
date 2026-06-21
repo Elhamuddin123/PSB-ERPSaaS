@@ -143,9 +143,9 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b">
                 <tr>
-                  <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("name_1")}</th>
+                  <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("name")}</th>
                   <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("role")}</th>
-                  <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("status_1")}</th>
+                  <th className="text-left p-3 font-medium text-slate-500 text-xs">{t("statusColumn")}</th>
                 </tr>
               </thead>
               <tbody>

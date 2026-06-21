@@ -67,11 +67,12 @@ export default function RegisterSuccessPage() {
 
     const dir = isRTL(i18n.language) ? "rtl" : "ltr";
     const pt = (key: string) => i18n.t(key, { ns: "register" });
+    const pc = (key: string) => i18n.t(key, { ns: "common" });
 
     printWindow.document.write(`
       <html dir="${dir}">
       <head>
-        <title>${pt("psb_erp_registration_token")}</title>
+        <title>${pt("title")}</title>
         <style>
           body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
           .header { text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 20px; margin-bottom: 30px; }
@@ -86,22 +87,22 @@ export default function RegisterSuccessPage() {
       </head>
       <body>
         <div class="header">
-          <h1 style="color: #4f46e5; margin: 0;">${pt("appName")}</h1>
-          <p style="color: #64748b; margin: 8px 0 0;">${pt("registration_confirmation")}</p>
+          <h1 style="color: #4f46e5; margin: 0;">PSB ERP</h1>
+          <p style="color: #64748b; margin: 8px 0 0;">${pt("successTitle")}</p>
         </div>
         <div class="token-box">
-          <p style="color: #64748b; margin-bottom: 12px;">${pt("your_registration_code")}</p>
+          <p style="color: #64748b; margin-bottom: 12px;">${pt("tokenLabel")}</p>
           <div class="token">${token}</div>
         </div>
         <div>
-          <div class="info-row"><span class="label">${pt("agency")}</span><span class="value">${agencyName}</span></div>
+          <div class="info-row"><span class="label">${pt("agencyName")}</span><span class="value">${agencyName}</span></div>
           <div class="info-row"><span class="label">${pt("plan")}</span><span class="value">${plan}</span></div>
-          <div class="info-row"><span class="label">${pt("duration")}</span><span class="value">${durationMonths} months</span></div>
-          ${pricing ? `<div class="info-row"><span class="label">${pt("amount_due")}</span><span class="value">${pricing.contactSales ? "Contact Sales" : `${pricing.totalAmount!.toFixed(0)} ${pricing.currency}`}</span></div>` : ""}
-          <div class="info-row"><span class="label">${pt("status_1_1_1_1_1_1_1_1_1")}</span><span><span class="status">${pt("pending_payment_verification")}</span></span></div>
+          <div class="info-row"><span class="label">${pt("duration")}</span><span class="value">${durationMonths} ${pc("months")}</span></div>
+          ${pricing ? `<div class="info-row"><span class="label">${pt("amountDue")}</span><span class="value">${pricing.contactSales ? pc("home.pricing.contactSales") : `${pricing.totalAmount!.toFixed(0)} ${pricing.currency}`}</span></div>` : ""}
+          <div class="info-row"><span class="label">${pc("statusColumn")}</span><span><span class="status">${pt("statusPending")}</span></span></div>
         </div>
         <div style="margin-top: 30px; background: #f8fafc; padding: 20px; border-radius: 8px;">
-          <p style="font-weight: 600; margin-bottom: 8px;">${pt("office_information")}</p>
+          <p style="font-weight: 600; margin-bottom: 8px;">${pt("officeInfo")}</p>
           <p style="color: #64748b; font-size: 13px; line-height: 1.6;">
             ${PLATFORM_PAYMENT_CONTACT.agencyName}<br>
             ${PLATFORM_PAYMENT_CONTACT.address}<br>
@@ -110,7 +111,7 @@ export default function RegisterSuccessPage() {
           </p>
         </div>
         <div class="footer">
-          <p>${pt("please_bring_this_document_to_our_office_to_complete_payment_verification_and_ac")}</p>
+          <p>${pt("pleaseBringDocument")}</p>
           <p style="margin-top: 8px;">© ${new Date().getFullYear()} PSB-ERP. All rights reserved.</p>
         </div>
       </body>

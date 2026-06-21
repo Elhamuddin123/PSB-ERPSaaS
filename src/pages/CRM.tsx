@@ -207,7 +207,7 @@ export default function CRMPage() {
         </CardContent></Card>
         <Card className="border-0 shadow-sm"><CardContent className="p-3 sm:p-4 flex items-center gap-3">
           <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0"><DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" /></div>
-          <div><p className="text-xs text-slate-500">{t("total_revenue_1")}</p><p className="text-xl sm:text-2xl font-bold">${(stats?.totalRevenue ?? 0).toLocaleString()}</p></div>
+          <div><p className="text-xs text-slate-500">{t("total_revenue")}</p><p className="text-xl sm:text-2xl font-bold">${(stats?.totalRevenue ?? 0).toLocaleString()}</p></div>
         </CardContent></Card>
         <Card className="border-0 shadow-sm"><CardContent className="p-3 sm:p-4 flex items-center gap-3">
           <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0"><UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" /></div>
@@ -234,13 +234,13 @@ export default function CRMPage() {
                 <Table className="min-w-[800px]">
                   <TableHeader>
                     <TableRow>
-                      <SortableTableHead label={t("name_1_1")} sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                      <SortableTableHead label={t("company_1")} sortKey="company" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                      <SortableTableHead label={t("name")} sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                      <SortableTableHead label={t("company")} sortKey="company" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                       <SortableTableHead label={t("customer_code")} sortKey="code" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                       <TableHead>{tc("contact")}</TableHead>
-                      <SortableTableHead label={t("status_1_1_1_1")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                      <SortableTableHead label={t("statusColumn")} sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                       <SortableTableHead label={t("totalBookings")} sortKey="bookings" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="text-right" />
-                      <SortableTableHead label={t("total_revenue_1")} sortKey="revenue" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="text-right" />
+                      <SortableTableHead label={t("total_revenue")} sortKey="revenue" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="text-right" />
                       <TableHead className="text-right">{t("actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -291,10 +291,10 @@ export default function CRMPage() {
                 <table className="w-full text-sm min-w-[600px]">
                   <thead className="bg-slate-50 dark:bg-slate-800 border-b">
                     <tr>
-                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("name_1_1")}</th>
-                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("company_1")}</th>
-                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("source_1")}</th>
-                      <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("status_1_1_1_1")}</th>
+                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("name")}</th>
+                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("company")}</th>
+                      <th className="text-left p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("source")}</th>
+                      <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("statusColumn")}</th>
                       <th className="text-right p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("value")}</th>
                       <th className="text-center p-2 sm:p-3 font-medium text-slate-500 text-xs">{t("actions")}</th>
                     </tr>

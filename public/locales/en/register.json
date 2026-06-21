@@ -12,7 +12,7 @@
   "duplicateAgency": "This agency name is already taken",
   "duplicateEmail": "This email is already registered",
   "duration": "Duration",
-  "email": "Email Address",
+  "email": "Email",
   "emailPlaceholder": "Enter email address",
   "enterprisePlan": "Enterprise",
   "goToLogin": "Go to Login",
@@ -27,16 +27,22 @@
   "password": "Password",
   "passwordHint": "At least 8 characters",
   "passwordPlaceholder": "Create a strong password",
-  "phone": "Phone Number",
+  "phone": "Phone",
   "phonePlaceholder": "Enter phone number",
   "plan": "Select Plan",
   "pleaseBringDocument": "Please Bring Document",
   "print": "Print",
   "professionalPlan": "Professional",
   "progressTimeline": {
-    "0": { "label": "Registration submitted" },
-    "1": { "label": "Payment verification" },
-    "2": { "label": "Account activation" }
+    "0": {
+      "label": "Registration submitted"
+    },
+    "1": {
+      "label": "Payment verification"
+    },
+    "2": {
+      "label": "Account activation"
+    }
   },
   "registrationCode": "Registration code",
   "selectedDuration": "Duration",

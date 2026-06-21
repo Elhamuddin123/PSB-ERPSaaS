@@ -1,0 +1,60 @@
+{
+  "fixes": {
+    "common": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "login": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "register": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "dashboard": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "sidebar": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "admin": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "tickets": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "customers": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "reports": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    },
+    "invoices": {
+      "en": [],
+      "fa": [],
+      "ps": []
+    }
+  },
+  "totals": {
+    "en": 0,
+    "fa": 0,
+    "ps": 0
+  },
+  "examples": []
+}

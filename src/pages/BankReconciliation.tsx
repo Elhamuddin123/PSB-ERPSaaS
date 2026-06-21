@@ -148,12 +148,12 @@ export default function BankReconciliationPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label>{t("statement_lines")}</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addLine}>{t("add_line_1")}</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={addLine}>{t("add_line")}</Button>
                 </div>
                 {lineInputs.map((line, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end text-xs">
                     <div className="col-span-2"><Input type="date" value={line.transactionDate} onChange={e => updateLine(idx, "transactionDate", e.target.value)} /></div>
-                    <div className="col-span-3"><Input value={line.description} onChange={e => updateLine(idx, "description", e.target.value)} placeholder={t("description_1_1_1_1_1")} /></div>
+                    <div className="col-span-3"><Input value={line.description} onChange={e => updateLine(idx, "description", e.target.value)} placeholder={t("description")} /></div>
                     <div className="col-span-2"><Input value={line.reference} onChange={e => updateLine(idx, "reference", e.target.value)} placeholder={t("ref")} /></div>
                     <div className="col-span-1"><Input type="number" value={line.debit} onChange={e => updateLine(idx, "debit", e.target.value)} placeholder={t("dr")} /></div>
                     <div className="col-span-1"><Input type="number" value={line.credit} onChange={e => updateLine(idx, "credit", e.target.value)} placeholder={t("cr")} /></div>
@@ -205,11 +205,11 @@ export default function BankReconciliationPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("account_1_1")}</TableHead>
+                    <TableHead>{t("account")}</TableHead>
                     <TableHead>{t("period")}</TableHead>
                     <TableHead>{t("opening")}</TableHead>
                     <TableHead>{t("closing")}</TableHead>
-                    <TableHead>{t("status_1_1")}</TableHead>
+                    <TableHead>{t("statusColumn")}</TableHead>
                     <TableHead className="text-right">{t("action")}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -246,13 +246,13 @@ export default function BankReconciliationPage() {
                       <ArrowRightLeft className="h-4 w-4 mr-1" /> {autoMatch.isPending ? "Matching..." : "Auto Match"}
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => setSelectedStatement(null)}>{t("back_1")}</Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedStatement(null)}>{t("back")}</Button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("opening_1")}</p><p className="text-lg font-bold">${Number(detailData.statement.openingBalance).toLocaleString()}</p></CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("closing_1")}</p><p className="text-lg font-bold">${Number(detailData.statement.closingBalance).toLocaleString()}</p></CardContent></Card>
+                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("opening")}</p><p className="text-lg font-bold">${Number(detailData.statement.openingBalance).toLocaleString()}</p></CardContent></Card>
+                <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("closing")}</p><p className="text-lg font-bold">${Number(detailData.statement.closingBalance).toLocaleString()}</p></CardContent></Card>
                 <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("debits")}</p><p className="text-lg font-bold">${Number(detailData.statement.totalDebits).toLocaleString()}</p></CardContent></Card>
                 <Card className="border-0 shadow-sm"><CardContent className="p-3"><p className="text-xs text-slate-500">{t("credits")}</p><p className="text-lg font-bold">${Number(detailData.statement.totalCredits).toLocaleString()}</p></CardContent></Card>
               </div>
@@ -261,12 +261,12 @@ export default function BankReconciliationPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{t("date_1_1_1")}</TableHead>
-                      <TableHead>{t("description_1_1_1_1_1_1")}</TableHead>
+                      <TableHead>{t("date")}</TableHead>
+                      <TableHead>{t("description")}</TableHead>
                       <TableHead>{t("reference")}</TableHead>
-                      <TableHead>{t("debit_1_1")}</TableHead>
-                      <TableHead>{t("credit_1_1")}</TableHead>
-                      <TableHead>{t("status_1_1_1")}</TableHead>
+                      <TableHead>{t("debit")}</TableHead>
+                      <TableHead>{t("credit")}</TableHead>
+                      <TableHead>{t("statusColumn")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

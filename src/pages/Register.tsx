@@ -390,7 +390,7 @@ export default function RegisterPage() {
                     <>
                       {pricing.discountPercent > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-500">{t("discount_1")}</span>
+                          <span className="text-slate-500">{t("discount")}</span>
                           <span className="font-medium text-emerald-600">-{pricing.discountPercent}% ({pricing.discountAmount!.toFixed(0)} AFN)</span>
                         </div>
                       )}

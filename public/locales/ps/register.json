@@ -34,9 +34,15 @@
   "print": "چاپول",
   "professionalPlan": "مسلکي",
   "progressTimeline": {
-    "0": { "label": "ثبت نام وسپارل شو" },
-    "1": { "label": "د تادیې تایید" },
-    "2": { "label": "د حساب فعالول" }
+    "0": {
+      "label": "ثبت نام وسپارل شو"
+    },
+    "1": {
+      "label": "د تادیې تایید"
+    },
+    "2": {
+      "label": "د حساب فعالول"
+    }
   },
   "registrationCode": "د ثبت کوډ",
   "selectedDuration": "موده",

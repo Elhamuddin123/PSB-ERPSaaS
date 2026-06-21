@@ -372,7 +372,7 @@ export default function ReceivablesPage() {
 
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
 
-            <DollarSign className="h-4 w-4" />{t("total_customers_1")}</div>
+            <DollarSign className="h-4 w-4" />{t("total_customers")}</div>
 
           <p className="text-2xl font-bold">{new Set(data?.items?.map((t: any) => t.customerId)).size}</p>
 
@@ -382,7 +382,7 @@ export default function ReceivablesPage() {
 
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
 
-            <FileText className="h-4 w-4" />{t("transactions_1")}</div>
+            <FileText className="h-4 w-4" />{t("transactions")}</div>
 
           <p className="text-2xl font-bold">{data?.items?.length ?? 0}</p>
 
@@ -462,7 +462,7 @@ export default function ReceivablesPage() {
 
           <p className="text-red-500 mb-2">{t("failed_to_load_receivables")}</p>
 
-          <Button variant="outline" onClick={() => refetch()}>{t("retry_1_1_1_1_1")}</Button>
+          <Button variant="outline" onClick={() => refetch()}>{t("retry")}</Button>
 
         </div>
 
@@ -602,7 +602,7 @@ export default function ReceivablesPage() {
 
                             <Button size="sm" className="mb-2">
 
-                              <DollarSign className="h-4 w-4 mr-1" />{t("record_payment_1_1")}</Button>
+                              <DollarSign className="h-4 w-4 mr-1" />{t("record_payment")}</Button>
 
                           </DialogTrigger>
 
@@ -610,7 +610,7 @@ export default function ReceivablesPage() {
 
                             <DialogHeader>
 
-                              <DialogTitle>{t("record_payment_1_1_1")}</DialogTitle>
+                              <DialogTitle>{t("record_payment")}</DialogTitle>
 
                             </DialogHeader>
 
@@ -618,7 +618,7 @@ export default function ReceivablesPage() {
 
                               <div>
 
-                                <label className="text-sm text-gray-500">{t("customer_1_1_1")}</label>
+                                <label className="text-sm text-gray-500">{t("customer")}</label>
 
                                 <p className="font-medium">{tx.customer?.firstName} {tx.customer?.lastName}</p>
 
@@ -626,7 +626,7 @@ export default function ReceivablesPage() {
 
                               <div>
 
-                                <label className="text-sm text-gray-500">{t("amount_1_1_1_1_1_1_1_1_1_1")}</label>
+                                <label className="text-sm text-gray-500">{t("amount")}</label>
 
                                 <Input
 
@@ -646,7 +646,7 @@ export default function ReceivablesPage() {
 
                               <div>
 
-                                <label className="text-sm text-gray-500">{t("description_1_1_1_1_1_1_1_1_1_1_1_1")}</label>
+                                <label className="text-sm text-gray-500">{t("description")}</label>
 
                                 <Input
 
@@ -768,15 +768,15 @@ export default function ReceivablesPage() {
 
                             <TableRow>
 
-                              <TableHead>{t("date_1_1_1_1_1_1_1_1_1")}</TableHead>
+                              <TableHead>{t("date")}</TableHead>
 
-                              <TableHead>{t("type_1_1")}</TableHead>
+                              <TableHead>{t("type")}</TableHead>
 
-                              <TableHead>{t("amount_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                              <TableHead>{t("amount")}</TableHead>
 
-                              <TableHead>{t("balance_1_1_1_1")}</TableHead>
+                              <TableHead>{t("balance")}</TableHead>
 
-                              <TableHead>{t("description_1_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
+                              <TableHead>{t("description")}</TableHead>
 
                             </TableRow>
 
@@ -902,7 +902,7 @@ export default function ReceivablesPage() {
 
               <div>
 
-                <label className="text-sm text-slate-500">{t("amount_1_1_1")}</label>
+                <label className="text-sm text-slate-500">{t("amount")}</label>
 
                 <Input type="number" step="0.01" value={settleForm.amount} onChange={(e) => setSettleForm((s) => ({ ...s, amount: e.target.value }))} />
 
@@ -910,7 +910,7 @@ export default function ReceivablesPage() {
 
               <div>
 
-                <label className="text-sm text-slate-500">{t("notes_1")}</label>
+                <label className="text-sm text-slate-500">{t("notes")}</label>
 
                 <Input value={settleForm.notes} onChange={(e) => setSettleForm((s) => ({ ...s, notes: e.target.value }))} />
 
