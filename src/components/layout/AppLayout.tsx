@@ -44,7 +44,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { t } = useTranslation(["sidebar", "common"]);
+  const { t } = useTranslation("sidebar");
+  const { t: tc } = useTranslation("common");
 
   const baseNavigation = [
     { name: t("dashboard"), href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "agent", "viewer"] },
@@ -121,7 +122,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center h-14 xl:h-16 px-3 xl:px-4 border-b border-slate-200 dark:border-slate-800">
           <Building2 className="h-5 w-5 xl:h-6 xl:w-6 text-indigo-600 flex-shrink-0" />
           {!collapsed && (
-            <span className="ml-2 xl:ml-3 font-bold text-base xl:text-lg text-slate-900 dark:text-white truncate">{t("psb_erp")}</span>
+            <span className="ml-2 xl:ml-3 font-bold text-base xl:text-lg text-slate-900 dark:text-white truncate">{tc("appName")}</span>
           )}
         </div>
 
@@ -184,7 +185,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   {user?.name || "User"}
                 </p>
                 <p className="text-[10px] xl:text-xs text-slate-500 dark:text-slate-400 truncate capitalize">
-                  {user?.role || "Agent"}
+                  {user?.role ? tc(`roles.${user.role}`) : tc("roles.agent")}
                 </p>
               </div>
             )}
@@ -216,7 +217,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SheetContent side={rtl ? "right" : "left"} className="w-64 p-0">
                 <div className="flex items-center h-14 px-4 border-b">
                   <Building2 className="h-6 w-6 text-indigo-600" />
-                  <span className="ml-3 font-bold text-lg">{t("appName")}</span>
+                  <span className="ml-3 font-bold text-lg">{tc("appName")}</span>
                 </div>
                 <ScrollArea className="h-[calc(100vh-4rem)] py-4">
                   <nav className="space-y-1 px-2">
@@ -251,7 +252,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </ScrollArea>
               </SheetContent>
             </Sheet>
-            <span className="ml-2 font-bold text-base">{t("appName")}</span>
+            <span className="ml-2 font-bold text-base">{tc("appName")}</span>
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />

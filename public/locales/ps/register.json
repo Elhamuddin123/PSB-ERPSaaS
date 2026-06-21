@@ -33,7 +33,11 @@
   "pleaseBringDocument": "مهرباني وکړئ دا سند د پیسو تادیه تصدیق او د حساب د فعالولو لپاره زموږ دفتر ته راوړئ.",
   "print": "چاپول",
   "professionalPlan": "مسلکي",
-  "progressTimeline": "[object Object],[object Object],[object Object]",
+  "progressTimeline": {
+    "0": { "label": "ثبت نام وسپارل شو" },
+    "1": { "label": "د تادیې تایید" },
+    "2": { "label": "د حساب فعالول" }
+  },
   "registrationCode": "د ثبت کوډ",
   "selectedDuration": "موده",
   "selectedPlan": "غوره شوی پلان",

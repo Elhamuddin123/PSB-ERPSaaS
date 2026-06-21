@@ -2,9 +2,10 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createRouter, authedQuery, supervisoryQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { customerTransactions, customers, invoices, tickets, notifications } from "@db/schema";
-import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { customerTransactions, customers, invoices, tickets, notifications, deposits, customerLoans } from "@db/schema";
+import { eq, desc, sql, and, inArray, isNull } from "drizzle-orm";
 import { recordCustomerPayment } from "./lib/customer-payment";
+import { getDepositSettlementInfo } from "./lib/customer-ledger-pass";
 
 export const receivableRouter = createRouter({
   list: authedQuery
@@ -74,6 +75,72 @@ export const receivableRouter = createRouter({
       });
 
       return { customer, transactions: withBalance };
+    }),
+
+  customerSettlements: authedQuery
+    .input(z.object({ customerId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const customer = await db.query.customers.findFirst({
+        where: and(eq(customers.id, input.customerId), eq(customers.tenantId, tenantId)),
+      });
+      if (!customer) throw new TRPCError({ code: "NOT_FOUND", message: "Customer not found" });
+
+      const depositRows = await db
+        .select()
+        .from(deposits)
+        .where(and(
+          eq(deposits.tenantId, tenantId),
+          eq(deposits.customerId, input.customerId),
+          eq(deposits.status, "approved"),
+          isNull(deposits.deletedAt),
+        ))
+        .orderBy(desc(deposits.createdAt));
+
+      const depositItems = await Promise.all(
+        depositRows.map(async (deposit) => {
+          const info = await getDepositSettlementInfo(db, tenantId, deposit);
+          return {
+            id: deposit.id,
+            depositCode: deposit.depositCode,
+            walletId: deposit.walletId,
+            ...info,
+          };
+        }),
+      );
+
+      const loanRows = await db
+        .select()
+        .from(customerLoans)
+        .where(and(
+          eq(customerLoans.tenantId, tenantId),
+          eq(customerLoans.customerId, input.customerId),
+          eq(customerLoans.status, "active"),
+          isNull(customerLoans.deletedAt),
+        ))
+        .orderBy(desc(customerLoans.createdAt));
+
+      const loanItems = loanRows
+        .filter((loan) => Number(loan.balanceAmount) > 0)
+        .map((loan) => ({
+          id: loan.id,
+          loanNumber: loan.loanNumber,
+          balanceAmount: Number(loan.balanceAmount),
+          repaidAmount: Number(loan.repaidAmount),
+          principalAmount: Number(loan.principalAmount),
+        }));
+
+      return {
+        customer: {
+          id: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+        },
+        deposits: depositItems.filter((d) => d.remaining > 0.01),
+        loans: loanItems,
+      };
     }),
 
   aging: authedQuery.query(async ({ ctx }) => {

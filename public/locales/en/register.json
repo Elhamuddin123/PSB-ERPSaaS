@@ -33,7 +33,11 @@
   "pleaseBringDocument": "Please Bring Document",
   "print": "Print",
   "professionalPlan": "Professional",
-  "progressTimeline": "[object Object],[object Object],[object Object]",
+  "progressTimeline": {
+    "0": { "label": "Registration submitted" },
+    "1": { "label": "Payment verification" },
+    "2": { "label": "Account activation" }
+  },
   "registrationCode": "Registration code",
   "selectedDuration": "Duration",
   "selectedPlan": "Selected Plan",

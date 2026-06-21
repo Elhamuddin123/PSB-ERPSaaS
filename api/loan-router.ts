@@ -16,6 +16,7 @@ import { nextNumber } from "./lib/numbering";
 import { postLedgerLines } from "./lib/ledger-posting";
 import { auditLog } from "./lib/audit";
 import { reversePostedJournals } from "./lib/journal-reverse";
+import { ledgerPassLoan } from "./lib/customer-ledger-pass";
 
 async function getOrCreateLoanReceivableAccount(db: DbOrTx, tenantId: number) {
   let account = await db.query.chartOfAccounts.findFirst({
@@ -319,6 +320,47 @@ export const loanRouter = createRouter({
       });
 
       return { success: true };
+    }),
+
+  ledgerPass: supervisoryQuery
+    .input(z.object({
+      loanId: z.number(),
+      direction: z.enum(["pay", "receive"]),
+      amount: z.string().min(1),
+      paymentMethod: z.string().default("cash"),
+      notes: z.string().optional(),
+      referenceNumber: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const amount = Number(input.amount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be positive" });
+      }
+
+      const result = await db.transaction(async (tx) =>
+        ledgerPassLoan(tx, {
+          tenantId,
+          userId: ctx.user!.id,
+          loanId: input.loanId,
+          direction: input.direction,
+          amount,
+          paymentMethod: input.paymentMethod,
+          notes: input.notes,
+          referenceNumber: input.referenceNumber,
+        }),
+      );
+
+      await auditLog({
+        ctx,
+        action: "ledger_pass",
+        entityType: "loan",
+        entityId: input.loanId,
+        newValues: { direction: input.direction, amount: input.amount },
+      });
+
+      return result;
     }),
 
   delete: supervisoryQuery

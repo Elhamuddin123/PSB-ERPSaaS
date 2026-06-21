@@ -265,7 +265,7 @@ export default function ReportsPage() {
                 </CardContent>
               </Card>
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[520px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t("customer_1_1_1_1")}</TableHead>
@@ -299,7 +299,7 @@ export default function ReportsPage() {
                 <Skeleton className="h-64 m-4" />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[960px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1")}</TableHead>
@@ -426,7 +426,7 @@ export default function ReportsPage() {
                 </CardContent>
               </Card>
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[520px]">
                   <TableHeader>
                     <TableRow><TableHead>{t("vendor_1_1")}</TableHead><TableHead>{t("count")}</TableHead><TableHead>{t("total_1_1_1_1_1_1")}</TableHead></TableRow>
                   </TableHeader>
@@ -451,7 +451,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[400px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t("category_1_1_1")}</TableHead>
@@ -484,7 +484,7 @@ export default function ReportsPage() {
                 <Skeleton className="h-64 m-4" />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>
@@ -533,7 +533,7 @@ export default function ReportsPage() {
             }}><Download className="h-3 w-3 mr-1" />{t("csv")}</Button>
           </div>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("supplier_1_1_1")}</TableHead>
@@ -641,7 +641,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[480px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t("code_1")}</TableHead>
@@ -719,7 +719,7 @@ export default function ReportsPage() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("code_1_1")}</TableHead>
@@ -761,7 +761,7 @@ export default function ReportsPage() {
             }}><Download className="h-3 w-3 mr-1" />{t("csv_1_1_1")}</Button>
           </div>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("date_1_1_1_1_1_1_1_1_1_1_1_1")}</TableHead>

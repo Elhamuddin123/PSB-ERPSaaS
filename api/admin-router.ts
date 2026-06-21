@@ -7,6 +7,52 @@ import { eq, desc, sql, and } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { bootstrapTenant } from "./lib/bootstrap";
 import { resetTenantData } from "./lib/reset-tenant-data";
+import {
+  computeNewExpiresAt,
+  computeSubscriptionBilling,
+} from "./lib/subscription-billing";
+
+const monthsInput = z.number().int().min(1).max(36).default(1);
+
+function mapRegistrationRow(
+  row: {
+    tenant: typeof tenants.$inferSelect;
+    subscription: {
+      status: typeof subscriptions.$inferSelect.status | null;
+      expiresAt: Date | null;
+      startsAt: Date | null;
+      durationMonths: number | null;
+    } | null;
+  },
+) {
+  const t = row.tenant;
+  const sub = row.subscription;
+  const billing = computeSubscriptionBilling(
+    sub?.expiresAt,
+    t.status,
+    sub?.status ?? undefined,
+  );
+
+  return {
+    id: t.id,
+    name: t.name,
+    slug: t.slug,
+    status: t.status,
+    plan: t.plan,
+    ownerName: t.ownerName,
+    ownerEmail: t.ownerEmail,
+    ownerPhone: t.ownerPhone,
+    address: t.address,
+    city: t.city,
+    registrationToken: t.registrationToken,
+    createdAt: t.createdAt,
+    subscriptionStatus: sub?.status ?? null,
+    subscriptionStartsAt: sub?.startsAt ?? null,
+    subscriptionExpiresAt: sub?.expiresAt ?? null,
+    subscriptionDurationMonths: sub?.durationMonths ?? null,
+    billing,
+  };
+}
 
 export const adminRouter = createRouter({
   // ─── PENDING REGISTRATIONS ─────────────────────────────────────────────────
@@ -58,20 +104,41 @@ export const adminRouter = createRouter({
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-      const items = await db
-        .select()
+      const rows = await db
+        .select({
+          tenant: tenants,
+          subscription: {
+            status: subscriptions.status,
+            expiresAt: subscriptions.expiresAt,
+            startsAt: subscriptions.startsAt,
+            durationMonths: subscriptions.durationMonths,
+          },
+        })
         .from(tenants)
+        .leftJoin(subscriptions, eq(subscriptions.tenantId, tenants.id))
         .where(where)
         .orderBy(desc(tenants.createdAt))
         .limit(input?.limit ?? 20)
         .offset(((input?.page ?? 1) - 1) * (input?.limit ?? 20));
 
-      // (debug logs removed)
-
       const countResult = await db
         .select({ count: sql<number>`count(*)` })
         .from(tenants)
         .where(where);
+
+      const items = rows.map((row) =>
+        mapRegistrationRow({
+          tenant: row.tenant,
+          subscription: row.subscription?.status != null
+            ? {
+                status: row.subscription.status,
+                expiresAt: row.subscription.expiresAt,
+                startsAt: row.subscription.startsAt,
+                durationMonths: row.subscription.durationMonths,
+              }
+            : null,
+        }),
+      );
 
       return { items, total: countResult[0]?.count ?? 0 };
     }),
@@ -82,6 +149,7 @@ export const adminRouter = createRouter({
       z.object({
         tenantId: z.number(),
         notes: z.string().optional(),
+        months: monthsInput.optional(),
         customSeatsPerRole: z.number().int().min(1).max(999).optional(),
       }),
     )
@@ -111,15 +179,15 @@ export const adminRouter = createRouter({
         .where(eq(subscriptions.tenantId, input.tenantId))
         .limit(1);
 
-      const durationMonths = sub[0]?.durationMonths ?? 1;
+      const durationMonths = input.months ?? sub[0]?.durationMonths ?? 1;
       const plan = sub[0]?.plan ?? "starter";
-      const expiresAt = new Date(now);
-      expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
+      const expiresAt = computeNewExpiresAt(null, durationMonths, now);
 
       const subscriptionUpdate: Record<string, unknown> = {
         status: "active",
         startsAt: now,
         expiresAt,
+        durationMonths,
         approvedBy: ctx.user!.id,
         approvedAt: now,
       };
@@ -144,7 +212,7 @@ export const adminRouter = createRouter({
         action: "approve_registration",
         entityType: "tenant",
         entityId: input.tenantId,
-        newValues: { status: "active", expiresAt: expiresAt.toISOString() },
+        newValues: { status: "active", expiresAt: expiresAt.toISOString(), months: durationMonths },
       });
 
       return { success: true, expiresAt: expiresAt.toISOString() };
@@ -190,6 +258,7 @@ export const adminRouter = createRouter({
     .input(
       z.object({
         tenantId: z.number(),
+        months: monthsInput.optional(),
         customSeatsPerRole: z.number().int().min(1).max(999).optional(),
       }),
     )
@@ -202,6 +271,7 @@ export const adminRouter = createRouter({
           durationMonths: subscriptions.durationMonths,
           status: subscriptions.status,
           plan: subscriptions.plan,
+          expiresAt: subscriptions.expiresAt,
         })
         .from(subscriptions)
         .where(eq(subscriptions.tenantId, input.tenantId))
@@ -212,14 +282,14 @@ export const adminRouter = createRouter({
       }
 
       const now = new Date();
-      const durationMonths = sub[0].durationMonths ?? 1;
-      const expiresAt = new Date(now);
-      expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
+      const durationMonths = input.months ?? sub[0].durationMonths ?? 1;
+      const expiresAt = computeNewExpiresAt(sub[0].expiresAt, durationMonths, now);
 
       const subscriptionUpdate: Record<string, unknown> = {
         status: "active",
         startsAt: now,
         expiresAt,
+        durationMonths,
         approvedBy: ctx.user!.id,
         approvedAt: now,
       };
@@ -247,7 +317,76 @@ export const adminRouter = createRouter({
         newValues: {
           status: "active",
           expiresAt: expiresAt.toISOString(),
+          months: durationMonths,
           customSeatsPerRole: input.customSeatsPerRole ?? null,
+        },
+      });
+
+      return { success: true, expiresAt: expiresAt.toISOString() };
+    }),
+
+  extendSubscription: superAdminQuery
+    .input(
+      z.object({
+        tenantId: z.number(),
+        months: monthsInput,
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, input.tenantId),
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agency not found" });
+      }
+      if (tenant.status === "pending" || tenant.status === "rejected") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot extend subscription for pending or rejected agencies",
+        });
+      }
+
+      const sub = await db
+        .select({
+          id: subscriptions.id,
+          expiresAt: subscriptions.expiresAt,
+        })
+        .from(subscriptions)
+        .where(eq(subscriptions.tenantId, input.tenantId))
+        .limit(1);
+
+      if (!sub[0]) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+      }
+
+      const now = new Date();
+      const expiresAt = computeNewExpiresAt(sub[0].expiresAt, input.months, now);
+
+      await db
+        .update(subscriptions)
+        .set({
+          status: "active",
+          expiresAt,
+          durationMonths: input.months,
+          approvedBy: ctx.user!.id,
+          approvedAt: now,
+        })
+        .where(eq(subscriptions.tenantId, input.tenantId));
+
+      if (tenant.status === "suspended") {
+        await db.update(tenants).set({ status: "active" }).where(eq(tenants.id, input.tenantId));
+      }
+
+      await auditLog({
+        ctx,
+        action: "extend_subscription",
+        entityType: "subscription",
+        entityId: sub[0].id,
+        newValues: {
+          expiresAt: expiresAt.toISOString(),
+          months: input.months,
         },
       });
 
@@ -338,6 +477,151 @@ export const adminRouter = createRouter({
       });
 
       return { success: true, ...result };
+    }),
+
+  cancelAgency: superAdminQuery
+    .input(
+      z.object({
+        tenantId: z.number(),
+        confirmName: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, input.tenantId),
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agency not found" });
+      }
+      if (tenant.name.trim() !== input.confirmName.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Confirmation name does not match the agency name",
+        });
+      }
+      if (tenant.status === "pending") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Use reject for pending registrations",
+        });
+      }
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(tenants)
+          .set({ status: "cancelled" })
+          .where(eq(tenants.id, input.tenantId));
+        await tx
+          .update(subscriptions)
+          .set({ status: "cancelled" })
+          .where(eq(subscriptions.tenantId, input.tenantId));
+      });
+
+      await auditLog({
+        ctx,
+        action: "cancel_agency",
+        entityType: "tenant",
+        entityId: input.tenantId,
+        oldValues: { status: tenant.status },
+        newValues: { status: "cancelled" },
+      });
+
+      return { success: true };
+    }),
+
+  suspendAgency: superAdminQuery
+    .input(z.object({ tenantId: z.number(), reason: z.string().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, input.tenantId),
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agency not found" });
+      }
+      if (tenant.status === "pending" || tenant.status === "rejected") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot suspend agencies that are pending or rejected",
+        });
+      }
+
+      await db.update(tenants).set({ status: "suspended" }).where(eq(tenants.id, input.tenantId));
+
+      await auditLog({
+        ctx,
+        action: "suspend_agency",
+        entityType: "tenant",
+        entityId: input.tenantId,
+        oldValues: { status: tenant.status },
+        newValues: { status: "suspended", reason: input.reason },
+      });
+
+      return { success: true };
+    }),
+
+  reactivateAgency: superAdminQuery
+    .input(
+      z.object({
+        tenantId: z.number(),
+        months: monthsInput.optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, input.tenantId),
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agency not found" });
+      }
+      if (tenant.status !== "suspended") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Agency is not suspended" });
+      }
+
+      const sub = await db
+        .select({
+          id: subscriptions.id,
+          expiresAt: subscriptions.expiresAt,
+        })
+        .from(subscriptions)
+        .where(eq(subscriptions.tenantId, input.tenantId))
+        .limit(1);
+
+      const months = input.months ?? 1;
+      const now = new Date();
+      const expiresAt = computeNewExpiresAt(sub[0]?.expiresAt, months, now);
+
+      await db.transaction(async (tx) => {
+        await tx.update(tenants).set({ status: "active" }).where(eq(tenants.id, input.tenantId));
+        if (sub[0]) {
+          await tx
+            .update(subscriptions)
+            .set({
+              status: "active",
+              expiresAt,
+              durationMonths: months,
+              approvedBy: ctx.user!.id,
+              approvedAt: now,
+            })
+            .where(eq(subscriptions.tenantId, input.tenantId));
+        }
+      });
+
+      await auditLog({
+        ctx,
+        action: "reactivate_agency",
+        entityType: "tenant",
+        entityId: input.tenantId,
+        oldValues: { status: tenant.status },
+        newValues: { status: "active", expiresAt: expiresAt.toISOString(), months },
+      });
+
+      return { success: true, expiresAt: expiresAt.toISOString() };
     }),
 
   // ─── DASHBOARD STATS ───────────────────────────────────────────────────────

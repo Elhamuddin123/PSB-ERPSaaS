@@ -10,6 +10,7 @@ import { users, sessions, tenants, subscriptions } from "@db/schema";
 import { eq, desc, and, gt } from "drizzle-orm";
 import { verifyPassword } from "./lib/password";
 import { signSessionToken } from "./kimi/session";
+import { computeSubscriptionBilling } from "./lib/subscription-billing";
 
 // ─── LOGIN RATE LIMITING ────────────────────────────────────────────────────
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -56,16 +57,27 @@ export const authRouter = createRouter({
     const tenant = await db
       .select({
         registrationToken: tenants.registrationToken,
+        name: tenants.name,
+        status: tenants.status,
       })
       .from(tenants)
       .where(eq(tenants.id, user.tenantId))
       .limit(1);
 
+    const sub = subscription[0] || null;
+    const billing = computeSubscriptionBilling(
+      sub?.expiresAt,
+      tenant[0]?.status,
+      sub?.status ?? undefined,
+    );
+
     return {
       ...user,
-      subscription: subscription[0] || null,
+      subscription: sub,
+      billing,
       registrationToken:
         tenant[0]?.registrationToken || null,
+      tenantName: tenant[0]?.name || null,
     };
   }),
 
@@ -200,44 +212,19 @@ export const authRouter = createRouter({
             .limit(1);
 
           if (sub[0]) {
-            if (
-              sub[0].status ===
-              "expired"
-            ) {
+            if (sub[0].status === "cancelled") {
               throw new TRPCError({
-                code:
-                  "FORBIDDEN",
-                message:
-                  "Subscription expired. Please renew your package.",
+                code: "FORBIDDEN",
+                message: "Subscription cancelled. Please contact support to register again.",
               });
             }
 
-            if (
-              sub[0].expiresAt &&
-              new Date(
-                sub[0].expiresAt
-              ) < new Date()
-            ) {
-              await db
-                .update(
-                  subscriptions
-                )
-                .set({
-                  status:
-                    "expired",
-                })
-                .where(
-                  eq(
-                    subscriptions.tenantId,
-                    user[0].tenantId
-                  )
-                );
-
+            // Overdue monthly billing does not auto-block login; super admin suspends manually.
+            if (sub[0].status === "pending") {
               throw new TRPCError({
-                code:
-                  "FORBIDDEN",
+                code: "FORBIDDEN",
                 message:
-                  "Subscription expired. Please renew your package.",
+                  "Subscription not active. Complete payment verification at the office or via the Payment Activation page.",
               });
             }
           }

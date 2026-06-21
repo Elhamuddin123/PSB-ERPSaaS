@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, DollarSign, HandCoins, Trash2, Pencil } from "lucide-react";
+import { Plus, DollarSign, HandCoins, Trash2, Pencil, ArrowLeftRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
 
@@ -37,6 +37,8 @@ export default function LoansPage() {
     notes: "",
   });
   const [repayForm, setRepayForm] = useState({ amount: "", notes: "" });
+  const [ledgerPassLoan, setLedgerPassLoan] = useState<{ id: number; loanNumber: string; balance: string } | null>(null);
+  const [ledgerPassForm, setLedgerPassForm] = useState({ direction: "receive" as "pay" | "receive", amount: "", notes: "" });
 
   const utils = trpc.useUtils();
   const { t, t: tc } = useTranslation("common");
@@ -81,6 +83,18 @@ export default function LoansPage() {
       setEditLoan(null);
       refetch();
       alert(t("alerts.loanUpdated"));
+    },
+    onError: (err) => alertServerError(t, err),
+  });
+  const ledgerPass = trpc.loan.ledgerPass.useMutation({
+    onSuccess: async () => {
+      await utils.loan.list.invalidate();
+      await utils.loan.stats.invalidate();
+      await utils.receivable.customerSettlements.invalidate();
+      setLedgerPassLoan(null);
+      setLedgerPassForm({ direction: "receive", amount: "", notes: "" });
+      refetch();
+      alert(t("alerts.settlementRecorded"));
     },
     onError: (err) => alertServerError(t, err),
   });
@@ -181,8 +195,8 @@ export default function LoansPage() {
         </SelectContent>
       </Select>
 
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
               <TableHead>{t("loanNumber")}</TableHead>
@@ -192,7 +206,7 @@ export default function LoansPage() {
               <TableHead>{t("balance")}</TableHead>
               <TableHead>{t("loanDate")}</TableHead>
               <TableHead>{t("status")}</TableHead>
-              <TableHead className="text-right">{t("actions")}</TableHead>
+                <TableHead className="text-right">{t("actionsLabel")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -211,7 +225,8 @@ export default function LoansPage() {
                 <TableCell className="font-semibold text-amber-600">${Number(loan.balanceAmount).toLocaleString()}</TableCell>
                 <TableCell>{new Date(loan.loanDate).toLocaleDateString()}</TableCell>
                 <TableCell><Badge className={statusColors[loan.status] || ""}>{loan.status}</Badge></TableCell>
-                <TableCell className="text-right space-x-1">
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1 flex-wrap items-center">
                   {canEdit && (
                     <Button
                       size="sm"
@@ -228,8 +243,22 @@ export default function LoansPage() {
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  {loan.status === "active" && Number(loan.balanceAmount) > 0 && (
-                    <Button size="sm" variant="outline" onClick={() => { setRepayLoanId(loan.id); setRepayForm({ amount: String(loan.balanceAmount), notes: "" }); }}>{t("record_repayment")}</Button>
+                  {loan.status === "active" && Number(loan.balanceAmount) > 0 && canManage && (
+                    <>
+                      <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => { setRepayLoanId(loan.id); setRepayForm({ amount: String(loan.balanceAmount), notes: "" }); }}>{t("record_repayment")}</Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-indigo-600 h-7 text-xs px-2"
+                        title={t("ledger_pass")}
+                        onClick={() => {
+                          setLedgerPassLoan({ id: loan.id, loanNumber: loan.loanNumber, balance: String(loan.balanceAmount) });
+                          setLedgerPassForm({ direction: "receive", amount: String(loan.balanceAmount), notes: "" });
+                        }}
+                      >
+                        <ArrowLeftRight className="h-3 w-3 mr-1" />{t("ledger_pass")}
+                      </Button>
+                    </>
                   )}
                   {canManage && Number(loan.balanceAmount) === 0 && (
                     <Button
@@ -247,6 +276,7 @@ export default function LoansPage() {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -309,6 +339,65 @@ export default function LoansPage() {
                 })}
               >
                 {updateLoan.isPending ? tc("actions.saving") : t("save_changes")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!ledgerPassLoan} onOpenChange={() => setLedgerPassLoan(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("ledger_pass")}</DialogTitle></DialogHeader>
+          {ledgerPassLoan && (
+            <div className="space-y-3 pt-2">
+              <p className="text-sm text-slate-500">{ledgerPassLoan.loanNumber} — ${Number(ledgerPassLoan.balance).toLocaleString()} {t("outstanding_balance").toLowerCase()}</p>
+              <div>
+                <Label>{t("settlement_direction")}</Label>
+                <Select value={ledgerPassForm.direction} onValueChange={(v) => setLedgerPassForm((s) => ({ ...s, direction: v as "pay" | "receive" }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receive">{t("settlement_loan_repayment")}</SelectItem>
+                    <SelectItem value="pay">{t("settlement_loan_disbursement")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500 mt-1">
+                  {ledgerPassForm.direction === "receive"
+                    ? t("settlement_loan_repayment_hint")
+                    : t("settlement_loan_disbursement_hint")}
+                </p>
+              </div>
+              <div>
+                <Label>{t("amount_1_1_1_1_1_1_1_1")}</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  max={ledgerPassForm.direction === "receive" ? Number(ledgerPassLoan.balance) : undefined}
+                  value={ledgerPassForm.amount}
+                  onChange={(e) => setLedgerPassForm((s) => ({ ...s, amount: e.target.value }))}
+                />
+                {ledgerPassForm.direction === "receive" && Number(ledgerPassForm.amount) > Number(ledgerPassLoan.balance) + 0.01 && (
+                  <p className="text-xs text-red-600 mt-1">{t("loan_repayment_exceeds_balance")}</p>
+                )}
+              </div>
+              <div>
+                <Label>{t("notes_1_1_1")}</Label>
+                <Input value={ledgerPassForm.notes} onChange={(e) => setLedgerPassForm((s) => ({ ...s, notes: e.target.value }))} />
+              </div>
+              <Button
+                className="w-full bg-indigo-600"
+                disabled={
+                  !ledgerPassForm.amount
+                  || ledgerPass.isPending
+                  || (ledgerPassForm.direction === "receive"
+                    && Number(ledgerPassForm.amount) > Number(ledgerPassLoan.balance) + 0.01)
+                }
+                onClick={() => ledgerPass.mutate({
+                  loanId: ledgerPassLoan.id,
+                  direction: ledgerPassForm.direction,
+                  amount: ledgerPassForm.amount,
+                  notes: ledgerPassForm.notes || undefined,
+                })}
+              >
+                {ledgerPass.isPending ? tc("actions.processing") : t("record_settlement")}
               </Button>
             </div>
           )}

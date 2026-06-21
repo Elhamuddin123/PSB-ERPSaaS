@@ -2,8 +2,9 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createRouter, authedQuery, agencyAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { systemSettings } from "@db/schema";
+import { systemSettings, tenants } from "@db/schema";
 import { eq, and } from "drizzle-orm";
+import { resetTenantData } from "./lib/reset-tenant-data";
 import {
   getAllSettings,
   getSetting,
@@ -192,4 +193,46 @@ export const settingsRouter = createRouter({
 
     return { defaultCurrency, supported };
   }),
+
+  // ─── RESET OWN AGENCY DATA (agency admin) ──────────────────────────────────
+  resetAgencyData: agencyAdminQuery
+    .input(z.object({ confirmName: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, tenantId),
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Agency not found" });
+      }
+      if (tenant.name.trim() !== input.confirmName.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Confirmation name does not match the agency name",
+        });
+      }
+      if (tenant.status === "pending" || tenant.status === "rejected") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot reset data for agencies that are pending or rejected",
+        });
+      }
+
+      const result = await db.transaction(async (tx) =>
+        resetTenantData(tx, tenantId, ctx.user!.id),
+      );
+
+      await auditLog({
+        ctx,
+        action: "reset_agency_data",
+        entityType: "tenant",
+        entityId: tenantId,
+        oldValues: { tenantName: tenant.name },
+        newValues: { reset: true, bootstrapped: true },
+      });
+
+      return { success: true, ...result };
+    }),
 });

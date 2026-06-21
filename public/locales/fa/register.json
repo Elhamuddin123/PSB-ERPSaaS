@@ -33,7 +33,11 @@
   "pleaseBringDocument": "لطفاً این مدرک را برای تکمیل تأیید پرداخت و فعال‌سازی حساب خود به دفتر ما بیاورید.",
   "print": "چاپ",
   "professionalPlan": "حرفه‌ای",
-  "progressTimeline": "[object Object],[object Object],[object Object]",
+  "progressTimeline": {
+    "0": { "label": "ثبت‌نام ارسال شد" },
+    "1": { "label": "تأیید پرداخت" },
+    "2": { "label": "فعال‌سازی حساب" }
+  },
   "registrationCode": "کد ثبت نام",
   "selectedDuration": "مدت",
   "selectedPlan": "طرح انتخاب شده",

@@ -42,7 +42,7 @@ import {
   Shield, Bell, Users, Activity, CheckCircle,
   AlertTriangle, Info, Server, UserCircle, Monitor,
   Plus, Pencil, AlertCircle, Lock, Mail,
-  Phone, Building2, UserPlus, CreditCard, Trash2,
+  Phone, Building2, UserPlus, CreditCard, Trash2, RotateCcw,
 } from "lucide-react";
 
 const STAFF_ROLE_KEYS = ["agent", "viewer"] as const;
@@ -164,6 +164,18 @@ export default function SettingsPage() {
       setDeleteUserTarget(null);
       await refetchUsers();
       await refetchPlanUsage();
+    },
+    onError: (err) => alertServerError(t, err),
+  });
+
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetConfirmName, setResetConfirmName] = useState("");
+  const resetAgencyData = trpc.settings.resetAgencyData.useMutation({
+    onSuccess: () => {
+      alert(t("resetDataSuccess"));
+      setResetDialogOpen(false);
+      setResetConfirmName("");
+      utils.auth.me.invalidate();
     },
     onError: (err) => alertServerError(t, err),
   });
@@ -305,12 +317,55 @@ export default function SettingsPage() {
                   <span className="text-slate-500">{t("status_1_1_1_1_1_1_1_1_1_1_1")}</span>
                   <Badge variant="secondary">{getSubscriptionStatusLabel(user?.subscription?.status, t)}</Badge>
                 </div>
-                {user?.subscription?.expiresAt && (
+                {user?.billing && user.billing.billingStatus !== "inactive" ? (
+                  <>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-500">{t("subscription_paid_through")}</span>
+                      <span className="font-medium">
+                        {user.billing.paidUntil
+                          ? new Date(user.billing.paidUntil).toLocaleDateString()
+                          : "—"}
+                      </span>
+                    </div>
+                    {user.billing.nextPaymentDue && (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-slate-500">{t("subscription_next_payment_due")}</span>
+                        <span className="font-medium">
+                          {new Date(user.billing.nextPaymentDue).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-3 items-center">
+                      <span className="text-slate-500">{t("subscription_billing_status")}</span>
+                      <Badge
+                        className={
+                          user.billing.billingStatus === "overdue"
+                            ? "bg-red-100 text-red-700"
+                            : user.billing.billingStatus === "due"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-100 text-emerald-700"
+                        }
+                      >
+                        {user.billing.billingStatus === "overdue"
+                          ? t("subscription_billing_overdue")
+                          : user.billing.billingStatus === "due"
+                            ? t("subscription_billing_due")
+                            : t("subscription_billing_current")}
+                      </Badge>
+                    </div>
+                    {user.billing.isOverdue && (
+                      <p className="text-xs text-red-600">{t("subscription_billing_overdue_hint")}</p>
+                    )}
+                    {user.billing.isDue && !user.billing.isOverdue && (
+                      <p className="text-xs text-amber-700">{t("subscription_billing_due_hint")}</p>
+                    )}
+                  </>
+                ) : user?.subscription?.expiresAt ? (
                   <div className="flex justify-between gap-3">
                     <span className="text-slate-500">{t("expires")}</span>
                     <span className="font-medium">{new Date(user.subscription.expiresAt).toLocaleDateString()}</span>
                   </div>
-                )}
+                ) : null}
                 {user?.registrationToken && (
                   <div className="flex justify-between gap-3">
                     <span className="text-slate-500">{t("registration_code")}</span>
@@ -341,6 +396,30 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {canManageStaff && (
+              <Card className="border border-red-200 shadow-sm max-w-lg mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-red-700 flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    {t("resetDataTitle")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <p className="text-red-600 text-xs">{t("resetDataWarning")}</p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setResetConfirmName("");
+                      setResetDialogOpen(true);
+                    }}
+                  >
+                    {t("resetData")}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         )}
 
@@ -849,6 +928,39 @@ export default function SettingsPage() {
               {editingUser
                 ? (updateUser.isPending ? t("actions.saving") : t("actions.saveChanges"))
                 : (createUser.isPending ? t("actions.creating") : t("actions.createUser"))}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("resetDataTitle")}</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <span className="block font-medium text-foreground">{user?.tenantName || user?.name}</span>
+              <span className="block text-destructive">{t("resetDataWarning")}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-sm text-slate-600">{t("resetDataConfirmLabel")}</Label>
+            <Input
+              value={resetConfirmName}
+              onChange={(e) => setResetConfirmName(e.target.value)}
+              placeholder={user?.tenantName || ""}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>{t("cancel_1_1_1")}</Button>
+            <Button
+              variant="destructive"
+              disabled={
+                resetAgencyData.isPending
+                || resetConfirmName.trim() !== (user?.tenantName ?? "").trim()
+              }
+              onClick={() => resetAgencyData.mutate({ confirmName: resetConfirmName })}
+            >
+              {t("resetDataConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

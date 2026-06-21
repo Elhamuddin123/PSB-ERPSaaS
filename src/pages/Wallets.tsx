@@ -82,7 +82,12 @@ const createWallet = trpc.wallet.create.useMutation({
     currency: string;
     userId: string;
     status: "active" | "frozen" | "closed";
+    balance: string;
+    creditLimit: string;
+    dueBalance: string;
+    reservedBalance: string;
   } | null>(null);
+  const [walletEditError, setWalletEditError] = useState("");
 
   if (walletsLoading) return <div className="py-8 text-center text-slate-500">{t("loading_wallets")}</div>;
   if (walletsError) return <div className="py-8 text-center text-red-600">Error loading wallets: {walletsError.message}</div>;
@@ -260,13 +265,20 @@ const createWallet = trpc.wallet.create.useMutation({
                         size="sm"
                         variant="outline"
                         className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 h-8 px-2"
-                        onClick={() => setEditWallet({
+                        onClick={() => {
+                          setWalletEditError("");
+                          setEditWallet({
                           id: wallet.id,
                           name: wallet.name,
                           currency: wallet.currency,
                           userId: wallet.userId ? wallet.userId.toString() : "company",
                           status: wallet.status as "active" | "frozen" | "closed",
-                        })}
+                          balance: String(wallet.balance),
+                          creditLimit: String(wallet.creditLimit),
+                          dueBalance: String(wallet.dueBalance),
+                          reservedBalance: String(wallet.reservedBalance),
+                        });
+                        }}
                       >
                         <Pencil className="h-3 w-3" />
                       </Button>
@@ -451,18 +463,54 @@ const createWallet = trpc.wallet.create.useMutation({
                   </SelectContent>
                 </Select>
               </div>
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-xs font-medium text-slate-500">{t("financial_data")}</p>
+                <div>
+                  <Label>{t("balance")}</Label>
+                  <Input type="number" step="0.01" value={editWallet.balance} onChange={(e) => setEditWallet({ ...editWallet, balance: e.target.value })} />
+                  <p className="text-xs text-amber-600 mt-1">{t("wallet_balance_adjustment_note")}</p>
+                  <p className="text-xs text-slate-500 mt-1">{t("reserved")}: ${Number(editWallet.reservedBalance).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label>{t("credit_limit")}</Label>
+                  <Input type="number" step="0.01" value={editWallet.creditLimit} onChange={(e) => setEditWallet({ ...editWallet, creditLimit: e.target.value })} />
+                </div>
+                <div>
+                  <Label>{t("due_balance")}</Label>
+                  <Input type="number" step="0.01" value={editWallet.dueBalance} onChange={(e) => setEditWallet({ ...editWallet, dueBalance: e.target.value })} />
+                </div>
+              </div>
+              {walletEditError && (
+                <p className="text-xs text-red-600">{walletEditError}</p>
+              )}
               <Button
                 className="w-full bg-indigo-600"
                 disabled={!editWallet.name || updateWallet.isPending}
-                onClick={() => updateWallet.mutate({
+                onClick={() => {
+                  const newBalance = Number(editWallet.balance);
+                  const reserved = Number(editWallet.reservedBalance);
+                  if (!Number.isFinite(newBalance) || newBalance < 0) {
+                    setWalletEditError(t("wallet_balance_invalid"));
+                    return;
+                  }
+                  if (newBalance < reserved) {
+                    setWalletEditError(t("wallet_balance_below_reserved", { reserved: reserved.toLocaleString() }));
+                    return;
+                  }
+                  setWalletEditError("");
+                  updateWallet.mutate({
                   id: editWallet.id,
                   name: editWallet.name,
                   currency: editWallet.currency,
                   userId: editWallet.userId !== "company" ? Number(editWallet.userId) : null,
                   status: editWallet.status,
-                })}
+                  balance: editWallet.balance,
+                  creditLimit: editWallet.creditLimit,
+                  dueBalance: editWallet.dueBalance,
+                });
+                }}
               >
-                {updateWallet.isPending ? "Saving..." : t("save_changes")}
+                {updateWallet.isPending ? tc("actions.saving") : t("save_changes")}
               </Button>
             </div>
           )}

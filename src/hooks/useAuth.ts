@@ -21,6 +21,14 @@ export interface AuthUser {
     expiresAt?: Date | string | null;
   } | null;
   registrationToken?: string | null;
+  tenantName?: string | null;
+  billing?: {
+    paidUntil: string | null;
+    nextPaymentDue: string | null;
+    billingStatus: "inactive" | "paid" | "due" | "overdue";
+    isOverdue: boolean;
+    isDue: boolean;
+  } | null;
 }
 
 export function useAuth() {

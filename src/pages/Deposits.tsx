@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Plus, CheckCircle, XCircle, Clock, DollarSign, Download, Trash2, Pencil } from "lucide-react";
+import { Search, Plus, CheckCircle, XCircle, Clock, DollarSign, Download, Trash2, Pencil, ArrowLeftRight } from "lucide-react";
 import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
 import { generateDepositReceiptPDF } from "@/lib/pdf-generator";
 
@@ -64,6 +64,8 @@ export default function DepositsPage() {
     locationId: string;
     notes: string;
   } | null>(null);
+  const [settleDeposit, setSettleDeposit] = useState<{ id: number; depositCode: string; amount: string; walletId: number } | null>(null);
+  const [settleForm, setSettleForm] = useState({ direction: "pay" as "pay" | "receive", amount: "", notes: "" });
 
   const utils = trpc.useUtils();
   const { data, isLoading, error, refetch } = trpc.deposit.list.useQuery(
@@ -103,6 +105,23 @@ export default function DepositsPage() {
     },
     onError: (err) => alertServerError(t, err),
   });
+  const ledgerPass = trpc.deposit.ledgerPass.useMutation({
+    onSuccess: async () => {
+      await utils.deposit.list.invalidate();
+      await utils.deposit.stats.invalidate();
+      await utils.deposit.settlementInfo.invalidate();
+      await utils.receivable.customerSettlements.invalidate();
+      setSettleDeposit(null);
+      setSettleForm({ direction: "pay", amount: "", notes: "" });
+      refetch();
+      alert(t("alerts.settlementRecorded"));
+    },
+    onError: (err) => alertServerError(t, err),
+  });
+  const { data: settlementInfo } = trpc.deposit.settlementInfo.useQuery(
+    { id: settleDeposit?.id ?? 0 },
+    { enabled: !!settleDeposit },
+  );
 
   const statusCounts: Record<string, { count: number; total: number }> = {};
   (stats?.statusCounts || []).forEach((s: any) => statusCounts[s.status] = { count: s.count, total: s.total });
@@ -232,8 +251,8 @@ export default function DepositsPage() {
           <Button variant="outline" onClick={() => refetch()}>{t("retry_1_1")}</Button>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
+        <div className="border rounded-lg overflow-x-auto">
+          <Table className="min-w-[720px]">
             <TableHeader>
               <TableRow>
                 <TableHead>{t("depositCode")}</TableHead>
@@ -241,7 +260,7 @@ export default function DepositsPage() {
                 <TableHead>{t("depositMethod")}</TableHead>
                 <TableHead>{t("wallet")}</TableHead>
                 <TableHead>{t("status")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
+                <TableHead className="text-right">{t("actionsLabel")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -300,6 +319,20 @@ export default function DepositsPage() {
                       )}
                       {d.status === "pending" && !canApprove && (
                         <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded">{t("pending_1")}</span>
+                      )}
+                      {d.status === "approved" && d.customerId && canApprove && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-indigo-600 h-7 text-xs px-2"
+                          title={t("ledger_pass")}
+                          onClick={() => {
+                            setSettleDeposit({ id: d.id, depositCode: d.depositCode, amount: String(d.amount), walletId: d.walletId });
+                            setSettleForm({ direction: "pay", amount: "", notes: "" });
+                          }}
+                        >
+                          <ArrowLeftRight className="h-3 w-3 mr-1" />{t("ledger_pass")}
+                        </Button>
                       )}
                       {d.status === "approved" && (
                         <Button size="sm" variant="ghost" className="text-indigo-600 h-7 text-xs px-2" onClick={async () => {
@@ -411,6 +444,70 @@ export default function DepositsPage() {
                 }}
               >
                 {updateDeposit.isPending ? tc("actions.saving") : t("save_changes")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!settleDeposit} onOpenChange={() => setSettleDeposit(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{t("ledger_pass")}</DialogTitle></DialogHeader>
+          {settleDeposit && (
+            <div className="space-y-3 pt-4">
+              <p className="text-sm text-slate-500">{settleDeposit.depositCode} — ${Number(settleDeposit.amount).toLocaleString()}</p>
+              {settlementInfo && (
+                <div className="text-xs bg-slate-50 rounded p-2 space-y-1">
+                  <p>{t("deposit_total")}: ${settlementInfo.amount.toLocaleString()}</p>
+                  <p>{t("deposit_paid_out")}: ${settlementInfo.paidOut.toLocaleString()}</p>
+                  <p className="font-medium text-indigo-700">{t("deposit_remaining_settleable")}: ${settlementInfo.remaining.toLocaleString()}</p>
+                </div>
+              )}
+              <div>
+                <label className="text-sm text-slate-500">{t("settlement_direction")}</label>
+                <select
+                  className="w-full border rounded-md px-3 py-2 text-sm bg-white mt-1"
+                  value={settleForm.direction}
+                  onChange={(e) => setSettleForm((s) => ({ ...s, direction: e.target.value as "pay" | "receive" }))}
+                >
+                  <option value="pay">{t("settlement_deposit_refund")}</option>
+                  <option value="receive">{t("settlement_deposit_receive")}</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">{t("amount_1_1_1")}</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  max={settleForm.direction === "pay" && settlementInfo ? settlementInfo.remaining : undefined}
+                  value={settleForm.amount}
+                  onChange={(e) => setSettleForm((s) => ({ ...s, amount: e.target.value }))}
+                />
+                {settleForm.direction === "pay" && settlementInfo && Number(settleForm.amount) > settlementInfo.remaining + 0.01 && (
+                  <p className="text-xs text-red-600 mt-1">{t("deposit_settlement_exceeds_remaining")}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">{t("notes_1")}</label>
+                <Input value={settleForm.notes} onChange={(e) => setSettleForm((s) => ({ ...s, notes: e.target.value }))} />
+              </div>
+              <Button
+                className="w-full bg-indigo-600"
+                disabled={
+                  !settleForm.amount
+                  || ledgerPass.isPending
+                  || (settleForm.direction === "pay"
+                    && settlementInfo != null
+                    && Number(settleForm.amount) > settlementInfo.remaining + 0.01)
+                }
+                onClick={() => ledgerPass.mutate({
+                  depositId: settleDeposit.id,
+                  direction: settleForm.direction,
+                  amount: settleForm.amount,
+                  walletId: settleDeposit.walletId,
+                  notes: settleForm.notes || undefined,
+                })}
+              >
+                {ledgerPass.isPending ? tc("actions.processing") : t("record_settlement")}
               </Button>
             </div>
           )}

@@ -82,21 +82,14 @@ const requireAuth = t.middleware(async (opts) => {
       }
 
       if (sub[0]) {
-        // Expiry handling first
-        if (sub[0].expiresAt && new Date(sub[0].expiresAt) < new Date()) {
-          await db.update(subscriptions).set({ status: "expired" }).where(eq(subscriptions.tenantId, ctx.user.tenantId));
-          throw new TRPCError({ code: "FORBIDDEN", message: "Subscription expired. Please renew your package." });
-        }
-        if (sub[0].status === "expired") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Subscription expired. Please renew your package." });
-        }
         if (sub[0].status === "cancelled") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Subscription cancelled. Please contact support to register again." });
         }
 
-        // If subscription is not active, block ERP routes for non-super-admins,
-        // but allow a small set of procedures used by the activation page.
-        if (sub[0].status !== "active" && ctx.user.role !== ROLES.SUPER_ADMIN && !ALLOWED_FOR_PENDING.has(path)) {
+        const subscriptionAllowsAccess =
+          sub[0].status === "active" || sub[0].status === "expired";
+
+        if (!subscriptionAllowsAccess && ctx.user.role !== ROLES.SUPER_ADMIN && !ALLOWED_FOR_PENDING.has(path)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Subscription not active. Complete payment verification at the office or via the Payment Activation page." });
         }
       }

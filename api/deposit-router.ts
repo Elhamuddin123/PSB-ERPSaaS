@@ -24,6 +24,7 @@ import {
 import { eq, desc, sql, and, inArray, isNull } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { nextNumber } from "./lib/numbering";
+import { ledgerPassDeposit, getDepositSettlementInfo } from "./lib/customer-ledger-pass";
 
 async function postDepositAccounting(
   db: import("./queries/connection").DbOrTx,
@@ -461,6 +462,59 @@ export const depositRouter = createRouter({
       });
 
       return { success: true };
+    }),
+
+  ledgerPass: supervisoryQuery
+    .input(z.object({
+      depositId: z.number(),
+      direction: z.enum(["pay", "receive"]),
+      amount: z.string().min(1),
+      walletId: z.number().optional(),
+      notes: z.string().optional(),
+      referenceNumber: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const amount = Number(input.amount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be positive" });
+      }
+
+      const result = await db.transaction(async (tx) =>
+        ledgerPassDeposit(tx, {
+          tenantId,
+          userId: ctx.user!.id,
+          depositId: input.depositId,
+          direction: input.direction,
+          amount,
+          walletId: input.walletId,
+          notes: input.notes,
+          referenceNumber: input.referenceNumber,
+        }),
+      );
+
+      await auditLog({
+        ctx,
+        action: "ledger_pass",
+        entityType: "deposit",
+        entityId: input.depositId,
+        newValues: { direction: input.direction, amount: input.amount },
+      });
+
+      return result;
+    }),
+
+  settlementInfo: authedQuery
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const deposit = await db.query.deposits.findFirst({
+        where: and(eq(deposits.id, input.id), eq(deposits.tenantId, tenantId), isNull(deposits.deletedAt)),
+      });
+      if (!deposit) throw new TRPCError({ code: "NOT_FOUND", message: "Deposit not found" });
+      return getDepositSettlementInfo(db, tenantId, deposit);
     }),
 
   stats: authedQuery.query(async ({ ctx }) => {

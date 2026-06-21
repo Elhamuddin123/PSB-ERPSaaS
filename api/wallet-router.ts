@@ -9,6 +9,7 @@ import {
   ensureWalletCoaAccount,
   getAccountByCode,
   postWalletCredit,
+  postWalletDebit,
   postWalletTransfer,
   CASH_ACCOUNT_CODE,
 } from "./lib/wallet-coa";
@@ -271,12 +272,15 @@ create: supervisoryQuery
         currency: z.string().length(3).optional(),
         userId: z.number().nullable().optional(),
         status: z.enum(["active", "frozen", "closed"]).optional(),
+        balance: z.string().optional(),
+        creditLimit: z.string().optional(),
+        dueBalance: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
-      const { id, ...fields } = input;
+      const { id, balance, creditLimit, dueBalance, ...fields } = input;
 
       const wallet = await db.query.wallets.findFirst({
         where: and(eq(wallets.id, id), eq(wallets.tenantId, tenantId)),
@@ -319,11 +323,101 @@ create: supervisoryQuery
         updateData.status = fields.status;
       }
 
-      if (Object.keys(updateData).length === 0) {
+      if (creditLimit !== undefined) {
+        const limit = Number(creditLimit);
+        if (isNaN(limit) || limit < 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Credit limit must be zero or positive" });
+        }
+        updateData.creditLimit = limit.toFixed(2);
+      }
+
+      if (dueBalance !== undefined) {
+        const due = Number(dueBalance);
+        if (isNaN(due) || due < 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Due balance must be zero or positive" });
+        }
+        updateData.dueBalance = due.toFixed(2);
+      }
+
+      const balanceAdjustment = balance !== undefined ? Number(balance) - Number(wallet.balance) : 0;
+      if (balance !== undefined) {
+        const newBalance = Number(balance);
+        if (isNaN(newBalance) || newBalance < 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Balance must be zero or positive" });
+        }
+        if (newBalance < Number(wallet.reservedBalance ?? 0)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Balance cannot be less than reserved funds" });
+        }
+        updateData.balance = newBalance.toFixed(2);
+      }
+
+      if (Object.keys(updateData).length === 0 && Math.abs(balanceAdjustment) < 0.01) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "No fields to update" });
       }
 
-      await db.update(wallets).set(updateData).where(eq(wallets.id, id));
+      await db.transaction(async (tx) => {
+        if (Object.keys(updateData).length > 0) {
+          await tx.update(wallets).set(updateData).where(eq(wallets.id, id));
+        }
+
+        if (Math.abs(balanceAdjustment) >= 0.01) {
+          const equityAccount = await getAccountByCode(tx, tenantId, "3000");
+          if (!equityAccount) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Owner equity account missing for balance adjustment" });
+          }
+
+          const updatedWallet = await tx.query.wallets.findFirst({ where: eq(wallets.id, id) });
+          if (!updatedWallet) throw new TRPCError({ code: "NOT_FOUND", message: "Wallet not found" });
+
+          const absAdj = Math.abs(balanceAdjustment);
+          const label = `Wallet balance adjustment: ${wallet.name}`;
+          if (balanceAdjustment > 0) {
+            await postWalletCredit(
+              tx,
+              updatedWallet,
+              absAdj,
+              equityAccount.id,
+              "Balance adjustment (equity)",
+              "wallet_adjustment",
+              id,
+              label,
+            );
+            await tx.insert(walletTransactions).values({
+              walletId: id,
+              tenantId,
+              type: "credit",
+              amount: absAdj.toFixed(2),
+              balanceAfter: updatedWallet.balance,
+              description: label,
+              referenceType: "wallet_adjustment",
+              referenceId: id,
+              createdBy: ctx.user!.id,
+            });
+          } else {
+            await postWalletDebit(
+              tx,
+              updatedWallet,
+              absAdj,
+              equityAccount.id,
+              "Balance adjustment (equity)",
+              "wallet_adjustment",
+              id,
+              label,
+            );
+            await tx.insert(walletTransactions).values({
+              walletId: id,
+              tenantId,
+              type: "debit",
+              amount: absAdj.toFixed(2),
+              balanceAfter: updatedWallet.balance,
+              description: label,
+              referenceType: "wallet_adjustment",
+              referenceId: id,
+              createdBy: ctx.user!.id,
+            });
+          }
+        }
+      });
 
       if (fields.name !== undefined) {
         const account = await ensureWalletCoaAccount(db, tenantId, { ...wallet, name: fields.name });
@@ -348,8 +442,16 @@ create: supervisoryQuery
         action: "update",
         entityType: "wallet",
         entityId: id,
-        oldValues: { name: wallet.name, currency: wallet.currency, status: wallet.status, userId: wallet.userId },
-        newValues: updateData,
+        oldValues: {
+          name: wallet.name,
+          currency: wallet.currency,
+          status: wallet.status,
+          userId: wallet.userId,
+          balance: wallet.balance,
+          creditLimit: wallet.creditLimit,
+          dueBalance: wallet.dueBalance,
+        },
+        newValues: { ...updateData, balanceAdjustment: balanceAdjustment || undefined },
       });
 
       return { success: true };

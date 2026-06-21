@@ -115,7 +115,8 @@ export default function InvoicesPage() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
                 <TableHead>{t("invoiceNumber")}</TableHead>
@@ -316,6 +317,7 @@ export default function InvoicesPage() {
               })}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
     </div>

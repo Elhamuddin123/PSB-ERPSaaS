@@ -147,7 +147,8 @@ export default function CustomerDetailPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_bookings")}</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("ticket")}</TableHead>
@@ -172,6 +173,7 @@ export default function CustomerDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -180,7 +182,8 @@ export default function CustomerDetailPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("recent_invoices")}</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("invoice")}</TableHead>
@@ -205,6 +208,7 @@ export default function CustomerDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -213,7 +217,8 @@ export default function CustomerDetailPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t("transaction_history")}</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("date_1_1_1_1")}</TableHead>
@@ -236,6 +241,7 @@ export default function CustomerDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
