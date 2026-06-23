@@ -20,6 +20,13 @@ import {
   postWalletDebit,
 } from "./wallet-coa";
 import { postLedgerLines } from "./ledger-posting";
+import {
+  applyPaymentAllocations,
+  buildObligationSettlements,
+  getCustomerOpenObligations,
+} from "./customer-receive-payment";
+import { postWalletCustomerReceiptJournal } from "./customer-wallet-receipt";
+import { ensureRequiredCoaAccounts } from "./ensure-required-coa";
 
 async function getOrCreateLoanReceivableAccount(db: DbOrTx, tenantId: number) {
   let account = await db.query.chartOfAccounts.findFirst({
@@ -90,6 +97,7 @@ export async function ledgerPassDeposit(
     walletId?: number;
     notes?: string;
     referenceNumber?: string;
+    skipObligationSettlement?: boolean;
   },
 ) {
   const { tenantId, userId, depositId, direction, amount } = params;
@@ -129,6 +137,8 @@ export async function ledgerPassDeposit(
   const customer = await db.query.customers.findFirst({
     where: and(eq(customers.id, deposit.customerId), eq(customers.tenantId, tenantId)),
   });
+
+  let remainingAfter = remaining;
 
   if (direction === "pay") {
     const available = Number(wallet.balance) - Number(wallet.reservedBalance ?? 0);
@@ -178,7 +188,34 @@ export async function ledgerPassDeposit(
       referenceNumber: params.referenceNumber || deposit.depositCode,
       createdBy: userId,
     });
+    remainingAfter = Math.max(0, remaining - amount);
   } else {
+    await ensureRequiredCoaAccounts(db, tenantId);
+
+    const obligations = await getCustomerOpenObligations(db, tenantId, deposit.customerId);
+    const settledAllocations = params.skipObligationSettlement
+      ? []
+      : buildObligationSettlements(amount, obligations);
+    let arTotal = 0;
+    let loanTotal = 0;
+
+    if (settledAllocations.length > 0) {
+      const totals = await applyPaymentAllocations(db, {
+        tenantId,
+        customerId: deposit.customerId,
+        userId,
+        allocations: settledAllocations,
+        paymentMethod: deposit.paymentMethod,
+        referenceNumber: params.referenceNumber || deposit.depositCode,
+        description: params.notes || `From deposit top-up ${deposit.depositCode}`,
+      });
+      arTotal = totals.arTotal;
+      loanTotal = totals.loanTotal;
+    }
+
+    const settledTotal = arTotal + loanTotal;
+    const depositHoldAmount = Math.max(0, amount - settledTotal);
+
     await db.update(wallets)
       .set({ balance: sql`${wallets.balance} + ${amount.toFixed(2)}` })
       .where(eq(wallets.id, wallet.id));
@@ -190,40 +227,51 @@ export async function ledgerPassDeposit(
       type: "credit",
       amount: amount.toFixed(2),
       balanceAfter: updatedWallet!.balance,
-      description: params.notes || `Deposit settlement received: ${deposit.depositCode}`,
+      description: settledTotal > 0
+        ? params.notes || `Deposit top-up ${deposit.depositCode} ($${settledTotal.toFixed(2)} to balances, $${depositHoldAmount.toFixed(2)} on hold)`
+        : params.notes || `Deposit settlement received: ${deposit.depositCode}`,
       referenceType: "deposit_settlement",
       referenceId: deposit.id,
       createdBy: userId,
     });
 
-    await postWalletCredit(
-      db,
-      wallet,
-      amount,
-      depositAccount.id,
-      "Customer deposit settlement received",
-      "deposit_settlement",
-      deposit.id,
-      `Deposit settlement received: ${deposit.depositCode}`,
-    );
-
-    const runningBalance = await getCustomerRunningBalance(db, tenantId, deposit.customerId);
-    await db.insert(customerTransactions).values({
+    await postWalletCustomerReceiptJournal(db, {
       tenantId,
-      customerId: deposit.customerId,
-      type: "deposit",
-      amount: amount.toFixed(2),
-      balance: Math.max(0, runningBalance - amount).toFixed(2),
-      description: params.notes || `Deposit settlement received: ${deposit.depositCode}`,
-      referenceNumber: params.referenceNumber || deposit.depositCode,
-      createdBy: userId,
+      wallet: updatedWallet!,
+      totalAmount: amount,
+      arAmount: arTotal,
+      loanAmount: loanTotal,
+      depositLiabilityAmount: depositHoldAmount,
+      description: `Deposit top-up: ${deposit.depositCode}`,
+      referenceType: "deposit_settlement",
+      referenceId: deposit.id,
     });
+
+    const newDepositAmount = depositAmount + depositHoldAmount;
+    await db.update(deposits)
+      .set({ amount: newDepositAmount.toFixed(2) })
+      .where(eq(deposits.id, deposit.id));
+
+    if (depositHoldAmount > 0.01) {
+      const runningBalance = await getCustomerRunningBalance(db, tenantId, deposit.customerId);
+      await db.insert(customerTransactions).values({
+        tenantId,
+        customerId: deposit.customerId,
+        type: "deposit",
+        amount: depositHoldAmount.toFixed(2),
+        balance: Math.max(0, runningBalance - depositHoldAmount).toFixed(2),
+        description: params.notes || `Deposit top-up ${deposit.depositCode}`,
+        referenceNumber: params.referenceNumber || deposit.depositCode,
+        createdBy: userId,
+      });
+    }
+    remainingAfter = Math.max(0, newDepositAmount - paidOutAmount);
   }
 
   return {
     success: true,
     customerName: customer ? `${customer.firstName} ${customer.lastName}` : undefined,
-    remainingBalance: Math.max(0, remaining - amount),
+    remainingBalance: remainingAfter,
   };
 }
 

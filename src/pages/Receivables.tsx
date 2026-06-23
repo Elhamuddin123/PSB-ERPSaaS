@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { useSearchParams, Link } from "react-router";
 
 import { alertServerError } from "@/lib/i18n-ui";
 
@@ -99,8 +100,12 @@ export default function ReceivablesPage() {
   const [settleTarget, setSettleTarget] = useState<SettleTarget | null>(null);
 
   const [settleForm, setSettleForm] = useState({ direction: "pay" as "pay" | "receive", amount: "", notes: "" });
+  const [searchParams] = useSearchParams();
 
-
+  useEffect(() => {
+    const cid = Number(searchParams.get("customerId"));
+    if (cid > 0) setSelectedCustomerId(cid);
+  }, [searchParams]);
 
   const { data, isLoading, error, refetch } = trpc.receivable.list.useQuery(
 
@@ -347,6 +352,15 @@ export default function ReceivablesPage() {
   return (
 
     <div className="space-y-6">
+
+      {selectedCustomerId && searchParams.get("customerId") && (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 flex flex-wrap items-center justify-between gap-2">
+          <span>{t("filtering_by_customer")} — #{selectedCustomerId}</span>
+          <Button size="sm" variant="outline" onClick={() => setSelectedCustomerId(null)}>
+            {t("clear_filter")}
+          </Button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
 

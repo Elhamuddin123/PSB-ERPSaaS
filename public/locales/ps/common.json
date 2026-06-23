@@ -179,7 +179,6 @@
   "city": "ښار",
   "cityPlaceholder": "د ښار نوم دننه کړئ",
   "class": "درجه",
-  "clear": "پاکول",
   "click_to_view_statement": "د بیان لیدلو لپاره کلیک وکړئ",
   "close": "تړل",
   "close_wallet_must_have_0_balance": "کیسه وتړئ (باید ۰ موجودي ولري)",
@@ -212,7 +211,8 @@
     "deleteSupplier": "عرضه‌کوونکی {{name}} ړنګ کړئ؟",
     "deleteTicket": "ټکټ {{name}} ړنګ کړئ؟ ټول حسابداري ثبتونه به بیرته وګرځول شي.",
     "deleteWallet": "بټوه {{name}} ړنګ کړئ؟",
-    "ticketAccountingReversal": " ټول حسابداري ثبتونه به بیرته وګرځول شي."
+    "ticketAccountingReversal": " ټول حسابداري ثبتونه به بیرته وګرځول شي.",
+    "deleteCustomer": "پیرودونکی {{name}} حذف شي؟ ټول بلیټ، پور او سپردې بیلانسونه باید لومړی تسویه شي."
   },
   "confirmApprove": "اداره تایید شي؟",
   "confirmDelete": "دا عمل بیرته نه راګرځي",
@@ -393,7 +393,6 @@
   "failed_to_load_suppliers_check_console": "تامینونکي بارول ناکام شول. کنسول وګورئ.",
   "failed_to_load_tickets": "ټکټونه بارول ناکام شول",
   "file_name": "د فایل نوم",
-  "filter": "فلتر",
   "filter_by_type": "د ډول له مخې فلتر کړئ",
   "filtered_by": "(فلتر شوی د",
   "financial_breakdown": "مالي وېش",
@@ -1097,5 +1096,8 @@
   "won": "ګټلی",
   "written_off": "ړنګ شوی",
   "yes": "هو",
-  "your_registration_code": "ستاسو د ثبت کوډ"
+  "your_registration_code": "ستاسو د ثبت کوډ",
+  "clear_filter": "فلتر پاک کړئ",
+  "customer_id_label": "پیرودونکی #{{id}}",
+  "filtering_by_customer": "د پیرودونکي له مخې فلتر"
 }

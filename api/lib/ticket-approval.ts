@@ -18,6 +18,7 @@ import type { DbOrTx } from "../queries/connection";
 import { nextNumber } from "./numbering";
 import { postLedgerLines } from "./ledger-posting";
 import { getAccountByCode, postWalletDebit, TICKET_COST_CODE } from "./wallet-coa";
+import { ensureTenantBootstrapped } from "./ensure-tenant-bootstrap";
 
 function getTicketMetadata(ticket: typeof tickets.$inferSelect) {
   if (!ticket.metadata) return null;
@@ -49,7 +50,8 @@ export function computeTicketFinancials(ticket: typeof tickets.$inferSelect) {
   const walletDeduction = totalAmount - commissionAmount;
   const netCommission = commissionAmount - discountAmount;
   const customerCharge = totalAmount - discountAmount;
-  const fareRevenue = totalAmount - netCommission;
+  // Fare = ticket minus full commission; discount only reduces commission revenue, not fare.
+  const fareRevenue = totalAmount - commissionAmount;
   const remainingDue = Math.max(0, customerCharge - paidAmount);
 
   let paymentStatus: "pending" | "partial" | "paid" = "pending";
@@ -70,12 +72,58 @@ export function computeTicketFinancials(ticket: typeof tickets.$inferSelect) {
   };
 }
 
+export type TicketFinancials = ReturnType<typeof computeTicketFinancials>;
+
+export function validateTicketRefund(
+  fin: TicketFinancials,
+  refundAmount: number,
+  penaltyAmount: number,
+): { ok: true; isFullCustomerRefund: boolean; totalReversal: number } | { ok: false; message: string } {
+  if (isNaN(refundAmount) || refundAmount <= 0) {
+    return { ok: false, message: "Refund amount must be positive" };
+  }
+  if (isNaN(penaltyAmount) || penaltyAmount < 0) {
+    return { ok: false, message: "Penalty amount cannot be negative" };
+  }
+
+  const totalReversal = refundAmount + penaltyAmount;
+
+  if (totalReversal > fin.customerCharge + 0.01) {
+    return {
+      ok: false,
+      message: `Refund + penalty cannot exceed customer charge ($${fin.customerCharge.toFixed(2)}) after discount`,
+    };
+  }
+
+  if (refundAmount > fin.paidAmount + 0.01) {
+    return {
+      ok: false,
+      message: `Refund cannot exceed amount customer paid ($${fin.paidAmount.toFixed(2)})`,
+    };
+  }
+
+  const isFullCustomerRefund = Math.abs(totalReversal - fin.customerCharge) < 0.01;
+  return { ok: true, isFullCustomerRefund, totalReversal };
+}
+
+/** Supplier wallet credit on refund — proportional to customer-side reversal, not gross ticket. */
+export function computeRefundWalletCredit(
+  fin: TicketFinancials,
+  totalReversal: number,
+  isFullCustomerRefund: boolean,
+): number {
+  if (isFullCustomerRefund) return fin.walletDeduction;
+  if (fin.customerCharge <= 0) return 0;
+  return fin.walletDeduction * (totalReversal / fin.customerCharge);
+}
+
 export async function approveTicket(
   db: DbOrTx,
   ticket: typeof tickets.$inferSelect,
   user: { id: number; tenantId: number | null; role?: string },
 ) {
   const tenantId = user.tenantId as number;
+  await ensureTenantBootstrapped(db, tenantId, user.id);
   const fin = computeTicketFinancials(ticket);
 
   if (ticket.issuedBy === user.id && user.role === "agent") {
@@ -296,48 +344,46 @@ export async function approveTicket(
       lastBookingDate: new Date(),
     }).where(eq(customers.id, ticket.customerId));
 
-    try {
-      const invoiceNumber = await nextNumber(db, tenantId, "INV");
-      const invoiceResult = await db.insert(invoices).values({
-        tenantId,
-        customerId: ticket.customerId,
-        invoiceNumber,
-        ticketId: ticket.id,
-        issueDate: new Date(),
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        subtotal: fin.customerCharge.toFixed(2),
-        taxAmount: Number(ticket.taxAmount).toFixed(2),
-        totalAmount: fin.customerCharge.toFixed(2),
-        paidAmount: fin.paidAmount.toFixed(2),
-        status: fin.paymentStatus === "paid" ? "paid" : fin.paymentStatus === "partial" ? "partial" : "sent",
-        notes: `Generated from ticket ${ticket.ticketNumber}`,
-        createdBy: user.id,
-      });
-      const invoiceId = Number(invoiceResult[0].insertId);
-
-      const paxList = await db.select().from(ticketPassengers).where(eq(ticketPassengers.ticketId, ticket.id));
-      const paxNames = paxList.map((p) => `${p.firstName} ${p.lastName}`).join(", ");
-
-      await db.insert(invoiceItems).values({
-        invoiceId,
-        description: `Flight: ${ticket.routeFrom} → ${ticket.routeTo} | ${paxNames}`,
-        quantity: 1,
-        unitPrice: fin.customerCharge.toFixed(2),
-        totalPrice: fin.customerCharge.toFixed(2),
-      });
-
-      if (fin.remainingDue > 0) {
-        await db.update(customerTransactions)
-          .set({ invoiceId })
-          .where(and(
-            eq(customerTransactions.tenantId, tenantId),
-            eq(customerTransactions.ticketId, ticket.id),
-            eq(customerTransactions.type, "receivable"),
-          ));
-      }
-    } catch {
-      // Non-critical
+    const invoiceNumber = await nextNumber(db, tenantId, "INV");
+    const invoiceResult = await db.insert(invoices).values({
+      tenantId,
+      customerId: ticket.customerId,
+      invoiceNumber,
+      ticketId: ticket.id,
+      issueDate: new Date(),
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      subtotal: fin.customerCharge.toFixed(2),
+      taxAmount: Number(ticket.taxAmount ?? 0).toFixed(2),
+      totalAmount: fin.customerCharge.toFixed(2),
+      paidAmount: fin.paidAmount.toFixed(2),
+      status: fin.paymentStatus === "paid" ? "paid" : fin.paymentStatus === "partial" ? "partial" : "sent",
+      notes: `Generated from ticket ${ticket.ticketNumber}`,
+      createdBy: user.id,
+    });
+    const invoiceId = Number(invoiceResult[0].insertId);
+    if (!invoiceId) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create invoice for ticket" });
     }
+
+    const paxList = await db.select().from(ticketPassengers).where(eq(ticketPassengers.ticketId, ticket.id));
+    const paxNames = paxList.length > 0
+      ? paxList.map((p) => `${p.firstName} ${p.lastName}`).join(", ")
+      : ticket.ticketNumber;
+
+    await db.insert(invoiceItems).values({
+      invoiceId,
+      description: `Flight: ${ticket.routeFrom} → ${ticket.routeTo} | ${paxNames}`,
+      quantity: 1,
+      unitPrice: fin.customerCharge.toFixed(2),
+      totalPrice: fin.customerCharge.toFixed(2),
+    });
+
+    await db.update(customerTransactions)
+      .set({ invoiceId })
+      .where(and(
+        eq(customerTransactions.tenantId, tenantId),
+        eq(customerTransactions.ticketId, ticket.id),
+      ));
   }
 
   try {
@@ -369,4 +415,119 @@ export async function approveTicket(
   }
 
   return { success: true };
+}
+
+/**
+ * Recreates missing invoice / customer ledger rows for an already-approved ticket.
+ * Does not re-post wallet or journal entries from the original approval.
+ */
+export async function repairTicketCustomerBilling(
+  db: DbOrTx,
+  ticket: typeof tickets.$inferSelect,
+  userId: number,
+) {
+  const tenantId = ticket.tenantId;
+  if (!ticket.customerId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Walk-in tickets have no customer billing to repair" });
+  }
+  if (!["confirmed", "completed"].includes(ticket.status)) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Only approved tickets can be repaired" });
+  }
+
+  const fin = computeTicketFinancials(ticket);
+  const repaired: string[] = [];
+
+  let invoice = await db.query.invoices.findFirst({
+    where: and(eq(invoices.ticketId, ticket.id), eq(invoices.tenantId, tenantId)),
+  });
+
+  if (!invoice) {
+    const invoiceNumber = await nextNumber(db, tenantId, "INV");
+    const invoiceResult = await db.insert(invoices).values({
+      tenantId,
+      customerId: ticket.customerId,
+      invoiceNumber,
+      ticketId: ticket.id,
+      issueDate: new Date(),
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      subtotal: fin.customerCharge.toFixed(2),
+      taxAmount: Number(ticket.taxAmount ?? 0).toFixed(2),
+      totalAmount: fin.customerCharge.toFixed(2),
+      paidAmount: fin.paidAmount.toFixed(2),
+      status: fin.paymentStatus === "paid" ? "paid" : fin.paymentStatus === "partial" ? "partial" : "sent",
+      notes: `Repaired from ticket ${ticket.ticketNumber}`,
+      createdBy: userId,
+    });
+    const invoiceId = Number(invoiceResult[0].insertId);
+    invoice = await db.query.invoices.findFirst({ where: eq(invoices.id, invoiceId) });
+
+    const paxList = await db.select().from(ticketPassengers).where(eq(ticketPassengers.ticketId, ticket.id));
+    const paxNames = paxList.length > 0
+      ? paxList.map((p) => `${p.firstName} ${p.lastName}`).join(", ")
+      : ticket.ticketNumber;
+
+    await db.insert(invoiceItems).values({
+      invoiceId: invoiceId!,
+      description: `Flight: ${ticket.routeFrom} → ${ticket.routeTo} | ${paxNames}`,
+      quantity: 1,
+      unitPrice: fin.customerCharge.toFixed(2),
+      totalPrice: fin.customerCharge.toFixed(2),
+    });
+    repaired.push("invoice");
+  }
+
+  const existingTx = await db.select().from(customerTransactions).where(
+    and(eq(customerTransactions.tenantId, tenantId), eq(customerTransactions.ticketId, ticket.id)),
+  );
+  const hasReceivable = existingTx.some((tx) => tx.type === "receivable");
+  const hasPayment = existingTx.some((tx) => tx.type === "payment");
+
+  const balanceResult = await db
+    .select({ total: sql<number>`COALESCE(SUM(CASE WHEN type = 'receivable' THEN amount WHEN type IN ('payment','deposit','credit','refund') THEN -amount ELSE 0 END), 0)` })
+    .from(customerTransactions)
+    .where(and(eq(customerTransactions.tenantId, tenantId), eq(customerTransactions.customerId, ticket.customerId)));
+  let runningBalance = Number(balanceResult[0]?.total ?? 0);
+
+  if (fin.remainingDue > 0 && !hasReceivable) {
+    runningBalance += fin.remainingDue;
+    await db.insert(customerTransactions).values({
+      tenantId,
+      customerId: ticket.customerId,
+      ticketId: ticket.id,
+      invoiceId: invoice?.id ?? null,
+      type: "receivable",
+      amount: fin.remainingDue.toFixed(2),
+      balance: runningBalance.toFixed(2),
+      description: `Ticket sale: ${ticket.ticketNumber}`,
+      createdBy: userId,
+    });
+    repaired.push("receivable");
+  }
+
+  if (fin.paidAmount > 0 && !hasPayment) {
+    runningBalance = Math.max(0, runningBalance - fin.paidAmount);
+    await db.insert(customerTransactions).values({
+      tenantId,
+      customerId: ticket.customerId,
+      ticketId: ticket.id,
+      invoiceId: invoice?.id ?? null,
+      type: "payment",
+      amount: fin.paidAmount.toFixed(2),
+      balance: runningBalance.toFixed(2),
+      description: `Upfront payment for ticket ${ticket.ticketNumber}`,
+      createdBy: userId,
+    });
+    repaired.push("payment");
+  }
+
+  if (invoice) {
+    await db.update(customerTransactions)
+      .set({ invoiceId: invoice.id })
+      .where(and(
+        eq(customerTransactions.tenantId, tenantId),
+        eq(customerTransactions.ticketId, ticket.id),
+      ));
+  }
+
+  return { success: true, repaired };
 }

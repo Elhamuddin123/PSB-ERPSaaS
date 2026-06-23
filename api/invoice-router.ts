@@ -69,6 +69,33 @@ export const invoiceRouter = createRouter({
       return { ...inv, items: itemsList, customer: customerRow, ticket: ticketRow };
     }),
 
+  getByTicketId: authedQuery
+    .input(z.object({ ticketId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+      const invoice = await db.query.invoices.findFirst({
+        where: and(
+          eq(invoices.ticketId, input.ticketId),
+          eq(invoices.tenantId, tenantId),
+          isNull(invoices.deletedAt),
+        ),
+      });
+      if (!invoice) return null;
+
+      const [itemsList, customerRow, ticketRow] = await Promise.all([
+        db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, invoice.id)),
+        invoice.customerId ? db.query.customers.findFirst({
+          where: and(eq(customers.id, invoice.customerId), eq(customers.tenantId, tenantId)),
+        }) : Promise.resolve(null),
+        db.query.tickets.findFirst({
+          where: and(eq(tickets.id, input.ticketId), eq(tickets.tenantId, tenantId)),
+        }),
+      ]);
+
+      return { ...invoice, items: itemsList, customer: customerRow, ticket: ticketRow };
+    }),
+
   generateFromTicket: supervisoryQuery
     .input(z.object({ ticketId: z.number() }))
     .mutation(async ({ input, ctx }) => {

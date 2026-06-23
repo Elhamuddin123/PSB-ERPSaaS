@@ -179,7 +179,6 @@
   "city": "شهر",
   "cityPlaceholder": "نام شهر را وارد کنید",
   "class": "کلاس",
-  "clear": "پاک کردن",
   "click_to_view_statement": "برای مشاهده صورت‌حساب کلیک کنید",
   "close": "بستن",
   "close_wallet_must_have_0_balance": "بستن کیف پول (باید موجودی ۰ داشته باشد)",
@@ -212,7 +211,8 @@
     "deleteSupplier": "تأمین‌کننده {{name}} حذف شود؟",
     "deleteTicket": "بلیط {{name}} حذف شود؟ تمام ثبت‌های حسابداری معکوس می‌شوند.",
     "deleteWallet": "کیف پول {{name}} حذف شود؟",
-    "ticketAccountingReversal": " تمام ثبت‌های حسابداری معکوس می‌شوند."
+    "ticketAccountingReversal": " تمام ثبت‌های حسابداری معکوس می‌شوند.",
+    "deleteCustomer": "مشتری {{name}} حذف شود؟ تمام مانده بلیط، وام و سپرده باید ابتدا تسویه شود."
   },
   "confirmApprove": "آژانس تأیید شود؟",
   "confirmDelete": "این اقدام قابل بازگشت نیست",
@@ -393,7 +393,6 @@
   "failed_to_load_suppliers_check_console": "بارگذاری تأمین‌کنندگان ناموفق بود. کنسول را بررسی کنید.",
   "failed_to_load_tickets": "بارگذاری بلیط‌ها ناموفق بود",
   "file_name": "نام فایل",
-  "filter": "فیلتر",
   "filter_by_type": "فیلتر بر اساس نوع",
   "filtered_by": "(فیلتر شده بر اساس",
   "financial_breakdown": "تفکیک مالی",
@@ -1097,5 +1096,8 @@
   "won": "برنده",
   "written_off": "باطل شده",
   "yes": "بله",
-  "your_registration_code": "کد ثبت نام شما"
+  "your_registration_code": "کد ثبت نام شما",
+  "clear_filter": "پاک کردن فیلتر",
+  "customer_id_label": "مشتری #{{id}}",
+  "filtering_by_customer": "فیلتر بر اساس مشتری"
 }

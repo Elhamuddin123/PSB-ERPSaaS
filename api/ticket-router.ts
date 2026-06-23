@@ -31,7 +31,9 @@ import {
 } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { createPendingTicket, validateTicketCreatePrerequisites } from "./lib/ticket-create";
-import { approveTicket, computeTicketFinancials } from "./lib/ticket-approval";
+import { approveTicket, computeTicketFinancials, repairTicketCustomerBilling, validateTicketRefund, computeRefundWalletCredit } from "./lib/ticket-approval";
+import { buildTicketRefundSnapshot, undoTicketRefund } from "./lib/ticket-refund-undo";
+import { ensureTenantBootstrapped } from "./lib/ensure-tenant-bootstrap";
 import { reverseApprovedTicket } from "./lib/ticket-reverse";
 import { postLedgerLines } from "./lib/ledger-posting";
 import { reversePostedJournals } from "./lib/journal-reverse";
@@ -114,11 +116,14 @@ async function refundTicket(
 ) {
   const tenantId = user.tenantId as number;
   const fin = computeTicketFinancials(ticket);
-  const totalReversal = refundAmount + penaltyAmount;
-  const isFullRefund = Math.abs(totalReversal - fin.totalAmount) < 0.01;
+  const validation = validateTicketRefund(fin, refundAmount, penaltyAmount);
+  if (!validation.ok) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: validation.message });
+  }
+  const { isFullCustomerRefund, totalReversal } = validation;
 
-  const metadata = getTicketMetadata(ticket);
-  const walletId = metadata?.walletId ?? null;
+  const metadata = getTicketMetadata(ticket) ?? {};
+  const walletId = metadata.walletId ?? null;
   if (!walletId) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Ticket wallet not recorded" });
   }
@@ -130,9 +135,7 @@ async function refundTicket(
     throw new TRPCError({ code: "BAD_REQUEST", message: "Wallet not found" });
   }
 
-  const walletCredit = isFullRefund
-    ? fin.walletDeduction
-    : fin.walletDeduction * (refundAmount / fin.totalAmount);
+  const walletCredit = computeRefundWalletCredit(fin, totalReversal, isFullCustomerRefund);
 
   await db.update(wallets)
     .set({ balance: sql`${wallets.balance} + ${walletCredit.toFixed(2)}` })
@@ -154,11 +157,11 @@ async function refundTicket(
     createdBy: user.id,
   });
 
-  if (isFullRefund) {
+  if (isFullCustomerRefund) {
     await reversePostedJournals(db, tenantId, "ticket", ticket.id, "Ticket refund");
     await reversePostedJournals(db, tenantId, "ticket_wallet", ticket.id, "Ticket wallet refund");
   } else {
-    const ratio = totalReversal / fin.totalAmount;
+    const ratio = fin.customerCharge > 0 ? totalReversal / fin.customerCharge : 0;
     const cashAccount = await db.query.chartOfAccounts.findFirst({
       where: and(eq(chartOfAccounts.code, "1000"), eq(chartOfAccounts.tenantId, tenantId)),
     });
@@ -242,7 +245,7 @@ async function refundTicket(
       entryNumber: `JE-${Date.now()}`,
       date: new Date(),
       description: `Ticket Partial Refund ${ticket.ticketNumber}${reason ? ` - ${reason}` : ""}`,
-      referenceType: "ticket",
+      referenceType: "ticket_refund",
       referenceId: ticket.id,
       status: "posted",
       totalDebit: journalDebit.toFixed(2),
@@ -258,7 +261,7 @@ async function refundTicket(
         tenantId,
         journalEntryId: journalId,
         date: new Date(),
-        referenceType: "ticket",
+        referenceType: "ticket_refund",
         referenceId: ticket.id,
         lines: journalLines,
       });
@@ -272,17 +275,29 @@ async function refundTicket(
         walletCredit,
         ticketCostAccount.id,
         `Partial ticket supplier cost reversal: ${ticket.ticketNumber}`,
-        "ticket_wallet",
+        "ticket_refund_wallet",
         ticket.id,
         `Partial wallet credit for ticket refund ${ticket.ticketNumber}`,
       );
     }
   }
 
-  await db.update(tickets).set({ status: "refunded", paymentStatus: "refunded" }).where(eq(tickets.id, ticket.id));
+  const lastRefund = buildTicketRefundSnapshot(ticket, fin, {
+    refundAmount,
+    penaltyAmount,
+    totalReversal,
+    isFullCustomerRefund,
+    walletCredit,
+  });
+
+  await db.update(tickets).set({
+    status: "refunded",
+    paymentStatus: "refunded",
+    metadata: { ...metadata, lastRefund },
+  }).where(eq(tickets.id, ticket.id));
 
   if (ticket.customerId) {
-    if (isFullRefund) {
+    if (isFullCustomerRefund) {
       const existingTx = await db.select().from(customerTransactions).where(
         and(
           eq(customerTransactions.tenantId, tenantId),
@@ -396,6 +411,7 @@ export const ticketRouter = createRouter({
         .object({
           status: z.string().optional(),
           search: z.string().optional(),
+          customerId: z.number().optional(),
           page: z.number().default(1),
           limit: z.number().default(20),
         })
@@ -435,6 +451,10 @@ export const ticketRouter = createRouter({
         );
       }
 
+      if (input?.customerId) {
+        conditions.push(eq(tickets.customerId, input.customerId));
+      }
+
       if (input?.search) {
         conditions.push(
           or(
@@ -469,11 +489,29 @@ export const ticketRouter = createRouter({
         passengersByTicket.get(p.ticketId)!.push(p);
       }
 
-      const itemsWithRelations = items.map(t => ({
-        ...t,
-        airline: t.airlineId ? airlineMap.get(t.airlineId) || null : null,
-        passengers: passengersByTicket.get(t.id) || [],
-      }));
+      const invoiceList = ticketIds.length > 0
+        ? await db.select({
+          id: invoices.id,
+          ticketId: invoices.ticketId,
+          invoiceNumber: invoices.invoiceNumber,
+        }).from(invoices).where(and(
+          eq(invoices.tenantId, tenantId),
+          isNull(invoices.deletedAt),
+          inArray(invoices.ticketId, ticketIds),
+        ))
+        : [];
+      const invoiceByTicket = new Map(invoiceList.map((i) => [i.ticketId, i]));
+
+      const itemsWithRelations = items.map(t => {
+        const inv = t.id ? invoiceByTicket.get(t.id) : undefined;
+        return {
+          ...t,
+          airline: t.airlineId ? airlineMap.get(t.airlineId) || null : null,
+          passengers: passengersByTicket.get(t.id) || [],
+          invoiceId: inv?.id ?? null,
+          invoiceNumber: inv?.invoiceNumber ?? null,
+        };
+      });
 
       const countResult = await db
         .select({
@@ -549,6 +587,7 @@ export const ticketRouter = createRouter({
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
 
+      await ensureTenantBootstrapped(db, tenantId, ctx.user!.id);
       await validateTicketCreatePrerequisites(db, tenantId, input.walletId, input.airlineId);
       const result = await createPendingTicket(db, ctx, input);
       return { id: result.id, ticketNumber: result.ticketNumber };
@@ -576,6 +615,7 @@ export const ticketRouter = createRouter({
       const tenantId = ctx.user!.tenantId as number;
       const { entries, ...shared } = input;
 
+      await ensureTenantBootstrapped(db, tenantId, ctx.user!.id);
       await validateTicketCreatePrerequisites(db, tenantId, shared.walletId, shared.airlineId);
 
       const created: { id: number; ticketNumber: string }[] = [];
@@ -829,6 +869,32 @@ export const ticketRouter = createRouter({
       return result;
     }),
 
+  repairBilling: supervisoryQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const ticket = await db.query.tickets.findFirst({
+        where: and(eq(tickets.id, input.id), eq(tickets.tenantId, tenantId)),
+      });
+      if (!ticket) throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+
+      const result = await db.transaction(async (tx) =>
+        repairTicketCustomerBilling(tx, ticket, ctx.user!.id),
+      );
+
+      await auditLog({
+        ctx,
+        action: "repair_billing",
+        entityType: "ticket",
+        entityId: input.id,
+        newValues: result,
+      });
+
+      return result;
+    }),
+
   // =====================================================
   // REJECT TICKET
   // =====================================================
@@ -990,9 +1056,10 @@ export const ticketRouter = createRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Only confirmed or completed tickets can be refunded" });
       }
 
-      const totalAmount = Number(existing.totalAmount);
-      if (refundAmount + penaltyAmount > totalAmount) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Refund + penalty cannot exceed ticket total" });
+      const fin = computeTicketFinancials(existing);
+      const validation = validateTicketRefund(fin, refundAmount, penaltyAmount);
+      if (!validation.ok) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: validation.message });
       }
 
       // Concurrency protection: prevent double-refund
@@ -1020,6 +1087,41 @@ export const ticketRouter = createRouter({
         entityId: input.id,
         oldValues: { status: existing.status, totalAmount: existing.totalAmount },
         newValues: { status: "refunded", refundAmount: input.refundAmount, penaltyAmount: input.penaltyAmount, reason: input.reason },
+      });
+
+      return result;
+    }),
+
+  undoRefund: supervisoryQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const tenantId = ctx.user!.tenantId as number;
+
+      const existing = await db.query.tickets.findFirst({
+        where: and(eq(tickets.id, input.id), eq(tickets.tenantId, tenantId)),
+      });
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ticket not found" });
+      }
+
+      const result = await db.transaction(async (tx) => {
+        const fresh = await tx.query.tickets.findFirst({
+          where: and(eq(tickets.id, input.id), eq(tickets.tenantId, tenantId)),
+        });
+        if (!fresh || fresh.status !== "refunded") {
+          throw new TRPCError({ code: "CONFLICT", message: "Ticket is not in refunded status" });
+        }
+        return undoTicketRefund(tx, fresh, ctx.user!.id);
+      });
+
+      await auditLog({
+        ctx,
+        action: "undo_refund",
+        entityType: "ticket",
+        entityId: input.id,
+        oldValues: { status: "refunded" },
+        newValues: { status: result.restoredStatus, undoneRefundAmount: result.undoneRefundAmount },
       });
 
       return result;

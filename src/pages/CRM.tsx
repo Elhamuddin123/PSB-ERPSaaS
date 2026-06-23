@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SortableTableHead } from "@/components/ui/sortable-table-head";
-import { Users, Search, Plus, Phone, Mail, Star, DollarSign, UserPlus, ArrowRight } from "lucide-react";
+import { Users, Search, Plus, Phone, Mail, Star, DollarSign, UserPlus, ArrowRight, Pencil, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import { useClientTable } from "@/lib/client-table";
 
@@ -52,6 +52,24 @@ export default function CRMPage() {
   const [search, setSearch] = useState("");
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
   const [createLeadOpen, setCreateLeadOpen] = useState(false);
+  const [editCustomer, setEditCustomer] = useState<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone: string | null;
+    company: string | null;
+    customerType: "individual" | "corporate" | "agent";
+    status: "active" | "inactive" | "blacklisted" | "vip";
+    notes: string | null;
+  } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    customer: { id: number; firstName: string; lastName: string } | null;
+    canDelete: boolean;
+    blockReason: string | null;
+    depositLiability: number;
+  }>({ open: false, customer: null, canDelete: false, blockReason: null, depositLiability: 0 });
 
   const utils = trpc.useUtils();
   const { data: stats } = trpc.crm.stats.useQuery();
@@ -87,6 +105,46 @@ export default function CRMPage() {
     },
     onError: (err) => alertServerError(tc, err),
   });
+
+  const updateCustomer = trpc.crm.updateCustomer.useMutation({
+    onSuccess: async () => {
+      await utils.crm.customers.invalidate();
+      await utils.crm.stats.invalidate();
+      refetchCustomers();
+      setEditCustomer(null);
+    },
+    onError: (err) => alertServerError(tc, err),
+  });
+
+  const deleteCustomer = trpc.crm.deleteCustomer.useMutation({
+    onSuccess: async () => {
+      await utils.crm.customers.invalidate();
+      await utils.crm.stats.invalidate();
+      refetchCustomers();
+    },
+    onError: (err) => alertServerError(tc, err),
+  });
+
+  const handleDeleteCustomer = async (customer: { id: number; firstName: string; lastName: string }) => {
+    try {
+      const check = await utils.crm.customerDeleteCheck.fetch({ id: customer.id });
+      setDeleteDialog({
+        open: true,
+        customer,
+        canDelete: check.canDelete,
+        blockReason: check.blockReason,
+        depositLiability: Number(check.depositLiability ?? 0),
+      });
+    } catch (err) {
+      alertServerError(tc, err as { message: string });
+    }
+  };
+
+  const confirmDeleteCustomer = () => {
+    if (!deleteDialog.customer) return;
+    deleteCustomer.mutate({ id: deleteDialog.customer.id });
+    setDeleteDialog({ open: false, customer: null, canDelete: false, blockReason: null, depositLiability: 0 });
+  };
 
   const [newCustomer, setNewCustomer] = useState<{ firstName: string; lastName: string; email: string; phone: string; company: string; customerType: "individual" | "corporate" | "agent"; notes: string }>({ firstName: "", lastName: "", email: "", phone: "", company: "", customerType: "individual", notes: "" });
   const [newLead, setNewLead] = useState({ firstName: "", lastName: "", email: "", phone: "", company: "", source: "", priority: "medium" as const, estimatedValue: "", notes: "" });
@@ -269,11 +327,40 @@ export default function CRMPage() {
                         <TableCell className="text-right text-sm">{customer.totalBookings}</TableCell>
                         <TableCell className="text-right font-semibold text-sm">${Number(customer.totalRevenue).toLocaleString()}</TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" asChild>
-                            <Link to={`/crm/customers/${customer.id}`}>
-                              {t("view_details")}<ArrowRight className="h-3 w-3 ml-1 inline" />
-                            </Link>
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button size="sm" variant="ghost" asChild>
+                              <Link to={`/crm/customers/${customer.id}`}>
+                                {t("view_details")}<ArrowRight className="h-3 w-3 ml-1 inline" />
+                              </Link>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => setEditCustomer({
+                                id: customer.id,
+                                firstName: customer.firstName,
+                                lastName: customer.lastName,
+                                email: customer.email,
+                                phone: customer.phone,
+                                company: customer.company,
+                                customerType: customer.customerType,
+                                status: customer.status,
+                                notes: customer.notes,
+                              })}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-red-500"
+                              disabled={deleteCustomer.isPending}
+                              onClick={() => handleDeleteCustomer(customer)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -333,6 +420,98 @@ export default function CRMPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!editCustomer} onOpenChange={() => setEditCustomer(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+          <DialogHeader><DialogTitle>{t("editCustomer")}</DialogTitle></DialogHeader>
+          {editCustomer && (
+            <div className="space-y-3 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>{t("firstName")} *</Label><Input value={editCustomer.firstName} onChange={(e) => setEditCustomer({ ...editCustomer, firstName: e.target.value })} /></div>
+                <div><Label>{t("lastName")} *</Label><Input value={editCustomer.lastName} onChange={(e) => setEditCustomer({ ...editCustomer, lastName: e.target.value })} /></div>
+              </div>
+              <div><Label>{t("emailOptional")}</Label><Input type="email" value={editCustomer.email ?? ""} onChange={(e) => setEditCustomer({ ...editCustomer, email: e.target.value })} /></div>
+              <div><Label>{t("phone")}</Label><Input value={editCustomer.phone ?? ""} onChange={(e) => setEditCustomer({ ...editCustomer, phone: e.target.value })} /></div>
+              <div><Label>{t("company")}</Label><Input value={editCustomer.company ?? ""} onChange={(e) => setEditCustomer({ ...editCustomer, company: e.target.value })} /></div>
+              <div>
+                <Label>{t("type")}</Label>
+                <Select value={editCustomer.customerType} onValueChange={(v) => setEditCustomer({ ...editCustomer, customerType: v as typeof editCustomer.customerType })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">{t("individual")}</SelectItem>
+                    <SelectItem value="corporate">{t("corporate")}</SelectItem>
+                    <SelectItem value="agent">Agent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{t("statusColumn")}</Label>
+                <Select value={editCustomer.status} onValueChange={(v) => setEditCustomer({ ...editCustomer, status: v as typeof editCustomer.status })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="vip">{t("vip")}</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>{t("notes")}</Label><Input value={editCustomer.notes ?? ""} onChange={(e) => setEditCustomer({ ...editCustomer, notes: e.target.value })} /></div>
+              <Button
+                className="w-full bg-indigo-600"
+                disabled={!editCustomer.firstName.trim() || !editCustomer.lastName.trim() || updateCustomer.isPending}
+                onClick={() => updateCustomer.mutate({
+                  id: editCustomer.id,
+                  firstName: editCustomer.firstName,
+                  lastName: editCustomer.lastName,
+                  email: optionalField(editCustomer.email ?? ""),
+                  phone: optionalField(editCustomer.phone ?? ""),
+                  company: optionalField(editCustomer.company ?? ""),
+                  customerType: editCustomer.customerType,
+                  status: editCustomer.status,
+                  notes: optionalField(editCustomer.notes ?? ""),
+                })}
+              >
+                {tc("save")}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, customer: null, canDelete: false, blockReason: null, depositLiability: 0 })}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("delete_customer_title")}</DialogTitle></DialogHeader>
+          {deleteDialog.customer && (
+            <div className="space-y-3 pt-2">
+              {deleteDialog.canDelete ? (
+                <>
+                  <p className="text-sm text-slate-600">{t("delete_customer_confirm")}</p>
+                  <p className="text-sm text-slate-500">{t("delete_customer_warning", { name: `${deleteDialog.customer.firstName} ${deleteDialog.customer.lastName}` })}</p>
+                  <Button className="w-full bg-red-600 hover:bg-red-700" disabled={deleteCustomer.isPending} onClick={confirmDeleteCustomer}>
+                    {deleteCustomer.isPending ? tc("actions.processing") : t("deleteCustomer")}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-amber-800 bg-amber-50 rounded-lg p-3">{t("delete_customer_settle_first")}</p>
+                  {deleteDialog.blockReason && (
+                    <p className="text-sm text-slate-600">{deleteDialog.blockReason}</p>
+                  )}
+                  {deleteDialog.depositLiability > 0.01 && (
+                    <p className="text-sm text-blue-800 bg-blue-50 rounded-lg p-3">
+                      {t("delete_customer_deposit_hint", { amount: deleteDialog.depositLiability.toLocaleString() })}
+                    </p>
+                  )}
+                  <Button className="w-full bg-indigo-600" asChild>
+                    <Link to={`/crm/${deleteDialog.customer.id}`}>{t("view_details")}</Link>
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

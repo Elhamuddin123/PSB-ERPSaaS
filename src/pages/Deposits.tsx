@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useSearchParams, Link } from "react-router";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -68,15 +69,20 @@ export default function DepositsPage() {
   } | null>(null);
   const [settleDeposit, setSettleDeposit] = useState<{ id: number; depositCode: string; amount: string; walletId: number } | null>(null);
   const [settleForm, setSettleForm] = useState({ direction: "pay" as "pay" | "receive", amount: "", notes: "" });
+  const [searchParams] = useSearchParams();
+  const customerIdFilter = Number(searchParams.get("customerId")) || undefined;
 
   const utils = trpc.useUtils();
   const { data, isLoading, error, refetch } = trpc.deposit.list.useQuery(
-    { status: statusFilter || undefined, limit: 50 }
+    { status: statusFilter || undefined, customerId: customerIdFilter, limit: 50 },
   );
   const { data: wallets } = trpc.wallet.list.useQuery();
   const { data: locations } = trpc.paymentLocation.list.useQuery({ status: "active" });
   const { data: customersData } = trpc.crm.customers.useQuery({ limit: 1000 });
   const customers = customersData?.items ?? [];
+  const filterCustomer = customerIdFilter
+    ? customers.find((c) => c.id === customerIdFilter)
+    : undefined;
   const { data: stats } = trpc.deposit.stats.useQuery();
   const createDeposit = trpc.deposit.create.useMutation({
     onSuccess: () => {
@@ -157,6 +163,21 @@ export default function DepositsPage() {
 
   return (
     <div className="space-y-6">
+      {customerIdFilter && (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 flex flex-wrap items-center justify-between gap-2">
+          <span>
+            {t("filtering_by_customer")}:{" "}
+            <strong>
+              {filterCustomer
+                ? `${filterCustomer.firstName} ${filterCustomer.lastName}`
+                : `#${customerIdFilter}`}
+            </strong>
+          </span>
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/deposits">{t("clear_filter")}</Link>
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">{t("depositManagement")}</h1>

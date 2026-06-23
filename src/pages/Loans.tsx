@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useSearchParams, Link } from "react-router";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -42,12 +43,15 @@ export default function LoansPage() {
   const [repayForm, setRepayForm] = useState({ amount: "", notes: "" });
   const [ledgerPassLoan, setLedgerPassLoan] = useState<{ id: number; loanNumber: string; balance: string } | null>(null);
   const [ledgerPassForm, setLedgerPassForm] = useState({ direction: "receive" as "pay" | "receive", amount: "", notes: "" });
+  const [searchParams] = useSearchParams();
+  const customerIdFilter = Number(searchParams.get("customerId")) || undefined;
 
   const utils = trpc.useUtils();
   const { t, t: tc } = useTranslation("common");
   const { data, isLoading, refetch } = trpc.loan.list.useQuery({
     status: statusFilter,
     search: search || undefined,
+    customerId: customerIdFilter,
     limit: 50,
   });
   const { data: stats } = trpc.loan.stats.useQuery();
@@ -127,8 +131,27 @@ export default function LoansPage() {
     onError: (err) => alertServerError(t, err),
   });
 
+  const filterCustomer = customerIdFilter
+    ? customers.find((c) => c.id === customerIdFilter)
+    : undefined;
+
   return (
     <div className="space-y-6">
+      {customerIdFilter && (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 flex flex-wrap items-center justify-between gap-2">
+          <span>
+            {t("filtering_by_customer")}:{" "}
+            <strong>
+              {filterCustomer
+                ? `${filterCustomer.firstName} ${filterCustomer.lastName}`
+                : `#${customerIdFilter}`}
+            </strong>
+          </span>
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/loans">{t("clear_filter")}</Link>
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t("cashLoans")}</h1>

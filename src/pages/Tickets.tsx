@@ -15,6 +15,7 @@ import { Plane, Search, Plus, Eye, CheckCircle, XCircle, RotateCcw, FileText, Do
 import { generateTicketVoucherPDF } from "@/lib/pdf-generator";
 import { alertServerError } from "@/lib/i18n-ui";
 import { SUPERVISORY_ROLES, hasAnyRole, isAgencyAdmin } from "@/lib/roles";
+import { getTicketRefundDefaults } from "@/lib/ticketFinancials";
 
 const statusColors: Record<string, string> = {
   confirmed: "bg-emerald-100 text-emerald-800",
@@ -229,6 +230,18 @@ export default function TicketsPage() {
     onError: (err) => alertServerError(tc, err),
   });
 
+  const undoRefund = trpc.ticket.undoRefund.useMutation({
+    onSuccess: async () => {
+      await utils.ticket.list.invalidate();
+      await utils.ticket.stats.invalidate();
+      await utils.dashboard.stats.invalidate();
+      await utils.dashboard.recentTickets.invalidate();
+      await utils.receivable.list.invalidate();
+      refetch();
+    },
+    onError: (err) => alertServerError(tc, err),
+  });
+
   const updateTicket = trpc.ticket.update.useMutation({
     onSuccess: async () => {
       await invalidateTicketQueries();
@@ -240,6 +253,20 @@ export default function TicketsPage() {
 
   if (isLoading) return <div className="py-8 text-center text-slate-500">{t("loading_tickets")}</div>;
   if (isError) return <div className="py-8 text-center text-red-600">{t("error_loading_tickets")}</div>;
+
+  const openRefundForTicket = (ticket: {
+    id: number;
+    totalAmount: string | number;
+    discountAmount?: string | number | null;
+    paidAmount?: string | number | null;
+  }) => {
+    const { defaultRefund } = getTicketRefundDefaults(ticket);
+    setRefundTicketId(ticket.id);
+    setRefundForm({ refundAmount: String(defaultRefund), penaltyAmount: "", reason: "" });
+  };
+
+  const refundTicketForDialog = ticketsData?.items.find((t) => t.id === refundTicketId);
+  const refundDialogFin = refundTicketForDialog ? getTicketRefundDefaults(refundTicketForDialog) : null;
 
   const ticketCounts: Record<string, number> = {};
   (stats?.statusCounts || []).forEach(s => ticketCounts[s.status] = s.count);
@@ -718,8 +745,23 @@ export default function TicketsPage() {
                               <DollarSign className="h-3 w-3 mr-1" />{t("pay")}</Button>
                           )}
                           {ticket.status === "confirmed" && canApprove && (
-                            <Button size="sm" variant="ghost" className="text-slate-600 h-7 text-xs px-2" onClick={() => { setRefundTicketId(ticket.id); setRefundForm({ refundAmount: String(ticket.totalAmount), penaltyAmount: "", reason: "" }); }}>
+                            <Button size="sm" variant="ghost" className="text-slate-600 h-7 text-xs px-2" onClick={() => openRefundForTicket(ticket)}>
                               <RotateCcw className="h-3 w-3 mr-1" />{t("refund")}</Button>
+                          )}
+                          {ticket.status === "refunded" && canApprove && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-amber-700 border-amber-200 h-7 text-xs px-2"
+                              disabled={undoRefund.isPending}
+                              onClick={() => {
+                                if (confirm(t("undo_refund_confirm"))) {
+                                  undoRefund.mutate({ id: ticket.id });
+                                }
+                              }}
+                            >
+                              <RotateCcw className="h-3 w-3 mr-1" />{t("undo_refund")}
+                            </Button>
                           )}
                           {canApprove && ticket.status !== "refunded" && (
                             <Button
@@ -827,9 +869,28 @@ export default function TicketsPage() {
         <DialogContent aria-describedby={undefined} className="max-w-[95vw] sm:max-w-lg">
           <DialogHeader><DialogTitle>{t("process_ticket_refund")}</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-4">
+            {refundTicketForDialog && refundDialogFin && (
+              <div className="bg-slate-50 rounded-lg p-3 text-sm space-y-1">
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-600">{t("ticket_price")}</span>
+                  <span className="font-medium tabular-nums">${Number(refundTicketForDialog.totalAmount).toLocaleString()}</span>
+                </div>
+                {Number(refundTicketForDialog.discountAmount ?? 0) > 0 && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-slate-600">{t("customer_discount")}</span>
+                    <span className="font-medium text-red-600 tabular-nums">-${Number(refundTicketForDialog.discountAmount).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between gap-2 border-t border-slate-200 pt-1">
+                  <span className="text-slate-700 font-medium">{t("customer_charge")}</span>
+                  <span className="font-semibold tabular-nums">${refundDialogFin.customerCharge.toLocaleString()}</span>
+                </div>
+                <p className="text-xs text-slate-500 pt-1">{t("refund_discount_hint")}</p>
+              </div>
+            )}
             <div>
               <label className="text-sm text-slate-500">{t("refund_amount_to_customer")}</label>
-              <Input type="number" step="0.01" value={refundForm.refundAmount} onChange={e => setRefundForm(s => ({ ...s, refundAmount: e.target.value }))} placeholder="0.00" />
+              <Input type="number" step="0.01" max={refundDialogFin?.paidAmount} value={refundForm.refundAmount} onChange={e => setRefundForm(s => ({ ...s, refundAmount: e.target.value }))} placeholder="0.00" />
             </div>
             <div>
               <label className="text-sm text-slate-500">{t("penalty_amount_kept_by_agency")}</label>
@@ -847,7 +908,14 @@ export default function TicketsPage() {
             )}
             <Button
               className="w-full bg-indigo-600"
-              disabled={!refundForm.refundAmount || refundTicket.isPending}
+              disabled={
+                !refundForm.refundAmount
+                || refundTicket.isPending
+                || (refundDialogFin != null && (
+                  Number(refundForm.refundAmount) > refundDialogFin.paidAmount + 0.01
+                  || Number(refundForm.refundAmount) + Number(refundForm.penaltyAmount || 0) > refundDialogFin.customerCharge + 0.01
+                ))
+              }
               onClick={() => refundTicket.mutate({
                 id: refundTicketId!,
                 refundAmount: refundForm.refundAmount,

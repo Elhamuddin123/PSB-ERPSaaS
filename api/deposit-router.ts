@@ -25,6 +25,7 @@ import { eq, desc, sql, and, inArray, isNull } from "drizzle-orm";
 import { auditLog } from "./lib/audit";
 import { nextNumber } from "./lib/numbering";
 import { ledgerPassDeposit, getDepositSettlementInfo } from "./lib/customer-ledger-pass";
+import { approveCustomerDepositWithSettlement } from "./lib/customer-deposit-approval";
 
 async function postDepositAccounting(
   db: import("./queries/connection").DbOrTx,
@@ -85,9 +86,7 @@ export const depositRouter = createRouter({
     .query(async ({ input, ctx }) => {
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
-      const conditions = [eq(deposits.tenantId, tenantId)];
-      // TODO: re-enable soft-delete filter after adding deleted_at column to DB
-      // isNull(deposits.deletedAt)
+      const conditions = [eq(deposits.tenantId, tenantId), isNull(deposits.deletedAt)];
       if (input?.status) conditions.push(eq(deposits.status, input.status as "pending" | "under_review" | "approved" | "rejected" | "expired"));
       if (input?.customerId) conditions.push(eq(deposits.customerId, input.customerId));
       const where = and(...conditions);
@@ -129,7 +128,7 @@ export const depositRouter = createRouter({
       const db = getDb();
       const tenantId = ctx.user!.tenantId as number;
       const deposit = await db.query.deposits.findFirst({
-        where: and(eq(deposits.id, input.id), eq(deposits.tenantId, tenantId)),
+        where: and(eq(deposits.id, input.id), eq(deposits.tenantId, tenantId), isNull(deposits.deletedAt)),
       });
       if (!deposit) throw new TRPCError({ code: "NOT_FOUND", message: "Deposit not found" });
       return deposit;
@@ -325,7 +324,16 @@ export const depositRouter = createRouter({
       // On approval: update deposit status + credit wallet + post accounting — ALL inside one transaction
       if (input.status === "approved" && oldStatus !== "approved") {
         await db.transaction(async (tx) => {
-          // Update deposit status inside transaction
+          if (deposit.customerId) {
+            await approveCustomerDepositWithSettlement(tx, {
+              tenantId,
+              userId: ctx.user!.id,
+              deposit,
+              approvalNotes: input.notes,
+            });
+            return;
+          }
+
           await tx.update(deposits).set({
             status: input.status,
             approvedBy: ctx.user!.id,
@@ -354,20 +362,6 @@ export const depositRouter = createRouter({
           });
 
           await postDepositAccounting(tx, deposit, wallet, tenantId);
-
-          // Create customer transaction if linked
-          if (deposit.customerId) {
-            await tx.insert(customerTransactions).values({
-              tenantId,
-              customerId: deposit.customerId,
-              type: "deposit",
-              amount: amount.toFixed(2),
-              balance: amount.toFixed(2),
-              description: `Deposit ${deposit.depositCode}`,
-              referenceNumber: deposit.depositCode,
-              createdBy: ctx.user!.id,
-            });
-          }
         });
       } else {
         // Non-approval updates (rejected, expired, etc.) — update outside transaction
@@ -523,7 +517,7 @@ export const depositRouter = createRouter({
     const statusCounts = await db
       .select({ status: deposits.status, count: sql<number>`count(*)`, total: sql<number>`COALESCE(SUM(amount), 0)` })
       .from(deposits)
-      .where(eq(deposits.tenantId, tenantId))
+      .where(and(eq(deposits.tenantId, tenantId), isNull(deposits.deletedAt)))
       .groupBy(deposits.status);
     return { statusCounts };
   }),

@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useSearchParams, Link } from "react-router";
 import { alertServerError } from "@/lib/i18n-ui";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
@@ -44,11 +45,23 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+  const customerIdFilter = Number(searchParams.get("customerId")) || undefined;
 
   const utils = trpc.useUtils();
   const { data, isLoading, error, refetch } = trpc.invoice.list.useQuery(
-    { search: search || undefined, status: statusFilter || undefined, page: 1, limit: 50 }
+    {
+      search: search || undefined,
+      status: statusFilter || undefined,
+      customerId: customerIdFilter,
+      page: 1,
+      limit: 50,
+    },
   );
+  const { data: customersData } = trpc.crm.customers.useQuery({ limit: 1000 }, { enabled: !!customerIdFilter });
+  const filterCustomer = customerIdFilter
+    ? customersData?.items?.find((c) => c.id === customerIdFilter)
+    : undefined;
   const { data: invoiceDetail } = trpc.invoice.get.useQuery(
     { id: selectedId! },
     { enabled: !!selectedId }
@@ -96,6 +109,21 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
+      {customerIdFilter && (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 flex flex-wrap items-center justify-between gap-2">
+          <span>
+            {tc("filtering_by_customer")}:{" "}
+            <strong>
+              {filterCustomer
+                ? `${filterCustomer.firstName} ${filterCustomer.lastName}`
+                : `#${customerIdFilter}`}
+            </strong>
+          </span>
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/invoices">{tc("clear_filter")}</Link>
+          </Button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("invoices")}</h1>
       </div>
