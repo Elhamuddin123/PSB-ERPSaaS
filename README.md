@@ -1,195 +1,297 @@
-<!-- README for PSB-ERPSaaS -->
+# PSB-ERP
 
-# PSB-ERPSaaS
+<div align="center">
 
-Enterprise Travel Agency ERP & Ticket Management SaaS Platform.
+### Airline Ticketing & Travel Agency ERP System
+
+A modern multi-tenant ERP platform built for travel agencies to manage airline ticketing, accounting, wallets, customers, expenses, invoicing, and reporting from one centralized dashboard.
+
+</div>
+
+---
 
 ## Overview
 
-PSB-ERPSaaS is a multi-tenant ERP platform for travel agencies, ticketing firms, and B2B operations.
+PSB-ERP is a complete ERP solution designed specifically for travel agencies. It simplifies ticket booking, financial management, customer management, and business operations while supporting multiple agencies from a single platform.
 
-Features include:
+The system is built with scalability, security, and performance in mind.
 
-- Ticket management
-- Customer CRM
-- Accounting and finance
-- Wallet and payment management
-- Expense tracking
-- Reporting and analytics
-- Supplier management
-- Invoice management
-- Multi-tenant SaaS support
-- AI assistant integration
+---
 
-## Tech Stack
+## Key Features
 
-- Frontend: React, TypeScript, Vite, Tailwind CSS
-- Backend: Node.js, Hono, tRPC, Drizzle ORM, MySQL
-- Build: Vite, esbuild
-- Database migrations: drizzle-kit
+### Ticket Management
+- Create airline tickets
+- Approve and reject tickets
+- Ticket refund management
+- Passenger management
+- PNR management
+- Multi-passenger booking
 
-## Repository Structure
+### Customer Management
+- Customer database
+- Customer ledger
+- Customer transactions
+- Booking history
+- Receivable management
 
-```text
-api/            # backend routes and server entrypoint
-src/            # frontend application source
-db/             # database schema, SQL exports, and migrations
-contracts/      # shared types/constants
-dist/           # build output for frontend and backend
-scripts/        # utility scripts
+### Wallet Management
+- Agency wallets
+- Wallet recharge
+- Wallet deductions
+- Wallet transactions
+- Balance tracking
+
+### Accounting
+- Chart of Accounts
+- Journal Entries
+- General Ledger
+- Expenses
+- Customer Receivables
+- Financial Reports
+- Accounting Dashboard
+
+### Invoice Management
+- Automatic invoice generation
+- Invoice items
+- Payment tracking
+- Invoice history
+
+### User Management
+- Multi-role authentication
+- Super Admin
+- Agency Admin
+- Agent
+- Accountant
+
+### Notifications
+- Real-time notifications
+- Ticket approval alerts
+- Refund notifications
+- System messages
+
+### Dashboard & Reports
+- Sales reports
+- Revenue reports
+- Ticket statistics
+- Financial overview
+- Business analytics
+
+---
+
+## Technology Stack
+
+### Frontend
+
+- React
+- TypeScript
+- Tailwind CSS
+- Vite
+- TanStack Query
+- React Router
+
+### Backend
+
+- Node.js
+- tRPC
+- Drizzle ORM
+- Zod
+- TypeScript
+
+### Database
+
+- MariaDB / MySQL
+
+### Authentication
+
+- Session Authentication
+- Role Based Access Control
+
+---
+
+## Project Structure
+
+```
+client/
+server/
+db/
+shared/
+public/
 ```
 
-## Prerequisites
+---
 
-- Node.js 20.x or higher
-- npm 9.x or higher
-- MySQL database
+## User Roles
 
-## Local Setup
+### Super Admin
 
-1. Clone repository
+- Manage all agencies
+- Approve agencies
+- Manage subscriptions
+- Manage system settings
+- View analytics
+
+### Agency Admin
+
+- Manage users
+- Approve tickets
+- Manage accounting
+- Manage customers
+- Manage expenses
+
+### Agent
+
+- Create tickets
+- Manage customers
+- View reports
+
+### Accountant
+
+- Manage accounting
+- Expenses
+- Journal entries
+- Ledger
+- Financial reports
+
+---
+
+## Business Workflow
+
+```
+Agency Registration
+        ↓
+Admin Approval
+        ↓
+Agency Login
+        ↓
+Create Ticket
+        ↓
+Ticket Approval
+        ↓
+Wallet Deduction
+        ↓
+Accounting Entries
+        ↓
+Invoice Generation
+        ↓
+Reports & Dashboard
+```
+
+---
+
+## Installation
+
+Clone the repository
 
 ```bash
-git clone https://github.com/Elhamuddin123/PSB-ERPSaaS.git
-cd "PSB-ERPSaaS"
+git clone https://github.com/yourusername/PSB-ERP.git
 ```
 
-2. Install dependencies
+Go to project directory
+
+```bash
+cd PSB-ERP
+```
+
+Install dependencies
 
 ```bash
 npm install
 ```
 
-3. Create `.env` file
-
-Example values:
+Configure environment variables
 
 ```env
-DATABASE_URL=mysql://user:password@127.0.0.1:3306/database
-APP_ID=psb-erp
-APP_SECRET=your-production-secret-longer-than-32-chars
-KIMI_AUTH_URL=https://your-kimi-auth-server
-KIMI_OPEN_URL=https://your-kimi-open-server
-NODE_ENV=development
+DATABASE_URL=
+SESSION_SECRET=
+PORT=
 ```
 
-4. Run the app in development
+Run database migrations
+
+```bash
+npm run db:push
+```
+
+Start development server
 
 ```bash
 npm run dev
 ```
 
-## Build Commands
-
-Frontend build only:
+Build production
 
 ```bash
-npm run build:frontend-only
+npm run build
 ```
 
-Backend build only:
+---
 
-```bash
-npm run build:backend-only
-```
+## Security
 
-Build both locally:
+- Authentication
+- Authorization
+- Role-based permissions
+- Multi-tenant isolation
+- Input validation
+- Audit logging
 
-```bash
-npm run build:local
-```
+---
 
-## Production Deployment
+## Current Development Status
 
-### Backend
+Project is under active development.
 
-1. Build the backend:
+Current modules include:
 
-```bash
-npm run build:backend-only
-```
+- Authentication
+- Dashboard
+- Airlines
+- Customers
+- Ticketing
+- Wallets
+- Accounting
+- Expenses
+- Reports
+- Notifications
+- Invoice Management
 
-2. Deploy the `dist/backend` folder and `package.json`/`node_modules` as required by your host.
+---
 
-3. Configure production environment variables:
+## Future Features
 
-```text
-NODE_ENV=production
-DATABASE_URL=mysql://user:password@host:3306/database
-APP_ID=psb-erp
-APP_SECRET=your-production-secret
-KIMI_AUTH_URL=https://your-kimi-auth-server
-KIMI_OPEN_URL=https://your-kimi-open-server
-SESSION_SAMESITE_NONE=true
-FORCE_COOKIE_SECURE=true
-VITE_API_URL=https://api.psb-erp.com
-```
+- Online Payment Gateway
+- Flight API Integration
+- Mobile Application
+- Email Notifications
+- SMS Notifications
+- AI Assistant
+- Document Management
+- Inventory Module
+- HR Module
+- Payroll Module
 
-4. Set the startup command:
-
-```bash
-node dist/backend/boot.js
-```
-
-### Frontend
-
-1. Build the frontend:
-
-```bash
-npm run build:frontend-only
-```
-
-2. Serve `dist/public` from your static hosting platform.
-
-3. Make sure the frontend uses the correct backend URL by setting:
-
-```text
-VITE_API_URL=https://api.psb-erp.com
-```
-
-## Hostinger Deployment Notes
-
-- Use Node 20.x for backend hosting.
-- Deploy the backend to the API subdomain, e.g. `api.psb-erp.com`.
-- Deploy `dist/public` to the main frontend/static domain, e.g. `psb-erp.com`.
-- Ensure the browser app is configured with `VITE_API_URL` pointing to your backend domain.
-- Set `SESSION_SAMESITE_NONE=true` if the frontend and backend are on different domains and the session cookie must be shared.
-
-## Database Deployment
-
-1. Create the database and user.
-2. Run migrations:
-
-```bash
-npm run db:migrate
-```
-
-3. Seed initial data if needed:
-
-```bash
-mysql -u user -p database < db/seed.sql
-```
-
-4. If you deploy a fresh database, use `db/init_schema.sql` and `db/add_foreign_keys.sql` if your host requires separate FK application.
-
-## Common Commands
-
-- `npm run dev` — start frontend/dev server
-- `npm run build:frontend-only` — build frontend only
-- `npm run build:backend-only` — build backend only
-- `npm run start` — start production backend from `dist/backend/boot.js`
-- `npm run lint` — lint code
-- `npm run test` — run tests
-- `npm run db:generate` — generate Drizzle schema artifacts
-- `npm run db:migrate` — apply database migrations
-- `npm run db:push` — push schema changes
-
-## Notes
-
-- The backend is deployed from `dist/backend/boot.js`.
-- The frontend assets are deployed from `dist/public`.
-- `Session.cookieName` is `kimi_sid`, and cookie-based auth requires `credentials: include` from the frontend.
+---
 
 ## Author
 
-Elhamuddin Mukhtari
+**Elhamuddin Mukhtari**
+
+Full Stack Developer
+
+LinkedIn:
+https://www.linkedin.com/in/elhamuddin-mukhtari-b290561b6
+
+GitHub:
+https://github.com/Elhamuddin123
+
+Email:
+elhammukhtari12345@gmail.com
+
+---
+
+## License
+
+This project is licensed for demonstration and commercial development purposes.
+
+© 2026 Elhamuddin Mukhtari. All Rights Reserved.
